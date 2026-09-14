@@ -72,12 +72,18 @@ public class HomeController {
         } else {
             // Dashboard do Tutor
             Optional<Tutor> tutorOpt = tutorRepository.findByUsuarioUsername(username);
+            // Sempre define este atributo (nunca nulo no model): usado com th:unless no
+            // template, e sem Tutor associado (não deveria acontecer, mas alguém autenticado
+            // como ROLE_TUTOR sem linha em T_TUTOR é tratado como "cadastro incompleto" em
+            // vez de quebrar a tela.
+            boolean precisaCompletar = tutorOpt.isEmpty() || perfilService.precisaCompletarCadastro(tutorOpt.get());
+            model.addAttribute("precisaCompletarCadastro", precisaCompletar);
+
             if (tutorOpt.isPresent()) {
                 Tutor tutor = tutorOpt.get();
                 model.addAttribute("tutor", tutor);
-                model.addAttribute("precisaCompletarCadastro", perfilService.precisaCompletarCadastro(tutor));
 
-                if (!perfilService.precisaCompletarCadastro(tutor)) {
+                if (!precisaCompletar) {
                     List<Pet> pets = petService.listarPorTutor(username);
                     model.addAttribute("pets", pets);
 
