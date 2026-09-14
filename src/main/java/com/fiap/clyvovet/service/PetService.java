@@ -82,6 +82,10 @@ public class PetService {
             pet = buscarPorId(dto.getId());
             validarPropriedade(pet, username);
         } else {
+            if (tutor.getCpf().startsWith(PerfilService.PREFIXO_CPF_PROVISORIO)) {
+                throw new IllegalStateException(
+                        "Complete seu cadastro (CPF e telefone) antes de adicionar um pet.");
+            }
             pet = new Pet();
             pet.setTutor(tutor);
             pet.setStatusLongevidade("Acompanhamento preventivo ativo");

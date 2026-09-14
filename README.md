@@ -1,21 +1,20 @@
 <div align="center">
 
-# 🐾 Clyvo Vet
-### **Plataforma Web de Medicina Preventiva, Longevidade & Gamificação Pet**
-*Entrega 3ª Sprint — Java Advanced (FIAP)*
+# 🐾 Clyvo Vet Web v2
+### **Evolução pós-entrega: perfil de produção, cadastro/recuperação de senha e login com Google**
 
 [![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.4-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
-[![Spring Security](https://img.shields.io/badge/Spring%20Security-Role--Based-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white)](https://spring.io/projects/spring-security)
+[![Spring Security](https://img.shields.io/badge/Spring%20Security-OAuth2%20%2B%20Form%20Login-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white)](https://spring.io/projects/spring-security)
 [![Flyway](https://img.shields.io/badge/Flyway-Database%20Migrations-CC0200?style=for-the-badge&logo=flyway&logoColor=white)](https://flywaydb.org/)
 [![Thymeleaf](https://img.shields.io/badge/Thymeleaf-Frontend%20MVC-005F0F?style=for-the-badge&logo=thymeleaf&logoColor=white)](https://www.thymeleaf.org/)
-[![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
 
 <p align="center">
   <a href="#-sobre-o-projeto">Sobre</a> •
   <a href="#-como-executar">Como Executar</a> •
-  <a href="#-credenciais-de-acesso">Acesso</a> •
-  <a href="#-rubrica-da-sprint">Rubrica</a> •
+  <a href="#-autenticação">Autenticação</a> •
+  <a href="#-login-com-google-oauth2">Login com Google</a> •
+  <a href="#-perfis-de-execução">Perfis</a> •
   <a href="#-fluxos-de-negócio-completos">Fluxos</a> •
   <a href="#-testes-automatizados">Testes</a> •
   <a href="#-estrutura-do-projeto">Estrutura</a>
@@ -25,27 +24,20 @@
 
 ---
 
-## 🎥 Vídeo Demonstrativo
-▶️ https://youtu.be/MC7T2CgAiig
-
----
-
-## 👥 Integrantes
-- **Vitória Rodrigues Martins** - RM565160
-- **Augusto Bonomo Júnior** - RM565155
-- **Thomas Fontes** - RM562254
-- **Gabriel Maciel** - RM562795
-- **Matheus Pereira Molina** - RM563399
-
----
-
 ## 📖 Sobre o Projeto
 
-O **Clyvo Vet** combate o **cuidado veterinário reativo**: a maioria dos tutores só procura a clínica quando os sintomas já estão graves, o que encarece o tratamento e reduz a longevidade do pet.
+Este repositório é a continuação do **Clyvo Vet** (entregue como projeto da 3ª Sprint de Java Advanced - FIAP) — uma
+plataforma de medicina veterinária preventiva onde tutores fazem **check-ins diários** de seus pets (gerando streaks,
+pontos e descontos reais) e veterinários avaliam uma **fila de triagem preditiva** que calcula um Escore de
+Longevidade (0-100) cruzando idade, raça, sinais vitais e histórico de cuidados.
 
-A plataforma aplica **medicina preventiva contínua** em dois papéis:
-- **Tutor (`ROLE_TUTOR`):** faz um **check-in diário** dos hábitos do pet (alimentação, humor, atividade física, medicação e sintomas). Cada check-in rende **Clyvo Coins**, mantém a **sequência de dias (streak)**, sobe o **nível de fidelidade** (Bronze → Prata → Ouro → Diamante) com **desconto real em consultas (5% a 20%)** e desbloqueia **badges**. Sintomas relatados geram um **alerta clínico** automático.
-- **Veterinário (`ROLE_ADMIN`):** recebe os alertas e a **fila de triagem preventiva**, registra o exame físico e o sistema calcula um **Escore de Longevidade (0 a 100)** cruzando idade, predisposição genética da raça, sinais vitais e o histórico de check-ins, classificando o risco em **BAIXO, MODERADO ou ALTO** e consolidando tudo na **linha do tempo clínica** do pet.
+A entrega original (avaliada) permanece intocada em [`clyvo-vet-web`](https://github.com/Gabriel-Maciel06/clyvo-vet-web).
+Este repositório evolui o mesmo código com três melhorias identificadas depois da entrega:
+
+1. **Autocadastro e recuperação de senha** — antes só existiam os dois usuários do seed.
+2. **Perfil de produção** — console H2, exceção de CSRF e credenciais de teste passam a existir *apenas* em
+   desenvolvimento.
+3. **Login e cadastro com Google (OAuth2)** — como alternativa ao usuário/senha local.
 
 ---
 
@@ -54,63 +46,138 @@ A plataforma aplica **medicina preventiva contínua** em dois papéis:
 ### Pré-requisitos
 | Ferramenta | Versão |
 | :--- | :--- |
-| **JDK** | 21 (o projeto compila com `--release 21`) |
+| **JDK** | 21 |
 | **Maven** | 3.8+ |
-| **Git** | qualquer |
 
-Não é preciso instalar banco de dados: a aplicação sobe um **H2 em memória (modo Oracle)** e o **Flyway** cria e popula o esquema automaticamente.
+Nada além disso é obrigatório: o banco (H2 em memória) e as migrações do Flyway sobem sozinhos, e tanto o envio de
+e-mail quanto o login com Google são **opcionais** — sem configurá-los, a aplicação funciona normalmente com login
+local e a recuperação de senha registra o link no log em vez de enviar e-mail (ver [Autenticação](#-autenticação)).
 
 ### Passo a passo
 ```bash
-# 1. Clone o repositório
-git clone https://github.com/Gabriel-Maciel06/clyvo-vet-web.git
-cd clyvo-vet-web
+git clone https://github.com/Gabriel-Maciel06/clyvo-vet-web-v2.git
+cd clyvo-vet-web-v2
 
-# 2. (Opcional) Rode os testes automatizados
-mvn test
-
-# 3. Execute a aplicação (opção A: direto pelo Maven)
-mvn spring-boot:run
-
-#    ou (opção B: empacotar e rodar o jar)
-mvn clean package -DskipTests
-java -jar target/clyvo-vet-web-1.0.0.jar
+mvn test              # opcional: roda os 31 testes automatizados
+mvn spring-boot:run   # sobe em http://localhost:8095
 ```
 
-> Se você tiver mais de um JDK instalado, aponte o Maven para o 21 antes de rodar:
+> Mais de um JDK instalado? Aponte o Maven para o 21 antes de rodar:
 > `export JAVA_HOME=$(/usr/libexec/java_home -v 21)` (macOS) ou defina `JAVA_HOME` no Windows/Linux.
 
-### Acesso
-| O quê | Endereço |
+A porta muda com a variável `PORT` (ex.: `PORT=8080 mvn spring-boot:run`). O console H2 (apenas em desenvolvimento)
+fica em `/h2-console` — JDBC URL `jdbc:h2:mem:clyvodb`, usuário `sa`, senha em branco.
+
+### Credenciais do seed
+| Perfil | Usuário | Senha |
+| :--- | :--- | :--- |
+| Veterinário (`ROLE_ADMIN`) | `admin` | `admin123` |
+| Tutor (`ROLE_TUTOR`) | `tutor` | `tutor123` |
+
+---
+
+## 🔐 Autenticação
+
+### Autocadastro de tutor
+Tela `/cadastro` — cria, na mesma transação, a conta de acesso (`T_USUARIO`, senha em BCrypt) e o registro de tutor
+(`T_TUTOR`). Sempre cria `ROLE_TUTOR`; contas de veterinário continuam existindo só via seed/administração direta,
+por segurança. Valida CPF, e-mail e usuário duplicados (`UsuarioService.cadastrarTutor`).
+
+### Recuperação de senha
+Fluxo clássico de "esqueci minha senha", em `RecuperacaoSenhaService`:
+1. `/recuperar-senha` recebe o e-mail e **sempre** responde a mesma mensagem, exista ou não a conta — evita que
+   alguém descubra quais e-mails estão cadastrados.
+2. Um token de uso único (UUID), válido por **30 minutos**, é salvo em `T_TOKEN_RECUPERACAO_SENHA` e enviado por
+   e-mail com o link `/redefinir-senha?token=...`.
+3. `/redefinir-senha` valida o token (não expirado, não usado) e troca a senha (BCrypt).
+
+**Sem precisar configurar nada em desenvolvimento:** se as variáveis de e-mail não existirem, o Spring Boot não cria
+o `JavaMailSender` e o `NotificacaoEmailService` registra o link no **log da aplicação** em vez de falhar — é assim
+que este projeto foi testado. Para enviar e-mails de verdade, defina (ex.: com uma conta Gmail e uma
+[senha de app](https://myaccount.google.com/apppasswords)):
+```bash
+export SPRING_MAIL_HOST=smtp.gmail.com
+export SPRING_MAIL_PORT=587
+export SPRING_MAIL_USERNAME=seu-email@gmail.com
+export SPRING_MAIL_PASSWORD=sua-senha-de-app
+```
+Contas criadas via Google (ver abaixo) não têm senha local — pedir recuperação de senha para elas não gera token.
+
+---
+
+## 🌐 Login com Google (OAuth2)
+
+Botão "Continuar com Google" na tela de login. **Só aparece quando configurado** — sem as variáveis de ambiente
+abaixo, a aplicação sobe normalmente com login local apenas (nada quebra por falta de credenciais do Google).
+
+### 1. Criar as credenciais no Google Cloud Console
+1. Acesse [console.cloud.google.com](https://console.cloud.google.com/) e crie um projeto (ou use um existente).
+2. Menu **APIs e Serviços → Tela de consentimento OAuth**: tipo *Externo*, preencha nome do app e e-mail; em
+   *Escopos*, adicione `email`, `profile` e `openid`. Em desenvolvimento, adicione seu e-mail em *Usuários de teste*.
+3. Menu **APIs e Serviços → Credenciais → Criar Credenciais → ID do cliente OAuth**:
+   - Tipo de aplicativo: **Aplicativo da Web**.
+   - **Origens JavaScript autorizadas:** `http://localhost:8095`
+   - **URIs de redirecionamento autorizados:** `http://localhost:8095/login/oauth2/code/google`
+     (em produção, troque pelo domínio real, ex.: `https://seu-dominio.com/login/oauth2/code/google`).
+4. Copie o **Client ID** e o **Client Secret** gerados.
+
+### 2. Configurar a aplicação
+```bash
+export GOOGLE_CLIENT_ID=seu-client-id.apps.googleusercontent.com
+export GOOGLE_CLIENT_SECRET=seu-client-secret
+mvn spring-boot:run
+```
+O botão do Google aparece na tela de login e `/oauth2/authorization/google` inicia o fluxo padrão do Spring Security.
+
+### 3. O que acontece no primeiro login
+`CustomOAuth2UserService` decide entre duas situações, a partir do e-mail devolvido pelo Google:
+- **E-mail já tem conta local** (ex.: alguém que se cadastrou pelo formulário): a conta existente passa a aceitar
+  login também via Google (o Google não substitui nem apaga a senha local).
+- **E-mail novo:** cria `Usuario` (`ROLE_TUTOR`, sem senha) e `Tutor`. Como o Google não fornece CPF e ele é a chave
+  primária de `T_TUTOR`, um **CPF provisório** é atribuído (`GOOGLE` + ID) e o tutor é levado a
+  `/perfil/completar-cadastro`, onde informa o CPF e telefone reais antes de poder cadastrar pets
+  (`PerfilService.completarCadastro`).
+
+Essa lógica é validada por testes de unidade em `CustomOAuth2UserServiceTest` e `PerfilServiceTest`, sem depender de
+credenciais reais — então o comportamento pode ser conferido com `mvn test` mesmo sem configurar o Google.
+
+---
+
+## 🏭 Perfis de Execução
+
+| | Desenvolvimento (padrão) | Produção (`SPRING_PROFILES_ACTIVE=prod`) |
+| :--- | :--- | :--- |
+| Console H2 (`/h2-console`) | Habilitado | **Desabilitado** (nem exposto pela autoconfiguração) |
+| Exceção de CSRF | Só para `/h2-console/**` | **Nenhuma** |
+| Credenciais de teste na tela de login | Aparecem | **Ocultas** |
+| Banco de dados | H2 em memória | Definido por `DB_URL`/`DB_USER`/`DB_PASSWORD`/`DB_DRIVER` |
+| `spring.jpa.show-sql` | `true` | `false` |
+
+```bash
+export SPRING_PROFILES_ACTIVE=prod
+export DB_URL=jdbc:oracle:thin:@//host:1521/SERVICE
+export DB_USER=usuario_do_banco
+export DB_PASSWORD=senha_do_banco
+export APP_URL_BASE=https://seu-dominio.com   # usado nos links de e-mail
+java -jar target/clyvo-vet-web-1.0.0.jar
+```
+A troca de perfil é feita inteiramente por `application-prod.properties` sobrescrevendo `application.properties` —
+ver `SecurityConfig` (a flag `app.h2-console.permitir` decide, na mesma classe, se o console H2 é liberado *e* se a
+exceção de CSRF existe, então em produção nenhum dos dois fica ativo).
+
+---
+
+## 👤 Controle de Acesso
+
+| Perfil | Rotas |
 | :--- | :--- |
-| **Aplicação Web** | http://localhost:8095 |
-| **Console H2** (ver as tabelas criadas pelo Flyway) | http://localhost:8095/h2-console — JDBC URL `jdbc:h2:mem:clyvodb`, usuário `sa`, senha em branco |
+| **Veterinário** (`ROLE_ADMIN`) | `/triagem/fila`, `/triagem/avaliar/{id}` |
+| **Tutor** (`ROLE_TUTOR`) | `/pets/novo`, `/pets/salvar`, `/checkin/**`, `/triagem/solicitar`, `/perfil/**` |
+| **Público** | `/login`, `/cadastro`, `/recuperar-senha`, `/redefinir-senha`, `/access-denied` |
 
-A porta pode ser alterada com a variável `PORT` (ex.: `PORT=8080 mvn spring-boot:run`).
-
----
-
-## 👥 Credenciais de Acesso
-
-Os usuários são criados pela migração `V3__inserir_dados_iniciais.sql` com senha em **BCrypt**:
-
-| Perfil | Usuário | Senha | O que acessa |
-| :--- | :--- | :--- | :--- |
-| **Veterinário / Clínica** (`ROLE_ADMIN`) | `admin` | `admin123` | Central Médica (`/dashboard`), Alertas de Saúde, Fila de Triagem (`/triagem/fila`), Avaliação Clínica (`/triagem/avaliar/{id}`), prontuário de todos os pets |
-| **Tutor de Pet** (`ROLE_TUTOR`) | `tutor` | `tutor123` | Painel do Tutor (`/dashboard`), Cadastro de Pets (`/pets/novo`), Check-in Diário (`/checkin/novo`), Clube de Recompensas (`/checkin/recompensas`), Solicitação de Triagem (`/triagem/solicitar`) |
-
-> 🔒 Um tutor que tentar abrir `/triagem/fila`, ou um veterinário que tentar abrir `/checkin/novo`, recebe **HTTP 403** e a página *Acesso Negado*. Um tutor também não consegue ver ou manipular pets de outro tutor trocando o ID na URL ou no formulário.
-
----
-
-## 🎯 Rubrica da Sprint
-
-| Requisito | Pontos | Como foi atendido |
-| :--- | :---: | :--- |
-| **1. Frontend** | 30 | 13 telas em **Thymeleaf + Bootstrap 5.3** com layout compartilhado (`fragments/layout.html`), sidebar por perfil (`sec:authorize`), dashboards distintos para tutor e veterinário, formulários com mensagens de validação (`th:errors`) e responsividade mobile. |
-| **2. Flyway** | 20 | `V1__criar_tabelas_base.sql` (usuários, raças, tutores, clínicas, pets), `V2__criar_tabelas_fluxos_clinicos.sql` (check-ins, recompensas, badges, triagem, histórico) e `V3__inserir_dados_iniciais.sql` (carga). `spring.jpa.hibernate.ddl-auto=none`: o Flyway é a única fonte do esquema. |
-| **3. Spring Security** | 30 | Login por formulário, `DaoAuthenticationProvider` + `CustomUserDetailsService` lendo `T_USUARIO`, senhas **BCrypt**, CSRF ativo, dois perfis (`ROLE_TUTOR`, `ROLE_ADMIN`), rotas protegidas em `SecurityConfig` e `@PreAuthorize`, página de acesso negado e **validação de propriedade do pet** na camada de serviço. |
-| **4. Funcionalidades completas** | 20 | Dois fluxos não-CRUD ponta a ponta (abaixo) com **Bean Validation** nos DTOs (`@NotNull`, `@NotBlank`, `@Size`, `@DecimalMin`) e regras de negócio nos *services*. |
+Um tutor não acessa rotas de veterinário (e vice-versa) — recebe **403** e a página *Acesso Negado*. A camada de
+serviço também impede que um tutor veja ou manipule **pets de outro tutor** trocando o ID na URL/formulário
+(`PetService.validarPropriedade`).
 
 ---
 
@@ -118,13 +185,11 @@ Os usuários são criados pela migração `V3__inserir_dados_iniciais.sql` com s
 
 ### 🎮 Fluxo 1 — Check-in Diário, Streak e Recompensas (Tutor)
 `CheckinController` → `CheckinService.registrarCheckin()`
-
 1. Valida que o pet pertence ao tutor logado e que ainda não houve check-in hoje.
-2. Detecta **alerta clínico** (humor apático/dor, pouco apetite ou sintomas descritos) e o publica na Central Médica.
+2. Detecta **alerta clínico** (humor apático/dor, pouco apetite ou sintomas descritos).
 3. Pontua: 10 Clyvo Coins base, +5 com 30 min ou mais de atividade, +5 com medicação administrada.
-4. Atualiza a **recompensa do tutor** (`RecompensaTutor`): streak de dias consecutivos, pontos, nível e desconto (regra única na entidade).
-5. Desbloqueia **badges** (Primeiro Passo, Tutor Dedicado, Atleta Canino, Guardião da Longevidade).
-6. Registra o evento na **linha do tempo clínica** do pet.
+4. Atualiza a **recompensa do tutor** (`RecompensaTutor`): streak, pontos, nível e desconto.
+5. Desbloqueia **badges** e registra o evento na **linha do tempo clínica**.
 
 | Nível | Critério (streak **ou** pontos) | Desconto |
 | :--- | :--- | :---: |
@@ -135,12 +200,12 @@ Os usuários são criados pela migração `V3__inserir_dados_iniciais.sql` com s
 
 ### 🩺 Fluxo 2 — Triagem Preventiva e Escore de Longevidade (Tutor → Veterinário)
 `TriagemController` → `TriagemService`
-
-1. O tutor abre uma solicitação informando a queixa (`/triagem/solicitar`).
-2. A solicitação entra na **fila médica** (`/triagem/fila`, somente `ROLE_ADMIN`).
-3. O veterinário registra peso, temperatura, frequência cardíaca e parecer (`/triagem/avaliar/{id}`).
-4. `calcularEscoreLongevidadeEInsights()` parte de 100 e desconta por idade sênior, predisposição genética da raça, febre/hipotermia, frequência cardíaca fora da faixa e alertas recentes nos check-ins.
-5. O resultado (escore, risco e insights) é gravado na triagem, atualiza o perfil do pet e entra na linha do tempo clínica.
+1. O tutor solicita triagem informando a queixa (`/triagem/solicitar`).
+2. A solicitação entra na fila médica (`/triagem/fila`, só `ROLE_ADMIN`).
+3. O veterinário registra peso, temperatura, frequência cardíaca e parecer.
+4. `calcularEscoreLongevidadeEInsights()` parte de 100 e desconta por idade sênior, predisposição genética da raça,
+   febre/hipotermia, frequência cardíaca fora da faixa e alertas recentes nos check-ins.
+5. O resultado é gravado, atualiza o pet e entra na linha do tempo clínica.
 
 ```mermaid
 graph LR
@@ -156,19 +221,26 @@ graph LR
 ## 🧪 Testes Automatizados
 
 ```bash
-mvn test
+mvn test   # 31 testes
 ```
+
 | Classe | O que cobre |
 | :--- | :--- |
-| `ControleDeAcessoPorPerfilTest` | Login público, redirecionamento para `/login`, autenticação com BCrypt, senha inválida, `403` de tutor na fila médica e de veterinário no check-in, `200` nas rotas do próprio perfil. |
-| `CheckinServiceTest` | Pontuação e streak (5 → 6, Prata → Ouro), alerta clínico por sintomas, bloqueio de check-in duplicado no dia e bloqueio de usuário sem vínculo com o pet. |
+| `ControleDeAcessoPorPerfilTest` | Login público, redirecionamento para `/login`, autenticação BCrypt, `403`/`200` por perfil. |
+| `CadastroERecuperacaoSenhaTest` | Autocadastro (sucesso, senhas diferentes, username duplicado), recuperação de senha sem revelar e-mails existentes, token inválido. |
+| `RecuperacaoSenhaServiceTest` | Geração de token, redefinição válida troca a senha (BCrypt), token expirado e token já usado são rejeitados. |
+| `CustomOAuth2UserServiceTest` | Provisiona novo tutor via Google (CPF provisório, sem senha), vincula conta local existente pelo e-mail, login repetido não duplica conta. |
+| `CustomUserDetailsServiceTest` | Conta local carrega normalmente; conta só-Google (sem senha) não quebra o login local — cai como "usuário não encontrado" em vez de estourar exceção. |
+| `PerfilServiceTest` | Conclusão de cadastro troca o CPF provisório pelo real; não permite repetir a troca. |
+| `CheckinServiceTest` | Pontuação, streak, alerta clínico, duplicidade e vínculo do pet com o tutor. |
 
 ---
 
 ## 💻 Tecnologias
 - **Java 21** · **Spring Boot 3.3.4** (Web MVC, Validation, Data JPA)
-- **Spring Security 6** (form login, BCrypt, CSRF, roles, `@EnableMethodSecurity`)
-- **Flyway** (migrações SQL versionadas) · **H2** em memória, modo Oracle (driver Oracle `ojdbc11` incluído para troca de banco)
+- **Spring Security 6** (form login, **OAuth2 Client** para Google, BCrypt, CSRF, roles)
+- **Flyway** (4 migrações versionadas) · **H2** em memória, modo Oracle (driver `ojdbc11` incluído para troca de banco)
+- **Spring Mail** (opcional — recuperação de senha)
 - **Thymeleaf** + `thymeleaf-extras-springsecurity6` · **Bootstrap 5.3** + Bootstrap Icons
 - **JUnit 5** + `spring-security-test` (MockMvc)
 
@@ -176,27 +248,36 @@ mvn test
 
 ## 📁 Estrutura do Projeto
 ```
-clyvo-vet-web/
-├── docs/
-│   ├── GUIA_AVALIACAO_ORAL.md          # Perguntas prováveis da banca e respostas
-│   └── ROTEIRO_GRAVACAO_VIDEO.md       # Roteiro do vídeo (até 10 min)
+clyvo-vet-web-v2/
+├── docs/                                        # Documentação herdada da entrega original
 ├── src/main/java/com/fiap/clyvovet/
-│   ├── config/SecurityConfig.java      # Autenticação, perfis e rotas protegidas
-│   ├── controller/                     # Auth, Home (dashboard por perfil), Pet, Checkin (Fluxo 1), Triagem (Fluxo 2)
-│   ├── dto/                            # DTOs com Bean Validation
-│   ├── model/                          # Entidades JPA e enums (mapeadas ao esquema do Flyway)
-│   ├── repository/                     # Spring Data JPA
-│   └── service/                        # Regras de negócio, gamificação e motor de escore
+│   ├── config/
+│   │   ├── SecurityConfig.java                  # Autenticação local + OAuth2, perfis, CSRF condicional
+│   │   ├── GoogleOAuth2Config.java               # ClientRegistrationRepository do Google (condicional)
+│   │   └── OAuth2FeatureFlags.java               # Expõe se o login Google está habilitado
+│   ├── controller/
+│   │   ├── AuthController.java                   # /login, /cadastro, /recuperar-senha, /redefinir-senha
+│   │   └── PerfilController.java                 # /perfil/completar-cadastro (tutores vindos do Google)
+│   ├── dto/                                      # CadastroUsuarioDto, RecuperarSenhaDto, RedefinirSenhaDto...
+│   ├── model/                                    # ProviderAutenticacao, TokenRecuperacaoSenha, ...
+│   ├── repository/
+│   └── service/
+│       ├── UsuarioService.java                   # Autocadastro (Usuario + Tutor)
+│       ├── RecuperacaoSenhaService.java          # Token, e-mail, redefinição
+│       ├── NotificacaoEmailService.java          # Envio com fallback de log em dev
+│       ├── CustomOAuth2UserService.java          # Provisionamento/vínculo via Google
+│       └── PerfilService.java                    # Conclusão de cadastro (CPF provisório → real)
 ├── src/main/resources/
-│   ├── application.properties
-│   ├── db/migration/V1..V3__*.sql      # Flyway
-│   └── templates/                      # Telas Thymeleaf (login, dashboards, pets, checkin, triagem)
-├── src/test/java/com/fiap/clyvovet/    # Testes de segurança e do fluxo de check-in
+│   ├── application.properties                    # Perfil de desenvolvimento (padrão)
+│   ├── application-prod.properties               # Perfil de produção
+│   ├── db/migration/V1..V4__*.sql                # Flyway (V4 = login social + recuperação de senha)
+│   └── templates/                                # + cadastro, recuperar-senha, redefinir-senha, completar-cadastro
+├── src/test/java/com/fiap/clyvovet/
 └── pom.xml
 ```
 
 ---
 
 <div align="center">
-  <sub>Desenvolvido para a 3ª Sprint de Java Advanced — FIAP.</sub>
+  <sub>Evolução do Clyvo Vet além da entrega da 3ª Sprint de Java Advanced — FIAP.</sub>
 </div>

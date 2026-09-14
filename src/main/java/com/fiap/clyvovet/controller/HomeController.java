@@ -8,6 +8,7 @@ import com.fiap.clyvovet.model.StatusConsulta;
 import com.fiap.clyvovet.model.Tutor;
 import com.fiap.clyvovet.repository.TutorRepository;
 import com.fiap.clyvovet.service.CheckinService;
+import com.fiap.clyvovet.service.PerfilService;
 import com.fiap.clyvovet.service.PetService;
 import com.fiap.clyvovet.service.TriagemService;
 import org.springframework.security.core.Authentication;
@@ -26,15 +27,18 @@ public class HomeController {
     private final CheckinService checkinService;
     private final TriagemService triagemService;
     private final TutorRepository tutorRepository;
+    private final PerfilService perfilService;
 
     public HomeController(PetService petService,
                           CheckinService checkinService,
                           TriagemService triagemService,
-                          TutorRepository tutorRepository) {
+                          TutorRepository tutorRepository,
+                          PerfilService perfilService) {
         this.petService = petService;
         this.checkinService = checkinService;
         this.triagemService = triagemService;
         this.tutorRepository = tutorRepository;
+        this.perfilService = perfilService;
     }
 
     @GetMapping("/")
@@ -71,11 +75,15 @@ public class HomeController {
             if (tutorOpt.isPresent()) {
                 Tutor tutor = tutorOpt.get();
                 model.addAttribute("tutor", tutor);
-                List<Pet> pets = petService.listarPorTutor(username);
-                model.addAttribute("pets", pets);
+                model.addAttribute("precisaCompletarCadastro", perfilService.precisaCompletarCadastro(tutor));
 
-                RecompensaTutor recompensa = checkinService.obterOuCriarRecompensa(tutor.getCpf());
-                model.addAttribute("recompensa", recompensa);
+                if (!perfilService.precisaCompletarCadastro(tutor)) {
+                    List<Pet> pets = petService.listarPorTutor(username);
+                    model.addAttribute("pets", pets);
+
+                    RecompensaTutor recompensa = checkinService.obterOuCriarRecompensa(tutor.getCpf());
+                    model.addAttribute("recompensa", recompensa);
+                }
             }
             return "dashboard-tutor";
         }

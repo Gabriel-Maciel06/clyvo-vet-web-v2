@@ -44,11 +44,46 @@
             color: white;
             transform: translateY(-1px);
         }
+        .btn-google {
+            background-color: white;
+            color: #1f2937;
+            font-weight: 600;
+            padding: 0.7rem;
+            border-radius: 0.75rem;
+            border: 1px solid #d1d5db;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            transition: all 0.2s;
+        }
+        .btn-google:hover {
+            background-color: #f9fafb;
+            border-color: #9ca3af;
+        }
+        .divisor {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #9ca3af;
+            font-size: 0.8rem;
+            margin: 1.25rem 0;
+        }
+        .divisor::before, .divisor::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background-color: #e5e7eb;
+        }
         .cred-box {
             background-color: #f8fafc;
             border: 1px dashed #cbd5e1;
             border-radius: 0.75rem;
             padding: 0.75rem 1rem;
+            font-size: 0.85rem;
+        }
+        .links-auxiliares {
             font-size: 0.85rem;
         }
     </style>
@@ -76,6 +111,12 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
 
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show small" role="alert">
+            <i class="bi bi-check-circle-fill me-1"></i>
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
         <form th:action="@{/login}" method="post">
             <div class="mb-3">
                 <label for="username" class="form-label fw-semibold small text-secondary">Usuário</label>
@@ -85,7 +126,7 @@
                 </div>
             </div>
 
-            <div class="mb-4">
+            <div class="mb-2">
                 <label for="password" class="form-label fw-semibold small text-secondary">Senha</label>
                 <div class="input-group">
                     <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock text-muted"></i></span>
@@ -93,12 +134,34 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-clyvo mb-4">
+            <div class="text-end mb-4 links-auxiliares">
+                <a th:href="@{/recuperar-senha}" class="text-decoration-none" style="color: #0d9488;">Esqueci minha senha</a>
+            </div>
+
+            <button type="submit" class="btn btn-clyvo mb-3">
                 <i class="bi bi-box-arrow-in-right me-1"></i> Acessar Plataforma
             </button>
         </form>
 
-        <div class="cred-box">
+        <div th:if="${googleLoginEnabled}">
+            <div class="divisor">ou</div>
+            <a th:href="@{/oauth2/authorization/google}" class="btn btn-google mb-4">
+                <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/>
+                    <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.9 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/>
+                    <path fill="#4CAF50" d="M24 44c5.5 0 10.5-2.1 14.3-5.5l-6.6-5.6C29.6 34.6 27 35.5 24 35.5c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
+                    <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4.1 5.6l6.6 5.6C41.6 35.7 44 30.3 44 24c0-1.3-.1-2.7-.4-3.5z"/>
+                </svg>
+                Continuar com Google
+            </a>
+        </div>
+
+        <div class="text-center small mb-4">
+            <span class="text-muted">Ainda não tem conta?</span>
+            <a th:href="@{/cadastro}" class="text-decoration-none fw-semibold" style="color: #0d9488;">Cadastre-se</a>
+        </div>
+
+        <div th:if="${mostrarCredenciaisTeste}" class="cred-box">
             <div class="fw-bold text-dark mb-1"><i class="bi bi-key-fill text-warning me-1"></i> Credenciais de Teste (FIAP):</div>
             <div class="d-flex justify-content-between mb-1">
                 <span><strong>Admin/Vet:</strong> <code>admin</code> / <code>admin123</code></span>
