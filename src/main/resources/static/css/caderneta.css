@@ -2,42 +2,43 @@
    Clyvo Vet — "Caderneta de Saúde" design system
    -------------------------------------------------------------------
    Conceito: a plataforma é a caderneta de vacinação/saúde do pet em
-   forma digital. Papel kraft, verde-floresta, carimbos e fichas — não
-   um SaaS genérico. Dois mundos de cor: dourado para o tutor
-   (gamificação, recompensas) e verde-petróleo para o veterinário
-   (clínico, contido). Nunca misturados na mesma tela.
+   forma digital — carimbos, fichas, página dupla de autenticação — mas
+   com a paleta de marca ORIGINAL do projeto (teal + navy + âmbar), a
+   pedido do cliente. Dois mundos de cor continuam nunca se misturando
+   na mesma tela: âmbar para o tutor (gamificação, recompensas) e teal
+   para o veterinário (clínico, contido).
    =================================================================== */
 
 :root {
-    /* Papel e tinta */
-    --ink:          #1C2318;
-    --ink-soft:     #4A5343;
-    --paper:        #F5F0DC;
-    --paper-card:   #FFFDF5;
-    --paper-line:   #DED1A3;
+    /* Base e tinta (tons originais do projeto) */
+    --ink:          #1E293B;
+    --ink-soft:     #64748B;
+    --paper:        #F8FAFC;
+    --paper-card:   #FFFFFF;
+    --paper-line:   #E2E8F0;
 
-    /* Caderneta (shell escuro) */
-    --forest:       #16261C;
-    --forest-2:     #21362A;
-    --forest-line:  rgba(245, 240, 220, 0.12);
-    --forest-text:  #CDD9C4;
-    --forest-text-soft: #8FA187;
+    /* Caderneta (shell escuro) — navy original */
+    --forest:       #0B1329;
+    --forest-2:     #172554;
+    --forest-line:  rgba(255, 255, 255, 0.1);
+    --forest-text:  #CBD5E1;
+    --forest-text-soft: #94A3B8;
 
-    /* Mundo do tutor: dourado/latão */
-    --gold:         #B6862C;
-    --gold-soft:    #E7C97A;
-    --gold-ink:     #7A5A1D;
+    /* Mundo do tutor: âmbar original */
+    --gold:         #F59E0B;
+    --gold-soft:    #FCD34D;
+    --gold-ink:     #B45309;
 
-    /* Mundo clínico: verde-petróleo */
-    --pine:         #35636A;
-    --pine-ink:     #234249;
-    --pine-soft:    #D9E6E4;
+    /* Mundo clínico: teal original */
+    --pine:         #0D9488;
+    --pine-ink:     #0F766E;
+    --pine-soft:    #CCFBF1;
 
     /* Estados */
-    --rust:         #9C4630;
-    --rust-soft:    #F1DCD3;
-    --sage:         #5B6E48;
-    --sage-soft:    #E2E8D6;
+    --rust:         #DC2626;
+    --rust-soft:    #FEE2E2;
+    --sage:         #16A34A;
+    --sage-soft:    #DCFCE7;
 }
 
 body {
@@ -242,10 +243,10 @@ body {
     font-weight: 600;
     border: 1px solid transparent;
 }
-.selo-ouro   { background: #FBF3DE; color: var(--gold-ink); border-color: #E9D28E; }
-.selo-pine   { background: var(--pine-soft); color: var(--pine-ink); border-color: #B7CDCB; }
-.selo-rust   { background: var(--rust-soft); color: var(--rust); border-color: #E2BBAC; }
-.selo-sage   { background: var(--sage-soft); color: var(--sage); border-color: #C7D3B5; }
+.selo-ouro   { background: #FEF3C7; color: var(--gold-ink); border-color: #FDE68A; }
+.selo-pine   { background: var(--pine-soft); color: var(--pine-ink); border-color: #99F0E4; }
+.selo-rust   { background: var(--rust-soft); color: var(--rust); border-color: #FCA5A5; }
+.selo-sage   { background: var(--sage-soft); color: var(--sage); border-color: #86EFAC; }
 
 /* Cartão de carimbos do streak (substitui a barra de progresso genérica) */
 .punch-card { display: flex; gap: 0.4rem; flex-wrap: wrap; }
