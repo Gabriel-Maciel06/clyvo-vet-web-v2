@@ -1,0 +1,358 @@
+/* ===================================================================
+   Clyvo Vet — "Caderneta de Saúde" design system
+   -------------------------------------------------------------------
+   Conceito: a plataforma é a caderneta de vacinação/saúde do pet em
+   forma digital. Papel kraft, verde-floresta, carimbos e fichas — não
+   um SaaS genérico. Dois mundos de cor: dourado para o tutor
+   (gamificação, recompensas) e verde-petróleo para o veterinário
+   (clínico, contido). Nunca misturados na mesma tela.
+   =================================================================== */
+
+:root {
+    /* Papel e tinta */
+    --ink:          #1C2318;
+    --ink-soft:     #4A5343;
+    --paper:        #F5F0DC;
+    --paper-card:   #FFFDF5;
+    --paper-line:   #DED1A3;
+
+    /* Caderneta (shell escuro) */
+    --forest:       #16261C;
+    --forest-2:     #21362A;
+    --forest-line:  rgba(245, 240, 220, 0.12);
+    --forest-text:  #CDD9C4;
+    --forest-text-soft: #8FA187;
+
+    /* Mundo do tutor: dourado/latão */
+    --gold:         #B6862C;
+    --gold-soft:    #E7C97A;
+    --gold-ink:     #7A5A1D;
+
+    /* Mundo clínico: verde-petróleo */
+    --pine:         #35636A;
+    --pine-ink:     #234249;
+    --pine-soft:    #D9E6E4;
+
+    /* Estados */
+    --rust:         #9C4630;
+    --rust-soft:    #F1DCD3;
+    --sage:         #5B6E48;
+    --sage-soft:    #E2E8D6;
+}
+
+body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background-color: var(--paper);
+    color: var(--ink);
+}
+
+.serif-display {
+    font-family: 'Fraunces', serif;
+    font-optical-sizing: auto;
+    letter-spacing: -0.01em;
+}
+
+.data-numeric {
+    font-family: 'IBM Plex Mono', monospace;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Shell (sidebar + topbar) ---------- */
+.app-wrapper { display: flex; min-height: 100vh; width: 100%; background-color: var(--paper); }
+
+.sidebar {
+    width: 280px;
+    background: var(--forest);
+    color: var(--forest-text);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    border-right: 1px solid var(--forest-line);
+}
+.sidebar-brand {
+    padding: 1.6rem 1.4rem 1.3rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    text-decoration: none;
+    border-bottom: 1px solid var(--forest-line);
+}
+.sidebar-brand-mark {
+    font-family: 'Fraunces', serif;
+    font-size: 1.65rem;
+    font-weight: 600;
+    color: #FBF8ED;
+}
+.sidebar-brand-mark span { color: var(--gold-soft); }
+.sidebar-brand-sub {
+    font-size: 0.72rem;
+    color: var(--forest-text-soft);
+    font-style: italic;
+}
+.sidebar-menu {
+    padding: 0.75rem 0.75rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+.sidebar-tab {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--forest-text-soft);
+    padding: 1rem 0.6rem 0.4rem;
+    border-bottom: 1px solid var(--forest-line);
+    margin-bottom: 0.35rem;
+}
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.6rem 0.65rem;
+    margin-bottom: 0.1rem;
+    border-left: 3px solid transparent;
+    color: var(--forest-text);
+    font-weight: 500;
+    font-size: 0.92rem;
+    text-decoration: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.sidebar-link-content { display: flex; align-items: center; gap: 0.75rem; }
+.sidebar-link:hover { background-color: var(--forest-2); color: #FBF8ED; }
+.sidebar-link.active {
+    background-color: var(--forest-2);
+    border-left-color: var(--gold-soft);
+    color: #FBF8ED;
+}
+.sidebar-tag {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    background: rgba(231, 201, 122, 0.18);
+    color: var(--gold-soft);
+}
+.sidebar-tag.clinical { background: rgba(217, 230, 228, 0.14); color: var(--pine-soft); }
+
+.sidebar-stamp {
+    margin: 0.75rem 0.6rem 0.5rem;
+    padding: 1rem;
+    border: 1px dashed rgba(231, 201, 122, 0.4);
+    color: var(--forest-text);
+}
+.sidebar-stamp .stamp-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1rem;
+    color: var(--gold-soft);
+    margin-bottom: 0.3rem;
+}
+.sidebar-stamp p { font-size: 0.8rem; line-height: 1.5; color: var(--forest-text-soft); }
+
+.sidebar-footer {
+    padding: 1rem 1.1rem;
+    border-top: 1px solid var(--forest-line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.sidebar-avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--gold); color: var(--forest); font-weight: 700;
+    flex-shrink: 0;
+}
+
+.main-content { flex-grow: 1; display: flex; flex-direction: column; min-width: 0; background-color: var(--paper); }
+
+.topbar {
+    padding: 0.9rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--paper-line);
+    background-color: var(--paper);
+    position: sticky;
+    top: 0;
+    z-index: 99;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+.topbar-date {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+}
+
+.page-footer {
+    padding: 1rem 2rem;
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+    border-top: 1px solid var(--paper-line);
+}
+
+/* ---------- Cards & botões (papel, não bolha SaaS) ---------- */
+.card {
+    background-color: var(--paper-card);
+    border: 1px solid var(--paper-line);
+    border-radius: 6px;
+    box-shadow: none;
+}
+.card.card-lift { box-shadow: 0 1px 0 var(--paper-line); }
+
+.btn-clyvo {
+    background: var(--forest);
+    color: #FBF8ED;
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 0.6rem 1.35rem;
+    border: none;
+}
+.btn-clyvo:hover { background: var(--forest-2); color: #FBF8ED; }
+
+.btn-clyvo-outline {
+    border: 1.5px solid var(--forest);
+    color: var(--forest);
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 0.55rem 1.25rem;
+    background: transparent;
+}
+.btn-clyvo-outline:hover { background-color: var(--forest); color: #FBF8ED; }
+
+.btn-gold {
+    background: var(--gold);
+    color: #241B08;
+    font-weight: 700;
+    border-radius: 4px;
+    padding: 0.6rem 1.35rem;
+    border: none;
+}
+.btn-gold:hover { background: var(--gold-soft); color: #241B08; }
+
+/* ---------- Selo / carimbo de recompensa e risco ---------- */
+.selo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+.selo-ouro   { background: #FBF3DE; color: var(--gold-ink); border-color: #E9D28E; }
+.selo-pine   { background: var(--pine-soft); color: var(--pine-ink); border-color: #B7CDCB; }
+.selo-rust   { background: var(--rust-soft); color: var(--rust); border-color: #E2BBAC; }
+.selo-sage   { background: var(--sage-soft); color: var(--sage); border-color: #C7D3B5; }
+
+/* Cartão de carimbos do streak (substitui a barra de progresso genérica) */
+.punch-card { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.punch {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1.5px dashed var(--paper-line);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem;
+    color: var(--paper-line);
+}
+.punch.filled {
+    border-style: solid;
+    border-color: var(--gold);
+    background: var(--gold);
+    color: #241B08;
+}
+
+code {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--paper);
+    color: var(--forest);
+    padding: 0.05rem 0.35rem;
+    border-radius: 3px;
+    border: 1px solid var(--paper-line);
+}
+
+/* Tabelas de prontuário/fila (registro, não grid de dados genérico) */
+.table { color: var(--ink); }
+.table thead th {
+    font-weight: 600;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    border-bottom: 1.5px solid var(--paper-line);
+    background: transparent;
+}
+.table td { border-color: var(--paper-line); vertical-align: middle; }
+.table-hover tbody tr:hover { background-color: var(--paper); }
+
+.form-control, .form-select {
+    border-radius: 4px;
+    border-color: var(--paper-line);
+    background-color: var(--paper-card);
+}
+.form-control:focus, .form-select:focus {
+    border-color: var(--forest);
+    box-shadow: 0 0 0 3px rgba(22, 38, 28, 0.12);
+}
+
+@media (max-width: 992px) {
+    .app-wrapper { flex-direction: column; }
+    .sidebar { width: 100%; }
+}
+
+/* ---------- Páginas de autenticação: "página dupla da caderneta" ---------- */
+.auth-body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1.25rem; }
+.spread {
+    display: flex;
+    width: 100%;
+    max-width: 880px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 18px 40px -12px rgba(22, 38, 28, 0.35);
+}
+.spread-cover {
+    flex: 0 0 38%;
+    background: var(--forest);
+    color: var(--forest-text);
+    padding: 2.75rem 2.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    min-height: 420px;
+}
+.spread-cover::after {
+    content: "";
+    position: absolute; inset: 0 0 0 auto;
+    width: 1px;
+    background: repeating-linear-gradient(to bottom, var(--forest-line) 0 6px, transparent 6px 12px);
+}
+.cover-mark { font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 600; color: #FBF8ED; }
+.cover-mark span { color: var(--gold-soft); }
+.cover-line { font-style: italic; color: var(--forest-text-soft); margin-top: 0.4rem; font-size: 0.95rem; }
+.cover-stamp {
+    width: 84px; height: 84px;
+    border: 2px solid var(--gold-soft);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transform: rotate(-8deg);
+    color: var(--gold-soft);
+    font-size: 2rem;
+    align-self: flex-start;
+}
+.spread-page { flex: 1; background: var(--paper-card); padding: 2.75rem 2.5rem; }
+.page-title { font-family: 'Fraunces', serif; font-size: 1.65rem; font-weight: 600; color: var(--ink); margin-bottom: 0.2rem; }
+.divisor { display: flex; align-items: center; gap: 0.75rem; color: var(--ink-soft); font-size: 0.8rem; margin: 1.1rem 0; }
+.divisor::before, .divisor::after { content: ""; flex: 1; height: 1px; background: var(--paper-line); }
+.btn-google {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+    padding: 0.6rem; border: 1px solid var(--paper-line); border-radius: 4px;
+    background: var(--paper-card); color: var(--ink); font-weight: 600; text-decoration: none;
+}
+.btn-google:hover { background: var(--paper); }
+@media (max-width: 720px) {
+    .spread { flex-direction: column; }
+    .spread-cover { flex: none; padding: 1.75rem 1.5rem; min-height: auto; }
+    .spread-cover::after { display: none; }
+    .cover-stamp { display: none; }
+}
