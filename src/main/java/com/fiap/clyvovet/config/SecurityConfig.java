@@ -1,6 +1,7 @@
 package com.fiap.clyvovet.config;
 
 import com.fiap.clyvovet.service.CustomOAuth2UserService;
+import com.fiap.clyvovet.service.CustomOidcUserService;
 import com.fiap.clyvovet.service.CustomUserDetailsService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +26,7 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
     private final CustomOAuth2UserService customOAuth2UserService;
+    private final CustomOidcUserService customOidcUserService;
     private final ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider;
 
     /**
@@ -38,9 +40,11 @@ public class SecurityConfig {
 
     public SecurityConfig(CustomUserDetailsService userDetailsService,
                            CustomOAuth2UserService customOAuth2UserService,
+                           CustomOidcUserService customOidcUserService,
                            ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider) {
         this.userDetailsService = userDetailsService;
         this.customOAuth2UserService = customOAuth2UserService;
+        this.customOidcUserService = customOidcUserService;
         this.clientRegistrationRepositoryProvider = clientRegistrationRepositoryProvider;
     }
 
@@ -106,7 +110,9 @@ public class SecurityConfig {
         if (googleLoginHabilitado) {
             http.oauth2Login(oauth2 -> oauth2
                 .loginPage("/login")
-                .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                .userInfoEndpoint(userInfo -> userInfo
+                    .userService(customOAuth2UserService)   // provedores OAuth2 puro (sem OpenID Connect)
+                    .oidcUserService(customOidcUserService)) // Google usa OIDC (escopo "openid") -> este é o que roda de fato
                 .defaultSuccessUrl("/dashboard", true)
                 .failureUrl("/login?error=google")
             );

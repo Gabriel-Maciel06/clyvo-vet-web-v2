@@ -60,8 +60,14 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         );
     }
 
+    /**
+     * Também chamado por {@link CustomOidcUserService}: o Google exige o escopo
+     * "openid", o que faz o Spring Security tratar o login como OIDC e usar
+     * OidcUserService em vez de OAuth2UserService — por isso a mesma lógica de
+     * provisionamento precisa ficar acessível para os dois casos.
+     */
     @Transactional
-    protected Usuario provisionarOuVincular(String email, String nome, String googleId, String foto) {
+    public Usuario provisionarOuVincular(String email, String nome, String googleId, String foto) {
         return usuarioRepository.findByEmail(email)
                 .map(existente -> vincularContaExistente(existente, googleId, foto))
                 .orElseGet(() -> provisionarNovoTutor(email, nome, googleId, foto));
