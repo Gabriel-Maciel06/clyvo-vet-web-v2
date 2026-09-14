@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Registrar Check-in Diário')}"></head>
+<body>
+
+    <div th:replace="~{fragments/layout :: appShell('checkin', ~{::#mainSection})}">
+        <div id="mainSection">
+
+            <div class="row justify-content-center">
+                <div class="col-lg-9">
+                    <div class="card p-4 p-md-5 border-0 shadow-sm">
+                        <!-- Cabeçalho com Gamificação -->
+                        <div class="d-flex align-items-center gap-3 mb-4">
+                            <div class="rounded-4 p-3 shadow-sm" style="background: linear-gradient(135deg, #f59e0b, #ea580c); color: white;">
+                                <i class="bi bi-calendar-check-fill fs-2"></i>
+                            </div>
+                            <div>
+                                <span class="badge bg-warning text-dark fw-bold mb-1 px-3 py-1 rounded-pill">+10 Clyvo Coins por Check-in</span>
+                                <h3 class="fw-bold mb-0 text-dark">Check-in Diário de Cuidado Pet</h3>
+                                <p class="text-muted small mb-0">Registre os hábitos do dia para alimentar o motor preditivo de longevidade e manter seu streak ativo!</p>
+                            </div>
+                        </div>
+
+                        <form th:action="@{/checkin/salvar}" th:object="${checkinDto}" method="post">
+                            
+                            <!-- Seleção do Pet -->
+                            <div class="mb-4">
+                                <label for="petId" class="form-label fw-semibold">Qual Pet você está acompanhando hoje? *</label>
+                                <select class="form-select form-select-lg rounded-3" id="petId" th:field="*{petId}" required>
+                                    <option th:each="p : ${pets}" th:value="${p.id}" th:text="${p.nome} + ' (' + ${p.raca.nome} + ')'"></option>
+                                </select>
+                                <div class="text-danger small" th:if="${#fields.hasErrors('petId')}" th:errors="*{petId}"></div>
+                            </div>
+
+                            <!-- Estado de Alimentação -->
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold">Como foi a alimentação hoje? *</label>
+                                <div class="row g-2">
+                                    <div th:each="al : ${alimentacoes}" class="col-md-6">
+                                        <div class="form-check p-3 border rounded-3 bg-light">
+                                            <input class="form-check-input" type="radio" th:id="'alim_' + ${al}" th:value="${al}" th:field="*{alimentacaoStatus}" required>
+                                            <label class="form-check-label fw-medium ms-2" th:for="'alim_' + ${al}" th:text="${al.descricao}">
+                                                Alimentação Normal
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-danger small" th:if="${#fields.hasErrors('alimentacaoStatus')}" th:errors="*{alimentacaoStatus}"></div>
+                            </div>
+
+                            <!-- Humor / Disposição -->
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold">Qual o humor / comportamento predominante? *</label>
+                                <div class="row g-2">
+                                    <div th:each="h : ${humores}" class="col-md-6 col-lg-4">
+                                        <div class="form-check p-3 border rounded-3 bg-light">
+                                            <input class="form-check-input" type="radio" th:id="'humor_' + ${h}" th:value="${h}" th:field="*{humorPet}" required>
+                                            <label class="form-check-label fw-medium ms-2" th:for="'humor_' + ${h}" th:text="${h.descricao}">
+                                                Enérgico
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-danger small" th:if="${#fields.hasErrors('humorPet')}" th:errors="*{humorPet}"></div>
+                            </div>
+
+                            <!-- Atividade Física e Medicação -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label for="minutosAtividade" class="form-label fw-semibold">Tempo de Atividade Física (minutos)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-stopwatch"></i></span>
+                                        <input type="number" class="form-control" id="minutosAtividade" th:field="*{minutosAtividade}" placeholder="Ex: 30" min="0">
+                                    </div>
+                                    <small class="text-muted">Passeios, brincadeiras ativas e exercícios.</small>
+                                </div>
+
+                                <div class="col-md-6 d-flex align-items-center">
+                                    <div class="form-check form-switch p-3 border rounded-3 bg-light w-100 mt-2">
+                                        <input class="form-check-input ms-0 me-3" type="checkbox" id="remedioAdministrado" th:field="*{remedioAdministrado}">
+                                        <label class="form-check-label fw-semibold" for="remedioAdministrado">
+                                            💊 Remédios ou Suplementos administrados hoje?
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sintomas Anormais ou Observações -->
+                            <div class="mb-4">
+                                <label for="sintomasObservados" class="form-label fw-semibold">Observou algum sintoma ou desconforto anormal? (Opcional)</label>
+                                <textarea class="form-control" id="sintomasObservados" th:field="*{sintomasObservados}" rows="3" placeholder="Ex: Tosse leve pela manhã, coceira intensa na orelha, fezes amolecidas..."></textarea>
+                                <small class="text-muted">Caso preenchido, gerará um alerta automático para a equipe veterinária.</small>
+                            </div>
+
+                            <!-- Botões de Ação -->
+                            <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                                <a th:href="@{/dashboard}" class="btn btn-outline-secondary rounded-pill px-4">Voltar</a>
+                                <button type="submit" class="btn btn-clyvo rounded-pill px-5 fw-bold">
+                                    <i class="bi bi-send-check-fill me-1"></i> Concluir Check-in (+10 Coins)
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

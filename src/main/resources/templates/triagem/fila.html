@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Fila Clínica de Triagem')}"></head>
+<body>
+
+    <div th:replace="~{fragments/layout :: appShell('fila', ~{::#mainSection})}">
+        <div id="mainSection">
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <span class="badge bg-danger mb-1 px-3 py-1 rounded-pill">MÓDULO VETERINÁRIO (ROLE_ADMIN)</span>
+                    <h2 class="fw-bold text-dark mb-0">Fila de Triagem & Longevidade</h2>
+                    <p class="text-muted small">Atendimento clínico preventivo e acionamento do algoritmo de escore preditivo.</p>
+                </div>
+                <a th:href="@{/dashboard}" class="btn btn-outline-secondary rounded-pill">
+                    <i class="bi bi-arrow-left me-1"></i> Dashboard
+                </a>
+            </div>
+
+            <!-- Fila de Pendentes -->
+            <div class="card p-4 mb-4 border-0 shadow-sm">
+                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-hourglass-split text-warning me-2"></i>Solicitações Aguardando Avaliação</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Data</th>
+                                <th>Pet</th>
+                                <th>Raça / Idade</th>
+                                <th>Tutor</th>
+                                <th>Queixa Principal</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="p : ${pendentes}">
+                                <td th:text="${#temporals.format(p.dataSolicitacao, 'dd/MM/yyyy HH:mm')}">01/01 10:00</td>
+                                <td class="fw-bold text-dark" th:text="${p.pet.nome}">Thor</td>
+                                <td th:text="${p.pet.raca.nome} + ' (' + ${p.pet.idadeAnos} + ' anos)'">Golden (4 anos)</td>
+                                <td th:text="${p.pet.tutor.nome}">Gabriel Maciel</td>
+                                <td class="small" th:text="${p.queixaPrincipal}">Rotina</td>
+                                <td>
+                                    <a th:href="@{/triagem/avaliar/{id}(id=${p.id})}" class="btn btn-sm btn-clyvo rounded-pill px-3">
+                                        <i class="bi bi-cpu-fill me-1"></i> Realizar Triagem & IA
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(pendentes)}">
+                                <td colspan="6" class="text-center text-muted py-4">Nenhuma solicitação pendente no momento.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Triagens Concluídas -->
+            <div class="card p-4 border-0 shadow-sm">
+                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-check-circle-fill text-success me-2"></i>Histórico de Triagens Realizadas</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Data Consulta</th>
+                                <th>Pet</th>
+                                <th>Veterinário</th>
+                                <th>Escore Longevidade</th>
+                                <th>Classificação Risco</th>
+                                <th>Parecer</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="c : ${concluidas}">
+                                <td th:text="${#temporals.format(c.dataConsulta, 'dd/MM/yyyy HH:mm')}">01/01 11:00</td>
+                                <td class="fw-bold text-dark" th:text="${c.pet.nome}">Thor</td>
+                                <td th:text="${c.veterinario != null ? c.veterinario.nomeCompleto : '-'}">Dr. Carlos</td>
+                                <td>
+                                    <span class="badge px-3 py-1 rounded-pill" th:classappend="${c.escoreLongevidade >= 80 ? 'bg-success' : (c.escoreLongevidade >= 50 ? 'bg-warning text-dark' : 'bg-danger')}" th:text="${c.escoreLongevidade} + '/100'">85/100</span>
+                                </td>
+                                <td>
+                                    <span class="badge px-3 py-1 rounded-pill" th:classappend="${c.classificacaoRisco != null && c.classificacaoRisco.name() == 'ALTO' ? 'bg-danger' : (c.classificacaoRisco != null && c.classificacaoRisco.name() == 'MODERADO' ? 'bg-warning text-dark' : 'bg-success')}" th:text="${c.classificacaoRisco}">BAIXO</span>
+                                </td>
+                                <td class="small" th:text="${c.parecerVeterinario}">Parecer clínico</td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(concluidas)}">
+                                <td colspan="6" class="text-center text-muted py-3">Nenhuma triagem concluída registrada ainda.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

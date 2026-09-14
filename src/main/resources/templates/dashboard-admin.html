@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Central Médica Veterinária')}"></head>
+<body>
+
+    <div th:replace="~{fragments/layout :: appShell('dashboard', ~{::#mainSection})}">
+        <div id="mainSection">
+
+            <!-- Cabeçalho Clínico -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+                <div>
+                    <span class="badge bg-danger mb-1 px-3 py-1 rounded-pill">CENTRAL CLÍNICA • VETERINÁRIO</span>
+                    <h2 class="fw-bold text-dark mb-0">Painel Médico & Triagem Preditiva</h2>
+                    <p class="text-muted small">Monitoramento contínuo de pacientes, alertas de dor/sintomas e escores de longevidade.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a th:href="@{/triagem/fila}" class="btn btn-clyvo rounded-pill px-4">
+                        <i class="bi bi-clipboard2-pulse me-1"></i> Fila de Triagem IA
+                    </a>
+                </div>
+            </div>
+
+            <!-- Alertas Críticos de Saúde em Tempo Real -->
+            <div th:if="${not #lists.isEmpty(alertasSaude)}" class="card border-0 shadow-sm border-start border-danger border-4 mb-4 p-4" style="background-color: #fef2f2;">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="rounded-circle p-2 bg-danger text-white">
+                        <i class="bi bi-bell-fill fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold text-danger mb-0">Alertas de Saúde Reportados pelos Tutores</h5>
+                        <small class="text-danger-emphasis">Sintomas de dor, tosse, apatia ou recusa alimentar registrados nos check-ins recentes.</small>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Data</th>
+                                <th>Pet</th>
+                                <th>Tutor</th>
+                                <th>WhatsApp</th>
+                                <th>Sintomas Observados</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="alerta : ${alertasSaude}">
+                                <td th:text="${#temporals.format(alerta.dataCheckin, 'dd/MM/yyyy')}">01/01/2026</td>
+                                <td class="fw-bold text-dark" th:text="${alerta.pet.nome}">Thor</td>
+                                <td th:text="${alerta.pet.tutor.nome}">Gabriel</td>
+                                <td>
+                                    <a th:href="'https://wa.me/55' + ${#strings.replace(#strings.replace(#strings.replace(#strings.replace(alerta.pet.tutor.telefone, '(', ''), ')', ''), '-', ''), ' ', '')}" target="_blank" class="btn btn-xs btn-outline-success rounded-pill px-2 py-0 small">
+                                        <i class="bi bi-whatsapp"></i> Chamar
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning text-dark" th:text="${alerta.humorPet.descricao}">Apatia</span>
+                                    <small class="text-muted ms-1" th:text="${alerta.sintomasObservados}">Sintomas</small>
+                                </td>
+                                <td>
+                                    <a th:href="@{/pets/{id}(id=${alerta.pet.id})}" class="btn btn-sm btn-outline-danger rounded-pill">
+                                        <i class="bi bi-journal-medical me-1"></i> Prontuário
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Fila de Triagem Preventiva (Fluxo 2) -->
+            <div class="card p-4 mb-4 border-0 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-dark mb-0">
+                        <i class="bi bi-cpu-fill text-teal me-2" style="color: #0d9488;"></i>
+                        Triagens Preventivas Aguardando Avaliação IA
+                    </h5>
+                    <span class="badge bg-warning text-dark px-3 py-1 rounded-pill" th:text="${#lists.size(triagensPendentes)} + ' pendente(s)'">0</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Solicitação</th>
+                                <th>Pet</th>
+                                <th>Idade / Raça</th>
+                                <th>Tutor</th>
+                                <th>Queixa Principal</th>
+                                <th>Ação Clínica</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="t : ${triagensPendentes}">
+                                <td th:text="${#temporals.format(t.dataSolicitacao, 'dd/MM/yyyy HH:mm')}">01/01 10:00</td>
+                                <td class="fw-bold text-dark" th:text="${t.pet.nome}">Luna</td>
+                                <td th:text="${t.pet.raca.nome} + ' (' + ${t.pet.idadeAnos} + ' anos)'">Buldogue (7 anos)</td>
+                                <td th:text="${t.pet.tutor.nome}">Gabriel</td>
+                                <td class="small" th:text="${t.queixaPrincipal}">Dificuldade para respirar</td>
+                                <td>
+                                    <a th:href="@{/triagem/avaliar/{id}(id=${t.id})}" class="btn btn-sm btn-clyvo rounded-pill px-3">
+                                        <i class="bi bi-cpu-fill me-1"></i> Avaliar com IA
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(triagensPendentes)}">
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="bi bi-check-all fs-2 d-block text-success"></i>
+                                    Todas as triagens preventivas foram concluídas!
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Todos os Pacientes Cadastrados -->
+            <div class="card p-4 border-0 shadow-sm">
+                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-clipboard2-check text-primary me-2"></i>Pacientes Cadastrados</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome</th>
+                                <th>Espécie / Raça</th>
+                                <th>Tutor</th>
+                                <th>Escore Longevidade</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="p : ${pets}">
+                                <td th:text="${p.id}">1</td>
+                                <td class="fw-bold text-dark" th:text="${p.nome}">Thor</td>
+                                <td th:text="${p.raca.especie} + ' - ' + ${p.raca.nome}">Canina - Golden</td>
+                                <td th:text="${p.tutor.nome}">Gabriel Maciel</td>
+                                <td>
+                                    <span class="badge px-3 py-1 rounded-pill" th:classappend="${p.escoreSaude >= 80 ? 'bg-success' : 'bg-warning text-dark'}" th:text="${p.escoreSaude} + '/100'">85/100</span>
+                                </td>
+                                <td>
+                                    <a th:href="@{/pets/{id}(id=${p.id})}" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                        <i class="bi bi-journal-medical me-1"></i> Prontuário & Idade
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>
