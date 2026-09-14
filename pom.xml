@@ -12,8 +12,8 @@
     <groupId>com.fiap</groupId>
     <artifactId>clyvo-vet-web</artifactId>
     <version>1.0.0</version>
-    <name>clyvo-vet-web</name>
-    <description>Clyvo Vet - Plataforma Web de Saúde Preventiva e Longevidade Pet (Java Advanced - Sprint 3)</description>
+    <name>clyvo-vet-web-v2</name>
+    <description>Clyvo Vet - Plataforma Web de Saúde Preventiva e Longevidade Pet (evolução pós-Sprint 3: cadastro, recuperação de senha, login Google e perfil de produção)</description>
 
     <properties>
         <java.version>21</java.version>
@@ -42,6 +42,20 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- Spring Security OAuth2 Client (Login social com Google) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+
+        <!-- Envio de e-mail (recuperação de senha). Se spring.mail.host não for
+             configurado, o Boot não cria o JavaMailSender e o serviço cai no
+             fallback de log em vez de falhar. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
         <!-- Spring Data JPA -->

@@ -1,6 +1,9 @@
 package com.fiap.clyvovet.config;
 
+import com.fiap.clyvovet.service.CustomOAuth2UserService;
 import com.fiap.clyvovet.service.CustomUserDetailsService;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -11,6 +14,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
@@ -20,9 +24,24 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider;
 
-    public SecurityConfig(CustomUserDetailsService userDetailsService) {
+    /**
+     * Só existe em ambientes de desenvolvimento (perfil "prod" o define como
+     * false em application-prod.properties). Controla, ao mesmo tempo, a
+     * liberação do console H2 e a exceção de CSRF que ele exige — em produção
+     * nenhum dos dois fica ativo.
+     */
+    @Value("${app.h2-console.permitir:true}")
+    private boolean h2ConsolePermitido;
+
+    public SecurityConfig(CustomUserDetailsService userDetailsService,
+                           CustomOAuth2UserService customOAuth2UserService,
+                           ObjectProvider<ClientRegistrationRepository> clientRegistrationRepositoryProvider) {
         this.userDetailsService = userDetailsService;
+        this.customOAuth2UserService = customOAuth2UserService;
+        this.clientRegistrationRepositoryProvider = clientRegistrationRepositoryProvider;
     }
 
     @Bean
@@ -45,20 +64,28 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        boolean googleLoginHabilitado = clientRegistrationRepositoryProvider.getIfAvailable() != null;
+
         http
             .authenticationProvider(authenticationProvider())
-            .authorizeHttpRequests(auth -> auth
-                // Arquivos estáticos e console H2
-                .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/h2-console/**").permitAll()
-                // Rotas públicas de login e erro
-                .requestMatchers("/login", "/erro", "/access-denied").permitAll()
+            .authorizeHttpRequests(auth -> {
+                // Arquivos estáticos
+                auth.requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll();
+                if (h2ConsolePermitido) {
+                    auth.requestMatchers("/h2-console/**").permitAll();
+                }
+                // Rotas públicas de autenticação e autocadastro
+                auth.requestMatchers("/login", "/erro", "/access-denied",
+                        "/cadastro", "/recuperar-senha", "/redefinir-senha").permitAll();
+                // Conclusão de cadastro (CPF real) para tutores criados via login social
+                auth.requestMatchers("/perfil/**").hasRole("TUTOR");
                 // Rotas exclusivas do Veterinário (ROLE_ADMIN): fila e avaliação clínica
-                .requestMatchers("/triagem/fila", "/triagem/avaliar/**").hasRole("ADMIN")
+                auth.requestMatchers("/triagem/fila", "/triagem/avaliar/**").hasRole("ADMIN");
                 // Rotas exclusivas do Tutor (ROLE_TUTOR): cadastro de pets, check-in, recompensas e solicitação de triagem
-                .requestMatchers("/pets/novo", "/pets/salvar", "/pets/protocolo", "/checkin/**", "/triagem/solicitar").hasRole("TUTOR")
+                auth.requestMatchers("/pets/novo", "/pets/salvar", "/pets/protocolo", "/checkin/**", "/triagem/solicitar").hasRole("TUTOR");
                 // Qualquer outra rota autenticada
-                .anyRequest().authenticated()
-            )
+                auth.anyRequest().authenticated();
+            })
             .formLogin(form -> form
                 .loginPage("/login")
                 .defaultSuccessUrl("/dashboard", true)
@@ -74,14 +101,22 @@ public class SecurityConfig {
             )
             .exceptionHandling(ex -> ex
                 .accessDeniedPage("/access-denied")
-            )
-            // Necessário para o console H2 em ambiente dev
-            .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/h2-console/**")
-            )
-            .headers(headers -> headers
-                .frameOptions(frame -> frame.sameOrigin())
             );
+
+        if (googleLoginHabilitado) {
+            http.oauth2Login(oauth2 -> oauth2
+                .loginPage("/login")
+                .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                .defaultSuccessUrl("/dashboard", true)
+                .failureUrl("/login?error=google")
+            );
+        }
+
+        // O console H2 só existe (e só precisa dessa exceção de CSRF/frame) fora de produção.
+        if (h2ConsolePermitido) {
+            http.csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
+        }
 
         return http.build();
     }

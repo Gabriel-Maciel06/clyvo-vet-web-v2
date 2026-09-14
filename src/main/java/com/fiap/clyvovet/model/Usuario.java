@@ -14,7 +14,8 @@ public class Usuario {
     @Column(name = "USERNAME", nullable = false, unique = true, length = 50)
     private String username;
 
-    @Column(name = "PASSWORD", nullable = false, length = 255)
+    /** Nulo para contas provisionadas via login social (ver {@link #provider}). */
+    @Column(name = "PASSWORD", length = 255)
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -24,8 +25,20 @@ public class Usuario {
     @Column(name = "NOME_COMPLETO", nullable = false, length = 100)
     private String nomeCompleto;
 
-    @Column(name = "EMAIL", nullable = false, length = 100)
+    @Column(name = "EMAIL", nullable = false, unique = true, length = 100)
     private String email;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "PROVIDER", nullable = false, length = 20)
+    private ProviderAutenticacao provider = ProviderAutenticacao.LOCAL;
+
+    /** ID do usuário no provedor externo (ex.: "sub" do Google). Nulo para contas LOCAL. */
+    @Column(name = "PROVIDER_ID", length = 100, unique = true)
+    private String providerId;
+
+    /** Foto de perfil obtida do provedor social. */
+    @Column(name = "AVATAR_URL", length = 500)
+    private String avatarUrl;
 
     public Usuario() {}
 
@@ -36,6 +49,10 @@ public class Usuario {
         this.role = role;
         this.nomeCompleto = nomeCompleto;
         this.email = email;
+    }
+
+    public boolean isContaLocal() {
+        return provider == ProviderAutenticacao.LOCAL;
     }
 
     public Long getId() { return id; }
@@ -50,4 +67,10 @@ public class Usuario {
     public void setNomeCompleto(String nomeCompleto) { this.nomeCompleto = nomeCompleto; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+    public ProviderAutenticacao getProvider() { return provider; }
+    public void setProvider(ProviderAutenticacao provider) { this.provider = provider; }
+    public String getProviderId() { return providerId; }
+    public void setProviderId(String providerId) { this.providerId = providerId; }
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 }

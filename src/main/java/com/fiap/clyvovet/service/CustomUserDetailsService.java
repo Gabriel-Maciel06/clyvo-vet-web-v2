@@ -25,6 +25,14 @@ public class CustomUserDetailsService implements UserDetailsService {
         Usuario usuario = usuarioRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + username));
 
+        if (usuario.getPassword() == null) {
+            // Conta provisionada via login social: não tem senha local para comparar.
+            // Trata como "não encontrado" para o formulário devolver a mensagem
+            // genérica de credenciais inválidas, em vez de quebrar com NullPointerException.
+            throw new UsernameNotFoundException(
+                    "Esta conta usa login com Google e não possui senha local: " + username);
+        }
+
         return new User(
                 usuario.getUsername(),
                 usuario.getPassword(),
