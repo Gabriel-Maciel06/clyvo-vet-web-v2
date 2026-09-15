@@ -54,7 +54,13 @@
 
                                 <div class="col-md-6">
                                     <label for="dataNascimento" class="form-label">Data de Nascimento *</label>
-                                    <input type="date" class="form-control" id="dataNascimento" th:field="*{dataNascimento}" required>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white" id="btnCalendar" style="cursor: pointer;" title="Abrir calendário">
+                                            <i class="bi bi-calendar-event text-teal"></i>
+                                        </span>
+                                        <input type="text" class="form-control bg-white flatpickr-custom" id="dataNascimento" th:field="*{dataNascimento}" placeholder="DD/MM/AAAA" required>
+                                    </div>
+                                    <div class="form-text small text-muted">Selecione o dia, mês e ano de nascimento</div>
                                     <div class="text-danger small" th:if="${#fields.hasErrors('dataNascimento')}" th:errors="*{dataNascimento}"></div>
                                 </div>
                             </div>
@@ -71,9 +77,10 @@
                 </div>
             </div>
 
-            <!-- Inicialização do Select2 para Busca Dinâmica de Espécie e Raça -->
+            <!-- Inicialização do Select2 e Flatpickr -->
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
+                    // 1. Select2 para Espécie & Raça
                     if (window.jQuery && jQuery().select2) {
                         var $racaSelect = $('#racaId');
                         $racaSelect.select2({
@@ -91,7 +98,37 @@
                                 $racaSelect.select2('open');
                                 return false;
                             }
+                            if (!$('#dataNascimento').val()) {
+                                e.preventDefault();
+                                if (window.petDatePicker) {
+                                    window.petDatePicker.open();
+                                }
+                                return false;
+                            }
                         });
+                    }
+
+                    // 2. Flatpickr para Seletor de Data Personalizado
+                    if (window.flatpickr) {
+                        window.petDatePicker = flatpickr('#dataNascimento', {
+                            locale: 'pt',
+                            altInput: true,
+                            altFormat: 'd/m/Y',
+                            dateFormat: 'Y-m-d',
+                            maxDate: 'today',
+                            altInputClass: 'form-control bg-white flatpickr-custom',
+                            disableMobile: true,
+                            monthSelectorType: 'dropdown'
+                        });
+
+                        var btnCal = document.getElementById('btnCalendar');
+                        if (btnCal) {
+                            btnCal.addEventListener('click', function() {
+                                if (window.petDatePicker) {
+                                    window.petDatePicker.open();
+                                }
+                            });
+                        }
                     }
                 });
             </script>
