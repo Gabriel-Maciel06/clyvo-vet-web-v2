@@ -80,7 +80,7 @@ public class SecurityConfig {
                 }
                 // Rotas públicas de autenticação e autocadastro
                 auth.requestMatchers("/login", "/erro", "/access-denied",
-                        "/cadastro", "/recuperar-senha", "/redefinir-senha").permitAll();
+                        "/cadastro", "/recuperar-senha", "/redefinir-senha", "/login/google-demo").permitAll();
                 // Conclusão de cadastro (CPF real) para tutores criados via login social
                 auth.requestMatchers("/perfil/**").hasRole("TUTOR");
                 // Rotas exclusivas do Veterinário (ROLE_ADMIN): fila e avaliação clínica

@@ -102,4 +102,20 @@ class CadastroERecuperacaoSenhaTest {
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("tokenInvalido", true));
     }
+
+    @Test
+    @DisplayName("Tela de login sempre exibe o botão Continuar com Google")
+    void loginExibeBotaoGoogle() throws Exception {
+        mockMvc.perform(get("/login"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Continuar com Google")));
+    }
+
+    @Test
+    @DisplayName("Login Google Demo é público, provisiona usuário e redireciona para completar cadastro")
+    void loginGoogleDemoAutenticaERedireciona() throws Exception {
+        mockMvc.perform(get("/login/google-demo"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/perfil/completar-cadastro"));
+    }
 }

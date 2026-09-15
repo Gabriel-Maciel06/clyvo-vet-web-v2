@@ -6,13 +6,27 @@ import com.fiap.clyvovet.dto.RecuperarSenhaDto;
 import com.fiap.clyvovet.dto.RedefinirSenhaDto;
 import com.fiap.clyvovet.service.RecuperacaoSenhaService;
 import com.fiap.clyvovet.service.UsuarioService;
+import com.fiap.clyvovet.model.Tutor;
+import com.fiap.clyvovet.model.Usuario;
+import com.fiap.clyvovet.repository.TutorRepository;
+import com.fiap.clyvovet.service.CustomOAuth2UserService;
+import com.fiap.clyvovet.service.PerfilService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.Collections;
 
 @Controller
 public class AuthController {
@@ -20,16 +34,25 @@ public class AuthController {
     private final UsuarioService usuarioService;
     private final RecuperacaoSenhaService recuperacaoSenhaService;
     private final OAuth2FeatureFlags oAuth2FeatureFlags;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final TutorRepository tutorRepository;
+    private final PerfilService perfilService;
 
     @Value("${app.mostrar-credenciais-teste:false}")
     private boolean mostrarCredenciaisTeste;
 
     public AuthController(UsuarioService usuarioService,
                            RecuperacaoSenhaService recuperacaoSenhaService,
-                           OAuth2FeatureFlags oAuth2FeatureFlags) {
+                           OAuth2FeatureFlags oAuth2FeatureFlags,
+                           CustomOAuth2UserService customOAuth2UserService,
+                           TutorRepository tutorRepository,
+                           PerfilService perfilService) {
         this.usuarioService = usuarioService;
         this.recuperacaoSenhaService = recuperacaoSenhaService;
         this.oAuth2FeatureFlags = oAuth2FeatureFlags;
+        this.customOAuth2UserService = customOAuth2UserService;
+        this.tutorRepository = tutorRepository;
+        this.perfilService = perfilService;
     }
 
     @ModelAttribute("googleLoginEnabled")
@@ -146,6 +169,41 @@ public class AuthController {
         }
 
         return "redirect:/login?senhaRedefinida=true";
+    }
+
+    /**
+     * Rota de demonstração do login com Google quando executando em ambiente local
+     * sem credenciais GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET configuradas.
+     * Provisiona um usuário social (ROLE_TUTOR com CPF provisório) e autentica na sessão.
+     */
+    @GetMapping("/login/google-demo")
+    public String loginGoogleDemo(HttpServletRequest request) {
+        String emailDemo = "gabriel.google@clyvovet.com";
+        String nomeDemo = "Gabriel Maciel (Google)";
+        String googleIdDemo = "google-demo-sub-998877";
+        String fotoDemo = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150";
+
+        Usuario usuario = customOAuth2UserService.provisionarOuVincular(emailDemo, nomeDemo, googleIdDemo, fotoDemo);
+
+        UserDetails userDetails = new User(
+                usuario.getUsername(),
+                "",
+                Collections.singletonList(new SimpleGrantedAuthority(usuario.getRole().name()))
+        );
+
+        UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        request.getSession().setAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                SecurityContextHolder.getContext()
+        );
+
+        Tutor tutor = tutorRepository.findByUsuarioUsername(usuario.getUsername()).orElse(null);
+        if (tutor != null && perfilService.precisaCompletarCadastro(tutor)) {
+            return "redirect:/perfil/completar-cadastro";
+        }
+        return "redirect:/dashboard";
     }
 
     /**
