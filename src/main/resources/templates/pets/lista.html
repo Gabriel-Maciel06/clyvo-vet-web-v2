@@ -38,9 +38,14 @@
                             <a th:href="@{/pets/{id}(id=${pet.id})}" class="btn btn-clyvo-outline">
                                 <i class="bi bi-person-bounding-box me-1"></i> Protocolo de Longevidade
                             </a>
-                            <a th:href="@{/checkin/novo(petId=${pet.id})}" class="btn btn-clyvo" sec:authorize="hasRole('TUTOR')">
-                                <i class="bi bi-check-circle-fill me-1"></i> Check-in Diário
-                            </a>
+                            <div class="d-flex gap-2" sec:authorize="hasRole('TUTOR')">
+                                <a th:href="@{/checkin/novo(petId=${pet.id})}" class="btn btn-clyvo flex-grow-1">
+                                    <i class="bi bi-check-circle-fill me-1"></i> Check-in Diário
+                                </a>
+                                <a th:href="@{/pets/{id}/editar(id=${pet.id})}" class="btn btn-outline-secondary px-3 d-flex align-items-center justify-content-center" title="Editar pet">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>

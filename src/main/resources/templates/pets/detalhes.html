@@ -6,17 +6,24 @@
     <div th:replace="~{fragments/layout :: appShell('pets', ~{::#mainSection})}">
         <div id="mainSection">
 
-            <!-- BREADCRUMB -->
+            <!-- BREADCRUMB & AÇÕES -->
             <!-- Botões de WhatsApp/Check-in removidos daqui: já existem na barra superior global (topbar), visível em toda tela. -->
-            <div class="mb-4">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-1 small">
-                        <li class="breadcrumb-item"><a th:href="@{/dashboard}" class="text-decoration-none text-muted">Dashboard</a></li>
-                        <li class="breadcrumb-item"><a th:href="@{/pets}" class="text-decoration-none text-muted">Meus Pets</a></li>
-                        <li class="breadcrumb-item active fw-semibold" aria-current="page" style="color: #0f766e;" th:text="${pet.nome}">Thor</li>
-                    </ol>
-                </nav>
-                <h2 class="mb-0" style="font-size: 2rem;">Prontuário & Longevidade Pet</h2>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-1 small">
+                            <li class="breadcrumb-item"><a th:href="@{/dashboard}" class="text-decoration-none text-muted">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a th:href="@{/pets}" class="text-decoration-none text-muted">Meus Pets</a></li>
+                            <li class="breadcrumb-item active fw-semibold" aria-current="page" style="color: #0f766e;" th:text="${pet.nome}">Thor</li>
+                        </ol>
+                    </nav>
+                    <h2 class="mb-0" style="font-size: 2rem;">Prontuário & Longevidade Pet</h2>
+                </div>
+                <div sec:authorize="hasRole('TUTOR')">
+                    <button type="button" class="btn btn-outline-secondary px-3" onclick="ativarAbaEditar()">
+                        <i class="bi bi-pencil-square me-1"></i> Editar Pet
+                    </button>
+                </div>
             </div>
 
             <!-- FICHA DO PET -->
@@ -61,8 +68,36 @@
                 </div>
             </div>
 
-            <!-- IDADE BIOLÓGICA & LONGEVIDADE -->
-            <div class="card mb-4 overflow-hidden">
+            <!-- NAVEGAÇÃO POR ABAS DO PRONTUÁRIO -->
+            <div class="mb-4">
+                <ul class="nav nav-pills clyvo-pills" id="petDetailTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="tab-prontuario-btn" data-bs-toggle="pill" data-bs-target="#tab-prontuario" type="button" role="tab" aria-controls="tab-prontuario" aria-selected="true">
+                            <i class="bi bi-file-earmark-medical me-1 text-teal"></i> Prontuário & Longevidade
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-timeline-btn" data-bs-toggle="pill" data-bs-target="#tab-timeline" type="button" role="tab" aria-controls="tab-timeline" aria-selected="false">
+                            <i class="bi bi-clock-history me-1 text-primary"></i> Linha do Tempo Clínica (<span th:text="${timeline != null ? timeline.size() : 0}">3</span>)
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation" sec:authorize="hasRole('TUTOR')">
+                        <button class="nav-link" id="tab-editar-btn" data-bs-toggle="pill" data-bs-target="#tab-editar" type="button" role="tab" aria-controls="tab-editar" aria-selected="false">
+                            <i class="bi bi-pencil-square me-1" style="color: #6366f1;"></i> Editar Pet
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="tab-content" id="petDetailTabsContent">
+
+                <!-- ============================================================= -->
+                <!-- ABA 1: PRONTUÁRIO & LONGEVIDADE                                -->
+                <!-- ============================================================= -->
+                <div class="tab-pane fade show active" id="tab-prontuario" role="tabpanel" aria-labelledby="tab-prontuario-btn">
+
+                    <!-- IDADE BIOLÓGICA & LONGEVIDADE -->
+                    <div class="card mb-4 overflow-hidden">
 
                 <!-- HEADER DA SEÇÃO -->
                 <div class="p-3 p-md-4 border-bottom d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
@@ -331,10 +366,13 @@
                 </div>
 
             </div>
+            </div> <!-- Fim de tab-prontuario -->
 
             <!-- ================================================================= -->
-            <!-- SEÇÃO 2: LINHA DO TEMPO CLÍNICA & PRONTUÁRIO INTEGRADO             -->
+            <!-- ABA 2: LINHA DO TEMPO CLÍNICA & CUIDADO CONTÍNUO                 -->
             <!-- ================================================================= -->
+            <div class="tab-pane fade" id="tab-timeline" role="tabpanel" aria-labelledby="tab-timeline-btn">
+
             <div class="card mb-4 overflow-hidden">
 
                 <!-- HEADER DA TIMELINE E FILTROS -->
@@ -620,14 +658,80 @@
                 </div>
 
             </div>
+            </div> <!-- Fim de tab-timeline -->
+
+            <!-- ============================================================= -->
+            <!-- ABA 3: EDITAR DADOS DO PET                                     -->
+            <!-- ============================================================= -->
+            <div class="tab-pane fade" id="tab-editar" role="tabpanel" aria-labelledby="tab-editar-btn" sec:authorize="hasRole('TUTOR')">
+                <div class="card p-4 p-md-5 mb-4">
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <h3 class="mb-0"><i class="bi bi-pencil-square me-2" style="color: #0d9488;"></i>Editar Dados de <span th:text="${pet.nome}">Thor</span></h3>
+                            <span class="fs-4" th:text="${pet.raca.emoji}">🥇</span>
+                        </div>
+                        <p class="text-muted mb-0">Atualize as informações cadastrais e clínicas do paciente. O protocolo preventivo e as estimativas de longevidade serão recalculados automaticamente.</p>
+                    </div>
+
+                    <form th:action="@{/pets/salvar}" th:object="${petDto}" method="post">
+                        <input type="hidden" th:field="*{id}">
+
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label for="edit-nome" class="form-label fw-semibold">Nome do Pet *</label>
+                                <input type="text" class="form-control" id="edit-nome" th:field="*{nome}" placeholder="Ex: Thor, Luna, Bob" required>
+                                <div class="text-danger small" th:if="${#fields.hasErrors('nome')}" th:errors="*{nome}"></div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="edit-peso" class="form-label fw-semibold">Peso Atual (kg) *</label>
+                                <input type="number" step="0.1" class="form-control" id="edit-peso" th:field="*{peso}" placeholder="Ex: 12.5" required>
+                                <div class="text-danger small" th:if="${#fields.hasErrors('peso')}" th:errors="*{peso}"></div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="edit-racaId" class="form-label fw-semibold">Espécie & Raça *</label>
+                                <select class="form-select" id="edit-racaId" th:field="*{racaId}" required>
+                                    <option value="">Selecione a espécie e raça...</option>
+                                    <th:block th:if="${racasPorEspecie != null}">
+                                        <optgroup th:each="entry : ${racasPorEspecie}" th:label="${entry.value[0].emoji} + ' ' + ${entry.key}">
+                                            <option th:each="raca : ${entry.value}" th:value="${raca.id}" th:text="${raca.nome} + ' (Expectativa: ' + ${raca.expectativaVida} + ' anos)'" th:selected="${pet.raca != null && pet.raca.id == raca.id}"></option>
+                                        </optgroup>
+                                    </th:block>
+                                    <th:block th:if="${racasPorEspecie == null}">
+                                        <option th:each="raca : ${racas}" th:value="${raca.id}" th:text="${raca.emoji} + ' ' + ${raca.especie} + ' - ' + ${raca.nome} + ' (Expectativa: ' + ${raca.expectativaVida} + ' anos)'" th:selected="${pet.raca != null && pet.raca.id == raca.id}"></option>
+                                    </th:block>
+                                </select>
+                                <div class="text-danger small" th:if="${#fields.hasErrors('racaId')}" th:errors="*{racaId}"></div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="edit-dataNascimento" class="form-label fw-semibold">Data de Nascimento *</label>
+                                <input type="date" class="form-control" id="edit-dataNascimento" th:field="*{dataNascimento}" required>
+                                <div class="text-danger small" th:if="${#fields.hasErrors('dataNascimento')}" th:errors="*{dataNascimento}"></div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                            <button type="button" class="btn btn-outline-secondary px-4" onclick="document.getElementById('tab-prontuario-btn').click();">
+                                <i class="bi bi-x-lg me-1"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-clyvo px-4">
+                                <i class="bi bi-check-lg me-1"></i> Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div> <!-- Fim de tab-editar -->
+
+            </div> <!-- Fim de petDetailTabsContent -->
 
         </div>
     </div>
 
-    <!-- SCRIPT DE FILTRAGEM INSTANTÂNEA DA TIMELINE -->
+    <!-- SCRIPTS DE INTERAÇÃO -->
     <script>
         function filterTimeline(tipo, btn) {
-            // Atualiza o estado ativo dos botões
             document.querySelectorAll('#timelineFilters button').forEach(b => {
                 b.classList.remove('btn-white', 'active-filter', 'fw-bold');
                 b.classList.add('btn-light', 'text-secondary', 'fw-semibold');
@@ -635,7 +739,6 @@
             btn.classList.remove('btn-light', 'text-secondary', 'fw-semibold');
             btn.classList.add('btn-white', 'active-filter', 'fw-bold');
 
-            // Filtra os cards
             const cards = document.querySelectorAll('.timeline-card-wrapper');
             cards.forEach(card => {
                 const cardTipo = card.getAttribute('data-tipo');
@@ -646,6 +749,33 @@
                 }
             });
         }
+
+        function ativarAbaEditar() {
+            const editBtn = document.getElementById('tab-editar-btn');
+            if (editBtn) {
+                const tab = new bootstrap.Tab(editBtn);
+                tab.show();
+                const editSection = document.getElementById('tab-editar');
+                if (editSection) {
+                    editSection.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const params = new URLSearchParams(window.location.search);
+            const tabParam = params.get('tab');
+            const hash = window.location.hash;
+
+            if (tabParam === 'editar' || hash === '#editar' || hash === '#tab-editar') {
+                ativarAbaEditar();
+            } else if (tabParam === 'timeline' || hash === '#timeline' || hash === '#tab-timeline') {
+                const timelineBtn = document.getElementById('tab-timeline-btn');
+                if (timelineBtn) {
+                    new bootstrap.Tab(timelineBtn).show();
+                }
+            }
+        });
     </script>
 </body>
 </html>

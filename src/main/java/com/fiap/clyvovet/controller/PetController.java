@@ -67,16 +67,31 @@ public class PetController {
                             Model model,
                             RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
+            if (petDto.getId() != null) {
+                String msg = bindingResult.getAllErrors().get(0).getDefaultMessage();
+                redirectAttributes.addFlashAttribute("errorMessage", msg);
+                return "redirect:/pets/" + petDto.getId() + "?tab=editar";
+            }
             model.addAttribute("racas", petService.listarRacas());
             model.addAttribute("racasPorEspecie", petService.listarRacasAgrupadasPorEspecie());
             return "pets/form";
         }
 
         try {
-            petService.salvar(petDto, auth.getName());
-            redirectAttributes.addFlashAttribute("successMessage", "Pet salvo com sucesso na Clyvo Vet!");
-            return "redirect:/pets";
+            boolean eraNovo = (petDto.getId() == null);
+            Pet salvo = petService.salvar(petDto, auth.getName());
+            if (eraNovo) {
+                redirectAttributes.addFlashAttribute("successMessage", "Pet cadastrado com sucesso na Clyvo Vet!");
+                return "redirect:/pets";
+            } else {
+                redirectAttributes.addFlashAttribute("successMessage", "Dados de " + salvo.getNome() + " atualizados com sucesso!");
+                return "redirect:/pets/" + salvo.getId();
+            }
         } catch (Exception e) {
+            if (petDto.getId() != null) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Erro ao atualizar pet: " + e.getMessage());
+                return "redirect:/pets/" + petDto.getId() + "?tab=editar";
+            }
             model.addAttribute("errorMessage", "Erro ao salvar pet: " + e.getMessage());
             model.addAttribute("racas", petService.listarRacas());
             model.addAttribute("racasPorEspecie", petService.listarRacasAgrupadasPorEspecie());
@@ -101,7 +116,17 @@ public class PetController {
         com.fiap.clyvovet.dto.ProtocoloLongevidadeDto protocolo = longevidadeService.calcularProtocolo(pet);
         List<BadgeItemDto> galeriaBadges = checkinService.obterGaleriaDeBadgesCompletas(pet);
 
+        PetDto petDto = new PetDto();
+        petDto.setId(pet.getId());
+        petDto.setNome(pet.getNome());
+        petDto.setRacaId(pet.getRaca() != null ? pet.getRaca().getId() : null);
+        petDto.setDataNascimento(pet.getDataNascimento());
+        petDto.setPeso(pet.getPeso());
+
         model.addAttribute("pet", pet);
+        model.addAttribute("petDto", petDto);
+        model.addAttribute("racas", petService.listarRacas());
+        model.addAttribute("racasPorEspecie", petService.listarRacasAgrupadasPorEspecie());
         model.addAttribute("checkins", checkins);
         model.addAttribute("badges", badges);
         model.addAttribute("galeriaBadges", galeriaBadges);
@@ -110,5 +135,11 @@ public class PetController {
         model.addAttribute("protocolo", protocolo);
 
         return "pets/detalhes";
+    }
+
+    @GetMapping("/{id}/editar")
+    public String editarPet(@PathVariable("id") Long petId, Authentication auth) {
+        petService.buscarPorIdAutorizado(petId, auth);
+        return "redirect:/pets/" + petId + "?tab=editar";
     }
 }

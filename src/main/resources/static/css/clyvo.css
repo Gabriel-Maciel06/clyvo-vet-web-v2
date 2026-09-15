@@ -376,3 +376,37 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 @media (min-width: 576px) {
     .w-full-then-auto { width: auto; }
 }
+
+/* --------------------------------------------------------------------------
+   Abas de navegação (estilo ficha clínica)
+   -------------------------------------------------------------------------- */
+.clyvo-pills {
+    background: #f1f5f9;
+    padding: 0.35rem;
+    border-radius: var(--clyvo-radius-sheet);
+    border: 1px solid var(--clyvo-border);
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+.clyvo-pills .nav-link {
+    color: var(--clyvo-muted);
+    font-size: 0.92rem;
+    font-weight: 500;
+    border-radius: var(--clyvo-radius-control);
+    padding: 0.5rem 1.15rem;
+    border: none;
+    background: transparent;
+    transition: all 0.15s ease-in-out;
+}
+.clyvo-pills .nav-link:hover {
+    color: var(--clyvo-ink);
+    background: rgba(255, 255, 255, 0.6);
+}
+.clyvo-pills .nav-link.active {
+    background: #ffffff;
+    color: var(--clyvo-teal-dark);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
