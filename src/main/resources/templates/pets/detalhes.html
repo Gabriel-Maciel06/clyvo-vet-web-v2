@@ -220,15 +220,15 @@
                     </div>
 
                     <!-- PROGRESSO GLOBAL DE CONQUISTAS -->
-                    <div class="clyvo-inset d-flex align-items-center gap-3 p-2 px-3 w-100 w-sm-auto justify-content-between justify-content-sm-end">
+                    <div class="clyvo-inset d-flex align-items-center gap-3 p-2 px-3 w-full-then-auto justify-content-between justify-content-sm-end">
                         <div>
                             <div class="small fw-semibold text-dark text-start text-sm-end">
-                                <span th:text="${badges != null ? badges.size() : 0}">2</span> de <span th:text="${galeriaBadges != null ? galeriaBadges.size() : 6}">6</span> Desbloqueadas
+                                <span th:text="${galeriaBadges != null ? galeriaBadges.?[desbloqueado].size() : 0}">4</span> de <span th:text="${galeriaBadges != null ? galeriaBadges.size() : 6}">6</span> Desbloqueadas
                             </div>
                             <div class="progress mt-1" style="width: 130px;">
                                 <div class="progress-bar" role="progressbar"
-                                     th:style="'width: ' + ${badges != null && galeriaBadges != null && galeriaBadges.size() > 0 ? (badges.size() * 100 / galeriaBadges.size()) : 0} + '%; background-color: #f59e0b;'"
-                                     th:aria-valuenow="${badges != null && galeriaBadges != null && galeriaBadges.size() > 0 ? (badges.size() * 100 / galeriaBadges.size()) : 0}"
+                                     th:style="'width: ' + ${galeriaBadges != null && galeriaBadges.size() > 0 ? (galeriaBadges.?[desbloqueado].size() * 100 / galeriaBadges.size()) : 0} + '%; background-color: #f59e0b;'"
+                                     th:aria-valuenow="${galeriaBadges != null && galeriaBadges.size() > 0 ? (galeriaBadges.?[desbloqueado].size() * 100 / galeriaBadges.size()) : 0}"
                                      aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
@@ -421,7 +421,7 @@
                                                 </small>
                                                 <a th:href="'https://wa.me/5511987654321?text=Ol%C3%A1%2C+preciso+de+ajuda+com+o+alerta+cl%C3%ADnico+do+meu+pet+' + ${pet.nome}"
                                                    target="_blank"
-                                                   class="btn btn-sm btn-danger px-3 d-inline-flex align-items-center justify-content-center gap-1 w-100 w-sm-auto text-nowrap">
+                                                   class="btn btn-sm btn-danger px-3 d-inline-flex align-items-center justify-content-center gap-1 w-full-then-auto text-nowrap">
                                                     <i class="bi bi-whatsapp"></i> Falar com Plantão Veterinário
                                                 </a>
                                             </div>

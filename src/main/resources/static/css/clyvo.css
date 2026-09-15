@@ -366,3 +366,13 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 #timelineFilters .btn-light:hover { background: #fff; border-color: var(--clyvo-border); }
 .text-teal { color: var(--clyvo-teal) !important; }
 .breadcrumb-item + .breadcrumb-item::before { color: #cbd5e1; }
+
+/* --------------------------------------------------------------------------
+   Largura cheia empilhado no celular, largura do conteúdo lado a lado no
+   tablet/desktop. O Bootstrap não tem "w-sm-auto" (só existe w-100/w-auto
+   sem variante responsiva) - por isso essa classe própria.
+   -------------------------------------------------------------------------- */
+.w-full-then-auto { width: 100%; }
+@media (min-width: 576px) {
+    .w-full-then-auto { width: auto; }
+}
