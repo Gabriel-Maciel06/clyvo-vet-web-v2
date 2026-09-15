@@ -2,6 +2,9 @@ package com.fiap.clyvovet.repository;
 
 import com.fiap.clyvovet.model.CheckinDiario;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -14,4 +17,8 @@ public interface CheckinDiarioRepository extends JpaRepository<CheckinDiario, Lo
     Optional<CheckinDiario> findByPetIdAndDataCheckin(Long petId, LocalDate dataCheckin);
     long countByPetId(Long petId);
     List<CheckinDiario> findByAlertaGeradoTrueOrderByDataCheckinDesc();
+
+    @Modifying
+    @Query("DELETE FROM CheckinDiario c WHERE c.pet.id = :petId")
+    void deleteByPetId(@Param("petId") Long petId);
 }

@@ -661,67 +661,153 @@
             </div> <!-- Fim de tab-timeline -->
 
             <!-- ============================================================= -->
-            <!-- ABA 3: EDITAR DADOS DO PET                                     -->
+            <!-- ABA 3: EDITAR DADOS DO PET & EXCLUSÃO                          -->
             <!-- ============================================================= -->
             <div class="tab-pane fade" id="tab-editar" role="tabpanel" aria-labelledby="tab-editar-btn" sec:authorize="hasRole('TUTOR')">
                 <div class="card p-4 p-md-5 mb-4">
-                    <div class="mb-4">
-                        <div class="d-flex align-items-center gap-2 mb-1">
-                            <h3 class="mb-0"><i class="bi bi-pencil-square me-2" style="color: #0d9488;"></i>Editar Dados de <span th:text="${pet.nome}">Thor</span></h3>
-                            <span class="fs-4" th:text="${pet.raca.emoji}">🥇</span>
+                    <div class="mb-4 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <h3 class="mb-0"><i class="bi bi-speedometer2 me-2" style="color: #0d9488;"></i>Atualizar Peso de <span th:text="${pet.nome}">Thor</span></h3>
+                                <span class="fs-4" th:text="${pet.raca.emoji}">🥇</span>
+                            </div>
+                            <p class="text-muted mb-0">No acompanhamento clínico de longevidade, o peso aferido é o parâmetro dinâmico que recalcula as dosagens e o escore de saúde.</p>
                         </div>
-                        <p class="text-muted mb-0">Atualize as informações cadastrais e clínicas do paciente. O protocolo preventivo e as estimativas de longevidade serão recalculados automaticamente.</p>
+                        <span class="badge bg-light text-secondary border px-3 py-2">
+                            <i class="bi bi-qr-code me-1"></i> ID Clyvo: #000<span th:text="${pet.id}">1</span>
+                        </span>
                     </div>
 
                     <form th:action="@{/pets/salvar}" th:object="${petDto}" method="post">
+                        <!-- Campos ocultos para manter integridade do DTO -->
                         <input type="hidden" th:field="*{id}">
+                        <input type="hidden" th:field="*{nome}">
+                        <input type="hidden" th:field="*{racaId}">
+                        <input type="hidden" th:field="*{dataNascimento}">
 
-                        <div class="row g-3">
-                            <div class="col-md-8">
-                                <label for="edit-nome" class="form-label fw-semibold">Nome do Pet *</label>
-                                <input type="text" class="form-control" id="edit-nome" th:field="*{nome}" placeholder="Ex: Thor, Luna, Bob" required>
-                                <div class="text-danger small" th:if="${#fields.hasErrors('nome')}" th:errors="*{nome}"></div>
+                        <!-- PAINEL DE DADOS BIOLÓGICOS FIXOS (APENAS LEITURA) -->
+                        <div class="p-3 mb-4 rounded-3" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <span class="fw-semibold text-secondary small text-uppercase" style="letter-spacing: 0.04em;">
+                                    <i class="bi bi-lock-fill me-1 text-muted"></i> Informações Biológicas Fixas do Paciente
+                                </span>
+                                <span class="badge bg-secondary-subtle text-secondary border small">
+                                    <i class="bi bi-shield-check me-1"></i> Registro Imutável
+                                </span>
                             </div>
-
-                            <div class="col-md-4">
-                                <label for="edit-peso" class="form-label fw-semibold">Peso Atual (kg) *</label>
-                                <input type="number" step="0.1" class="form-control" id="edit-peso" th:field="*{peso}" placeholder="Ex: 12.5" required>
-                                <div class="text-danger small" th:if="${#fields.hasErrors('peso')}" th:errors="*{peso}"></div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label for="edit-racaId" class="form-label fw-semibold">Espécie & Raça *</label>
-                                <select class="form-select" id="edit-racaId" th:field="*{racaId}" required>
-                                    <option value="">Selecione a espécie e raça...</option>
-                                    <th:block th:if="${racasPorEspecie != null}">
-                                        <optgroup th:each="entry : ${racasPorEspecie}" th:label="${entry.value[0].emoji} + ' ' + ${entry.key}">
-                                            <option th:each="raca : ${entry.value}" th:value="${raca.id}" th:text="${raca.nome} + ' (Expectativa: ' + ${raca.expectativaVida} + ' anos)'" th:selected="${pet.raca != null && pet.raca.id == raca.id}"></option>
-                                        </optgroup>
-                                    </th:block>
-                                    <th:block th:if="${racasPorEspecie == null}">
-                                        <option th:each="raca : ${racas}" th:value="${raca.id}" th:text="${raca.emoji} + ' ' + ${raca.especie} + ' - ' + ${raca.nome} + ' (Expectativa: ' + ${raca.expectativaVida} + ' anos)'" th:selected="${pet.raca != null && pet.raca.id == raca.id}"></option>
-                                    </th:block>
-                                </select>
-                                <div class="text-danger small" th:if="${#fields.hasErrors('racaId')}" th:errors="*{racaId}"></div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label for="edit-dataNascimento" class="form-label fw-semibold">Data de Nascimento *</label>
-                                <input type="date" class="form-control" id="edit-dataNascimento" th:field="*{dataNascimento}" required>
-                                <div class="text-danger small" th:if="${#fields.hasErrors('dataNascimento')}" th:errors="*{dataNascimento}"></div>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label text-muted small mb-1">Nome do Pet</label>
+                                    <div class="p-2 px-3 bg-white rounded border fw-semibold text-dark d-flex align-items-center gap-2">
+                                        <i class="bi bi-tag text-teal"></i>
+                                        <span th:text="${pet.nome}">Thor</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-muted small mb-1">Espécie & Raça</label>
+                                    <div class="p-2 px-3 bg-white rounded border fw-semibold text-dark d-flex align-items-center gap-2 text-truncate">
+                                        <span th:text="${pet.raca.emoji}">🐶</span>
+                                        <span th:text="${pet.raca.especie} + ' - ' + ${pet.raca.nome}">Golden Retriever</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-muted small mb-1">Data de Nascimento / Idade</label>
+                                    <div class="p-2 px-3 bg-white rounded border fw-semibold text-dark d-flex align-items-center gap-2">
+                                        <i class="bi bi-calendar3 text-primary"></i>
+                                        <span th:text="${#temporals.format(pet.dataNascimento, 'dd/MM/yyyy')} + ' (' + ${pet.idadeAnos} + ' anos)'">01/01/2021 (3 anos)</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                        <!-- SEÇÃO DO PESO AFERIDO (ÚNICO CAMPO EDITÁVEL) -->
+                        <div class="p-3 p-md-4 mb-4 rounded-3 border" style="background: #f0fdfa; border-color: #99f6e4 !important;">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="badge badge-clyvo text-uppercase">
+                                    <i class="bi bi-pencil me-1"></i> Parâmetro Clínico Editável
+                                </span>
+                                <span class="small text-muted">Última aferição registrada: <strong th:text="${pet.peso} + ' kg'">32.5 kg</strong></span>
+                            </div>
+                            <div class="row align-items-center g-3">
+                                <div class="col-md-6 col-lg-5">
+                                    <label for="edit-peso" class="form-label fw-bold fs-6 text-dark mb-1">
+                                        <i class="bi bi-speedometer2 text-teal me-1"></i> Novo Peso Aferido (kg) *
+                                    </label>
+                                    <div class="input-group input-group-lg">
+                                        <input type="number" step="0.1" min="0.1" class="form-control fw-bold fs-4 text-dark" id="edit-peso" th:field="*{peso}" placeholder="Ex: 32.5" required autofocus>
+                                        <span class="input-group-text bg-white fw-bold text-teal">kg</span>
+                                    </div>
+                                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('peso')}" th:errors="*{peso}"></div>
+                                </div>
+                                <div class="col-md-6 col-lg-7">
+                                    <div class="small text-muted" style="line-height: 1.45;">
+                                        <i class="bi bi-info-circle text-teal me-1"></i>
+                                        Ao salvar a nova aferição, o sistema registrará um novo evento de pesagem na <strong>Linha do Tempo Clínica</strong> e recalculará o <strong>Escore de Longevidade</strong> e a dosagem preventiva recomendada para <span class="fw-semibold text-dark" th:text="${pet.nome}">Thor</span>.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BOTÕES DE AÇÃO -->
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
                             <button type="button" class="btn btn-outline-secondary px-4" onclick="switchPetTab('#tab-prontuario')">
-                                <i class="bi bi-x-lg me-1"></i> Cancelar
+                                <i class="bi bi-arrow-left me-1"></i> Voltar ao Prontuário
                             </button>
-                            <button type="submit" class="btn btn-clyvo px-4">
-                                <i class="bi bi-check-lg me-1"></i> Salvar Alterações
+                            <button type="submit" class="btn btn-clyvo px-4 py-2">
+                                <i class="bi bi-check-lg me-1"></i> Salvar Peso & Recalcular Longevidade
                             </button>
                         </div>
                     </form>
                 </div>
+
+                <!-- ZONA DE PERIGO: EXCLUSÃO DEFINITIVA DO PET -->
+                <div class="card p-4 border-danger border-opacity-25 mb-4" style="background: #fff5f5;">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                        <div>
+                            <h5 class="text-danger mb-1 fw-bold">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>Zona de Perigo — Excluir Pet do Prontuário
+                            </h5>
+                            <p class="text-muted small mb-0" style="max-width: 650px;">
+                                A exclusão é <strong>permanente e irreversível</strong>. Todos os dados associados a <strong th:text="${pet.nome}">Thor</strong> — incluindo linha do tempo clínica, check-ins diários, triagens e conquistas — serão permanentemente apagados da base de dados.
+                            </p>
+                        </div>
+                        <button type="button" class="btn btn-outline-danger px-4 text-nowrap" data-bs-toggle="modal" data-bs-target="#modalConfirmarExclusao">
+                            <i class="bi bi-trash3 me-1"></i> Excluir Pet
+                        </button>
+                    </div>
+                </div>
+
+                <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO -->
+                <div class="modal fade" id="modalConfirmarExclusao" tabindex="-1" aria-labelledby="modalExclusaoLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 shadow">
+                            <div class="modal-header border-bottom-0 pb-0">
+                                <h5 class="modal-title text-danger fw-bold" id="modalExclusaoLabel">
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmar Exclusão Definitiva
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                            </div>
+                            <div class="modal-body py-3">
+                                <p class="mb-3">
+                                    Tem certeza absoluta de que deseja excluir o prontuário de <strong class="text-dark" th:text="${pet.nome}">Thor</strong>?
+                                </p>
+                                <div class="alert alert-danger py-2 small mb-0">
+                                    <i class="bi bi-shield-x me-1"></i>
+                                    <strong>Atenção:</strong> Esta ação removerá em cascata todos os registros clínicos, check-ins e badges deste animal. Não será possível recuperar estas informações.
+                                </div>
+                            </div>
+                            <div class="modal-footer border-top-0 pt-0">
+                                <button type="button" class="btn btn-light px-3" data-bs-dismiss="modal">Cancelar</button>
+                                <form th:action="@{/pets/{id}/excluir(id=${pet.id})}" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-danger px-4">
+                                        <i class="bi bi-trash3-fill me-1"></i> Sim, Excluir Pet
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div> <!-- Fim de tab-editar -->
 
             </div> <!-- Fim de petDetailTabsContent -->

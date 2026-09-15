@@ -80,4 +80,30 @@ class PetServiceEditTest {
 
         assertThrows(AccessDeniedException.class, () -> petService.salvar(editDto, "outro_tutor"));
     }
+
+    @Test
+    @DisplayName("Exclusão de pet remove o animal e todos os seus registros clínicos associados")
+    void deveExcluirPetComSucessoEEliminarAssociacoes() {
+        Pet petOriginal = petService.listarPorTutor("tutor").get(0);
+        Long petId = petOriginal.getId();
+
+        assertTrue(petRepository.existsById(petId));
+
+        petService.excluir(petId, "tutor");
+
+        assertFalse(petRepository.existsById(petId), "O pet deve ser removido do banco");
+    }
+
+    @Test
+    @DisplayName("Não deve permitir que outro usuário exclua pet que não lhe pertence")
+    void deveBloquearExclusaoPorOutroTutor() {
+        Usuario u2 = new Usuario(null, "outro_invasor", "senha", RoleUsuario.ROLE_TUTOR, "Invasor", "invasor@gmail.com");
+        usuarioRepository.save(u2);
+        Tutor t2 = new Tutor("888.777.666-55", "Invasor", "(11) 92222-3333", "invasor@gmail.com", u2);
+        tutorRepository.save(t2);
+
+        Pet petDoTutor1 = petService.listarPorTutor("tutor").get(0);
+
+        assertThrows(AccessDeniedException.class, () -> petService.excluir(petDoTutor1.getId(), "outro_invasor"));
+    }
 }

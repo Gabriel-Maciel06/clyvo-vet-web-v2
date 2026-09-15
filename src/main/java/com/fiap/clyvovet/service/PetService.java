@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,15 +21,24 @@ public class PetService {
     private final TutorRepository tutorRepository;
     private final RacaRepository racaRepository;
     private final HistoricoClinicoRepository historicoClinicoRepository;
+    private final CheckinDiarioRepository checkinDiarioRepository;
+    private final BadgeConquistaRepository badgeConquistaRepository;
+    private final ConsultaTriagemRepository consultaTriagemRepository;
 
     public PetService(PetRepository petRepository,
                       TutorRepository tutorRepository,
                       RacaRepository racaRepository,
-                      HistoricoClinicoRepository historicoClinicoRepository) {
+                      HistoricoClinicoRepository historicoClinicoRepository,
+                      CheckinDiarioRepository checkinDiarioRepository,
+                      BadgeConquistaRepository badgeConquistaRepository,
+                      ConsultaTriagemRepository consultaTriagemRepository) {
         this.petRepository = petRepository;
         this.tutorRepository = tutorRepository;
         this.racaRepository = racaRepository;
         this.historicoClinicoRepository = historicoClinicoRepository;
+        this.checkinDiarioRepository = checkinDiarioRepository;
+        this.badgeConquistaRepository = badgeConquistaRepository;
+        this.consultaTriagemRepository = consultaTriagemRepository;
     }
 
     public List<Pet> listarPorTutor(String username) {
@@ -89,6 +99,28 @@ public class PetService {
         if (dto.getId() != null) {
             pet = buscarPorId(dto.getId());
             validarPropriedade(pet, username);
+
+            BigDecimal pesoAnterior = pet.getPeso();
+            pet.setPeso(dto.getPeso());
+            if (dto.getNome() != null && !dto.getNome().isBlank()) {
+                pet.setNome(dto.getNome());
+            }
+            if (dto.getDataNascimento() != null) {
+                pet.setDataNascimento(dto.getDataNascimento());
+            }
+            if (raca != null) {
+                pet.setRaca(raca);
+            }
+
+            if (pesoAnterior != null && !pesoAnterior.equals(dto.getPeso())) {
+                HistoricoClinico histPeso = new HistoricoClinico(
+                        null, pet, java.time.LocalDateTime.now(),
+                        "PESAGEM_CLINICA",
+                        "Peso aferido atualizado de " + pesoAnterior + " kg para " + dto.getPeso() + " kg.",
+                        "Recálculo do índice de longevidade e acompanhamento metabólico."
+                );
+                historicoClinicoRepository.save(histPeso);
+            }
         } else {
             if (tutor.getCpf().startsWith(PerfilService.PREFIXO_CPF_PROVISORIO)) {
                 throw new IllegalStateException(
@@ -98,13 +130,12 @@ public class PetService {
             pet.setTutor(tutor);
             pet.setStatusLongevidade("Acompanhamento preventivo ativo");
             pet.setEscoreSaude(85);
+            pet.setNome(dto.getNome());
+            pet.setRaca(raca);
+            pet.setDataNascimento(dto.getDataNascimento());
+            pet.setPeso(dto.getPeso());
             novo = true;
         }
-
-        pet.setNome(dto.getNome());
-        pet.setRaca(raca);
-        pet.setDataNascimento(dto.getDataNascimento());
-        pet.setPeso(dto.getPeso());
 
         Pet salvo = petRepository.save(pet);
 
@@ -119,5 +150,27 @@ public class PetService {
         }
 
         return salvo;
+    }
+
+    @Transactional
+    public void excluir(Long petId, Authentication auth) {
+        Pet pet = buscarPorIdAutorizado(petId, auth);
+        removerDadosAssociadosEPet(pet);
+    }
+
+    @Transactional
+    public void excluir(Long petId, String username) {
+        Pet pet = buscarPorId(petId);
+        validarPropriedade(pet, username);
+        removerDadosAssociadosEPet(pet);
+    }
+
+    private void removerDadosAssociadosEPet(Pet pet) {
+        Long petId = pet.getId();
+        historicoClinicoRepository.deleteByPetId(petId);
+        badgeConquistaRepository.deleteByPetId(petId);
+        checkinDiarioRepository.deleteByPetId(petId);
+        consultaTriagemRepository.deleteByPetId(petId);
+        petRepository.delete(pet);
     }
 }

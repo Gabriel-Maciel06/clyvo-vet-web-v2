@@ -142,4 +142,20 @@ public class PetController {
         petService.buscarPorIdAutorizado(petId, auth);
         return "redirect:/pets/" + petId + "?tab=editar";
     }
+
+    @PostMapping("/{id}/excluir")
+    public String excluirPet(@PathVariable("id") Long petId,
+                             Authentication auth,
+                             RedirectAttributes redirectAttributes) {
+        try {
+            Pet pet = petService.buscarPorIdAutorizado(petId, auth);
+            String nome = pet.getNome();
+            petService.excluir(petId, auth);
+            redirectAttributes.addFlashAttribute("successMessage", "O pet " + nome + " foi excluído do prontuário com sucesso.");
+            return "redirect:/pets";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Erro ao excluir pet: " + e.getMessage());
+            return "redirect:/pets/" + petId + "?tab=editar";
+        }
+    }
 }
