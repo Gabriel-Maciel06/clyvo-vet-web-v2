@@ -37,6 +37,27 @@ public class Raca {
         this.cuidadosEspeciais = cuidadosEspeciais;
     }
 
+    /**
+     * Imagem (emoji) com trocadilho para a raça, usada em toda a tela em vez
+     * de um ícone de estoque genérico. Fonte única desse mapeamento: usada no
+     * cartão do pet, na ficha, na avaliação de triagem e no seletor de raça
+     * do formulário de cadastro. Uma raça nova que ainda não está no mapa
+     * cai no 🐾 genérico em vez de quebrar a tela.
+     */
+    public String getEmoji() {
+        if (nome == null) return "🐾";
+        return switch (nome) {
+            case "Golden Retriever" -> "🥇";      // Golden = ouro
+            case "Buldogue Francês" -> "🥐";      // Francês = croissant
+            case "Poodle Médio" -> "☁️";          // pompom de pelo cacheado = nuvem fofa
+            case "Labrador Retriever" -> "🧪";    // Labrador = "lab"
+            case "SRD (Vira-lata)" -> "🥫";        // vira-lata = vira a lata do lixo
+            case "Siamês" -> "💎";                 // olhos exóticos = pedra preciosa
+            case "Persa" -> "🏺";                  // Pérsia = cerâmica/arte persa
+            default -> "🐾";
+        };
+    }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getNome() { return nome; }

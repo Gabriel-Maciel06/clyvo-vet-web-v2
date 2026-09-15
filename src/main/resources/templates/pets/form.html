@@ -34,7 +34,7 @@
                                     <label for="racaId" class="form-label">Raça & Espécie *</label>
                                     <select class="form-select" id="racaId" th:field="*{racaId}" required>
                                         <option value="">Selecione a raça...</option>
-                                        <option th:each="raca : ${racas}" th:value="${raca.id}" th:text="${raca.especie} + ' - ' + ${raca.nome} + ' (Expectativa: ' + ${raca.expectativaVida} + ' anos)'"></option>
+                                        <option th:each="raca : ${racas}" th:value="${raca.id}" th:text="${raca.emoji} + ' ' + ${raca.especie} + ' - ' + ${raca.nome} + ' (Expectativa: ' + ${raca.expectativaVida} + ' anos)'"></option>
                                     </select>
                                     <div class="text-danger small" th:if="${#fields.hasErrors('racaId')}" th:errors="*{racaId}"></div>
                                 </div>

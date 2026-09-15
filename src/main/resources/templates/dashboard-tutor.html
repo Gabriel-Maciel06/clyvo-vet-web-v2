@@ -88,7 +88,7 @@
                     <div class="card h-100 p-4">
                         <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
                             <div class="d-flex align-items-center gap-2">
-                                <span class="fs-4" style="color: #0d9488;"><span th:replace="~{fragments/pet-icons :: icon(${pet.raca.nome})}"></span></span>
+                                <span class="fs-4" th:text="${pet.raca.emoji}">🥇</span>
                                 <h4 class="mb-0" th:text="${pet.nome}">Thor</h4>
                             </div>
                             <span class="badge bg-light" th:text="${pet.raca.nome}">Golden Retriever</span>
