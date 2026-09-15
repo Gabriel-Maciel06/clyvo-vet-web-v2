@@ -6,31 +6,17 @@
     <div th:replace="~{fragments/layout :: appShell('pets', ~{::#mainSection})}">
         <div id="mainSection">
 
-            <!-- BREADCRUMB E AÇÕES -->
-            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-end gap-3 mb-4">
-                <div>
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb mb-1 small">
-                            <li class="breadcrumb-item"><a th:href="@{/dashboard}" class="text-decoration-none text-muted">Dashboard</a></li>
-                            <li class="breadcrumb-item"><a th:href="@{/pets}" class="text-decoration-none text-muted">Meus Pets</a></li>
-                            <li class="breadcrumb-item active fw-semibold" aria-current="page" style="color: #0f766e;" th:text="${pet.nome}">Thor</li>
-                        </ol>
-                    </nav>
-                    <h2 class="mb-0" style="font-size: 2rem;">Prontuário & Longevidade Pet</h2>
-                </div>
-
-                <div class="d-flex flex-wrap gap-2 w-100 w-sm-auto">
-                    <!-- BOTÃO WHATSAPP DA CLÍNICA COM MENSAGEM INTELIGENTE -->
-                    <a th:href="'https://wa.me/5511987654321?text=' + ${protocolo.mensagemWhatsApp}"
-                       target="_blank"
-                       class="btn btn-success px-3 d-flex align-items-center justify-content-center gap-2 flex-grow-1 flex-sm-grow-0 text-nowrap">
-                        <i class="bi bi-whatsapp"></i> Agendar no WhatsApp
-                    </a>
-
-                    <a th:href="@{/checkin/novo(petId=${pet.id})}" class="btn btn-clyvo px-4 d-flex align-items-center justify-content-center gap-1 flex-grow-1 flex-sm-grow-0 text-nowrap" sec:authorize="hasRole('TUTOR')">
-                        <i class="bi bi-calendar-check-fill me-1"></i> Fazer Check-in
-                    </a>
-                </div>
+            <!-- BREADCRUMB -->
+            <!-- Botões de WhatsApp/Check-in removidos daqui: já existem na barra superior global (topbar), visível em toda tela. -->
+            <div class="mb-4">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1 small">
+                        <li class="breadcrumb-item"><a th:href="@{/dashboard}" class="text-decoration-none text-muted">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a th:href="@{/pets}" class="text-decoration-none text-muted">Meus Pets</a></li>
+                        <li class="breadcrumb-item active fw-semibold" aria-current="page" style="color: #0f766e;" th:text="${pet.nome}">Thor</li>
+                    </ol>
+                </nav>
+                <h2 class="mb-0" style="font-size: 2rem;">Prontuário & Longevidade Pet</h2>
             </div>
 
             <!-- FICHA DO PET -->
