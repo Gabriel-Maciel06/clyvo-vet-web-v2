@@ -3,127 +3,426 @@
 <head th:fragment="head(title)">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${title} + ' — Caderneta Clyvo Vet'">Clyvo Vet</title>
+    <title th:text="${title} + ' - Clyvo Vet HealthTech'">Clyvo Vet</title>
+    <!-- Bootstrap 5.3 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-    <link th:href="@{/css/caderneta.css}" rel="stylesheet">
+    <!-- Google Fonts Plus Jakarta Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --clyvo-bg: #f8fafc;
+            --clyvo-sidebar-bg: #0b1329;
+            --clyvo-sidebar-hover: #172554;
+            --clyvo-teal: #0d9488;
+            --clyvo-teal-dark: #0f766e;
+            --clyvo-teal-light: #ccfbf1;
+            --clyvo-amber: #f59e0b;
+            --clyvo-indigo: #6366f1;
+            --clyvo-border: #e2e8f0;
+            --clyvo-card-bg: #ffffff;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--clyvo-bg);
+            color: #1e293b;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* SaaS App Shell Layout */
+        .app-wrapper {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+        }
+
+        /* Sidebar Fixa Completa */
+        .sidebar {
+            width: 290px;
+            background: linear-gradient(180deg, #0b1329 0%, #080d1a 100%);
+            color: #94a3b8;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .sidebar-brand {
+            padding: 1.5rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            text-decoration: none;
+        }
+        .sidebar-brand-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #0d9488, #14b8a6);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+        }
+        .sidebar-brand-text {
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: white;
+        }
+        .sidebar-brand-text span {
+            color: #2dd4bf;
+        }
+        .sidebar-menu {
+            padding: 1rem 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        .sidebar-section-title {
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: #64748b;
+            padding: 0.85rem 0.85rem 0.35rem;
+        }
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.7rem 0.9rem;
+            border-radius: 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .sidebar-link-content {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+        .sidebar-link:hover {
+            background-color: rgba(255, 255, 255, 0.06);
+            color: #f8fafc;
+            transform: translateX(3px);
+        }
+        .sidebar-link.active {
+            background: linear-gradient(90deg, rgba(13, 148, 136, 0.25) 0%, rgba(13, 148, 136, 0.08) 100%);
+            color: #2dd4bf;
+            border-left: 3px solid #14b8a6;
+        }
+        .sidebar-link i {
+            font-size: 1.15rem;
+        }
+        .sidebar-widget {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.03) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 1rem;
+            padding: 1.1rem;
+            margin: 0.5rem 0.5rem 0.75rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+        .sidebar-widget p {
+            color: #e2e8f0 !important;
+            line-height: 1.45;
+        }
+        .sidebar-footer {
+            padding: 1.15rem 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(0, 0, 0, 0.35);
+        }
+        .sidebar-footer .user-role-label {
+            color: #94a3b8 !important;
+            font-weight: 500;
+        }
+
+        /* Main Content Container */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            background-color: var(--clyvo-bg);
+        }
+
+        /* Header Superior */
+        .topbar {
+            height: 70px;
+            background-color: white;
+            border-bottom: 1px solid var(--clyvo-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 99;
+        }
+
+        /* Cards & Utilitários */
+        .card {
+            background-color: var(--clyvo-card-bg);
+            border: 1px solid var(--clyvo-border);
+            border-radius: 1.25rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card:hover {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        }
+        .btn-clyvo {
+            background: linear-gradient(135deg, #0d9488, #0f766e);
+            color: white;
+            font-weight: 600;
+            border-radius: 0.75rem;
+            padding: 0.65rem 1.4rem;
+            border: none;
+            box-shadow: 0 4px 10px rgba(13, 148, 136, 0.25);
+            transition: all 0.2s ease;
+        }
+        .btn-clyvo:hover {
+            background: linear-gradient(135deg, #0f766e, #115e59);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px rgba(13, 148, 136, 0.35);
+        }
+        .btn-clyvo-outline {
+            border: 2px solid #0d9488;
+            color: #0d9488;
+            font-weight: 600;
+            border-radius: 0.75rem;
+            padding: 0.6rem 1.3rem;
+            background: transparent;
+            transition: all 0.2s ease;
+        }
+        .btn-clyvo-outline:hover {
+            background-color: #0d9488;
+            color: white;
+        }
+
+        /* Badges de Destaque */
+        .badge-streak {
+            background: linear-gradient(135deg, #f59e0b, #ea580c);
+            color: white;
+            font-weight: 700;
+            padding: 0.4rem 0.85rem;
+            border-radius: 9999px;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+        }
+        .badge-points {
+            background: linear-gradient(135deg, #0d9488, #0284c7);
+            color: white;
+            font-weight: 700;
+            padding: 0.4rem 0.85rem;
+            border-radius: 9999px;
+            box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);
+        }
+
+        /* Timeline Moderna */
+        .timeline-item {
+            position: relative;
+            padding-left: 2.25rem;
+            margin-bottom: 1.75rem;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 0.55rem;
+            top: 1.5rem;
+            bottom: -1.25rem;
+            width: 2px;
+            background: #cbd5e1;
+        }
+        .timeline-item:last-child::before {
+            display: none;
+        }
+        .timeline-badge {
+            position: absolute;
+            left: 0;
+            top: 0.2rem;
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 50%;
+            background: #0d9488;
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px #cbd5e1;
+        }
+
+        /* Responsividade */
+        @media (max-width: 992px) {
+            .app-wrapper { flex-direction: column; }
+            .sidebar { width: 100%; }
+        }
+        @media (max-width: 768px) {
+            .topbar {
+                height: auto;
+                min-height: 56px;
+                padding: 0.6rem 1rem;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            .main-content {
+                width: 100%;
+                overflow-x: hidden;
+            }
+            main.container-fluid {
+                padding-left: 0.85rem !important;
+                padding-right: 0.85rem !important;
+            }
+        }
+    </style>
 </head>
 <body>
 
-    <!-- APP SHELL: SIDEBAR + TOPBAR + CONTEÚDO -->
+    <!-- APP SHELL: SIDEBAR + TOPBAR + CONTENT -->
     <div class="app-wrapper" th:fragment="appShell(activeTab, content)">
-
-        <!-- LOMBADA DA CADERNETA -->
+        
+        <!-- SIDEBAR FIXA PREENCHIDA E ORGANIZADA -->
         <aside class="sidebar">
+            <!-- Brand Logo -->
             <a class="sidebar-brand" th:href="@{/dashboard}">
-                <span class="sidebar-brand-mark">Clyvo<span>Vet</span></span>
+                <div class="sidebar-brand-icon">
+                    <i class="bi bi-heart-pulse-fill"></i>
+                </div>
+                <div class="sidebar-brand-text">
+                    Clyvo<span>Vet</span>
+                </div>
             </a>
-            <div class="px-3 pt-2">
-                <span class="sidebar-brand-sub">Caderneta de saúde preventiva</span>
-            </div>
 
-            <nav class="sidebar-menu mt-2">
-
-                <div class="sidebar-tab">Geral</div>
+            <!-- Menu Completo por Seções -->
+            <div class="sidebar-menu">
+                
+                <!-- SEÇÃO 1: VISÃO GERAL -->
+                <div class="sidebar-section-title">Visão Geral</div>
                 <a th:href="@{/dashboard}" class="sidebar-link" th:classappend="${activeTab == 'dashboard'} ? 'active' : ''">
                     <div class="sidebar-link-content">
-                        <i class="bi bi-journal-bookmark-fill"></i>
-                        <span>Painel</span>
+                        <i class="bi bi-grid-1x2-fill text-teal"></i>
+                        <span>Dashboard</span>
                     </div>
                 </a>
                 <a th:href="@{/pets}" class="sidebar-link" th:classappend="${activeTab == 'pets'} ? 'active' : ''">
                     <div class="sidebar-link-content">
-                        <i class="bi bi-clipboard2-heart"></i>
-                        <span>Meus pets</span>
+                        <i class="bi bi-gitlab text-info"></i>
+                        <span>Meus Pets</span>
                     </div>
+                    <span class="badge bg-light text-dark rounded-pill px-2" style="font-size: 0.7rem;">Ativos</span>
                 </a>
 
+                <!-- SEÇÃO 2: CUIDADO PREVENTIVO & ROTINA (TUTOR) -->
                 <div sec:authorize="hasRole('TUTOR')">
-                    <div class="sidebar-tab">Rotina de cuidado</div>
+                    <div class="sidebar-section-title">Medicina Preventiva</div>
                     <a th:href="@{/checkin/novo}" class="sidebar-link" th:classappend="${activeTab == 'checkin'} ? 'active' : ''">
                         <div class="sidebar-link-content">
-                            <i class="bi bi-calendar2-check"></i>
-                            <span>Check-in de hoje</span>
+                            <i class="bi bi-calendar-check-fill text-warning"></i>
+                            <span>Check-in Diário</span>
                         </div>
-                        <span class="sidebar-tag">+10</span>
+                        <span class="badge bg-warning text-dark rounded-pill" style="font-size: 0.65rem;">+10 pts</span>
                     </a>
                     <a th:href="@{/pets/protocolo}" class="sidebar-link" th:classappend="${activeTab == 'protocolo'} ? 'active' : ''">
                         <div class="sidebar-link-content">
-                            <i class="bi bi-person-arms-up"></i>
-                            <span>Idade e vacinas</span>
+                            <i class="bi bi-person-bounding-box text-primary"></i>
+                            <span>Idade Humana & Vacinas</span>
                         </div>
+                        <span class="badge bg-primary text-white rounded-pill" style="font-size: 0.65rem;">IA</span>
                     </a>
                     <a th:href="@{/triagem/solicitar}" class="sidebar-link" th:classappend="${activeTab == 'solicitar-triagem'} ? 'active' : ''">
                         <div class="sidebar-link-content">
-                            <i class="bi bi-shield-plus"></i>
-                            <span>Pedir avaliação</span>
+                            <i class="bi bi-shield-plus text-success"></i>
+                            <span>Solicitar Triagem IA</span>
                         </div>
                     </a>
 
-                    <div class="sidebar-tab">Fidelidade</div>
+                    <div class="sidebar-section-title">Fidelidade & Recompensas</div>
                     <a th:href="@{/checkin/recompensas}" class="sidebar-link" th:classappend="${activeTab == 'recompensas'} ? 'active' : ''">
                         <div class="sidebar-link-content">
-                            <i class="bi bi-award"></i>
-                            <span>Selos e descontos</span>
+                            <i class="bi bi-trophy-fill text-warning"></i>
+                            <span>Clyvo Rewards</span>
                         </div>
+                        <span class="badge bg-success text-white rounded-pill" style="font-size: 0.65rem;">Descontos</span>
                     </a>
                 </div>
 
+                <!-- SEÇÃO 3: MÓDULO MÉDICO VETERINÁRIO (ADMIN) -->
                 <div sec:authorize="hasRole('ADMIN')">
-                    <div class="sidebar-tab">Central clínica</div>
+                    <div class="sidebar-section-title">Central Clínica</div>
                     <a th:href="@{/triagem/fila}" class="sidebar-link" th:classappend="${activeTab == 'fila'} ? 'active' : ''">
                         <div class="sidebar-link-content">
-                            <i class="bi bi-clipboard2-pulse"></i>
-                            <span>Fila de triagem</span>
+                            <i class="bi bi-clipboard2-pulse-fill text-danger"></i>
+                            <span>Fila de Triagem IA</span>
                         </div>
-                        <span class="sidebar-tag clinical">Ativo</span>
+                        <span class="badge bg-danger text-white rounded-pill" style="font-size: 0.65rem;">Urgente</span>
                     </a>
                     <a th:href="@{/pets}" class="sidebar-link">
                         <div class="sidebar-link-content">
-                            <i class="bi bi-journal-medical"></i>
-                            <span>Prontuários</span>
+                            <i class="bi bi-journal-medical text-teal"></i>
+                            <span>Prontuários & Históricos</span>
                         </div>
                     </a>
                     <a th:href="@{/dashboard}" class="sidebar-link">
                         <div class="sidebar-link-content">
-                            <i class="bi bi-bell"></i>
-                            <span>Alertas de sintomas</span>
+                            <i class="bi bi-bell-fill text-warning"></i>
+                            <span>Alertas de Sintomas</span>
                         </div>
                     </a>
                 </div>
 
-                <div class="sidebar-tab">Canais</div>
+                <!-- SEÇÃO 4: SUPORTE & INTEGRAÇÕES -->
+                <div class="sidebar-section-title">Canais Rápidos</div>
                 <a href="https://wa.me/5511987654321?text=Ola,%20equipe%20Clyvo%20Vet!%20Gostaria%20de%20tirar%20duvidas%20sobre%20meu%20pet." target="_blank" class="sidebar-link">
                     <div class="sidebar-link-content">
-                        <i class="bi bi-whatsapp"></i>
-                        <span>Falar com a clínica</span>
+                        <i class="bi bi-whatsapp text-success"></i>
+                        <span>Plantão no WhatsApp</span>
                     </div>
+                    <i class="bi bi-box-arrow-up-right small text-muted"></i>
                 </a>
                 <a th:href="@{/h2-console}" target="_blank" class="sidebar-link" sec:authorize="hasRole('ADMIN')">
                     <div class="sidebar-link-content">
-                        <i class="bi bi-database"></i>
-                        <span>Banco (H2)</span>
+                        <i class="bi bi-database-fill-gear text-secondary"></i>
+                        <span>Console H2 (Banco)</span>
                     </div>
                 </a>
 
-                <div class="sidebar-stamp mt-auto" sec:authorize="hasRole('TUTOR')">
-                    <div class="stamp-title">Por que o check-in importa</div>
-                    <p>A rotina diária alimenta o cálculo de longevidade do seu pet — cada carimbo conta.</p>
+                <!-- WIDGET LATERAL: ATIVAÇÃO DE LONGEVIDADE -->
+                <div class="sidebar-widget mt-auto">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="bi bi-stars text-warning fs-5"></i>
+                        <span class="text-white fw-bold small">Longevidade Ativa</span>
+                    </div>
+                    <p class="small mb-3" style="font-size: 0.8rem; color: #cbd5e1;">
+                        Check-ins diários aumentam a expectativa de vida do seu pet em até <span class="text-warning fw-semibold">20%</span>.
+                    </p>
+                    <a th:href="@{/checkin/novo}" class="btn btn-sm btn-clyvo text-white fw-semibold w-100 rounded-pill py-1.5 shadow-sm" style="font-size: 0.78rem; letter-spacing: 0.2px;" sec:authorize="hasRole('TUTOR')">
+                        <i class="bi bi-calendar-check me-1"></i> Registrar Hoje
+                    </a>
                 </div>
-            </nav>
+            </div>
 
-            <div class="sidebar-footer">
+            <!-- Rodapé do Usuário na Sidebar -->
+            <div class="sidebar-footer d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center gap-2 overflow-hidden">
-                    <div class="sidebar-avatar"><i class="bi bi-person-fill"></i></div>
+                    <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" style="width: 38px; height: 38px; min-width: 38px; background: #0d9488; color: white;">
+                        <i class="bi bi-person-fill fs-6"></i>
+                    </div>
                     <div class="text-truncate">
-                        <div class="fw-semibold small text-truncate" style="color:#FBF8ED;" sec:authentication="name">usuario</div>
-                        <small class="d-block text-truncate" style="color: var(--forest-text-soft); font-size: 0.72rem;" sec:authorize="hasRole('ADMIN')">Médico veterinário</small>
-                        <small class="d-block text-truncate" style="color: var(--forest-text-soft); font-size: 0.72rem;" sec:authorize="hasRole('TUTOR')">Tutor responsável</small>
+                        <div class="text-white fw-bold small text-truncate" sec:authentication="name">usuario</div>
+                        <small class="user-role-label d-block text-truncate" style="font-size: 0.75rem;" sec:authorize="hasRole('ADMIN')">Médico Veterinário</small>
+                        <small class="user-role-label d-block text-truncate" style="font-size: 0.75rem;" sec:authorize="hasRole('TUTOR')">Tutor Responsável</small>
                     </div>
                 </div>
                 <form th:action="@{/logout}" method="post" class="m-0">
-                    <button type="submit" class="btn btn-sm border-0 p-1" style="color: var(--forest-text-soft);" title="Sair">
+                    <button type="submit" class="btn btn-sm text-white-50 border-0 p-1 hover-text-danger" title="Sair do sistema">
                         <i class="bi bi-box-arrow-right fs-5"></i>
                     </button>
                 </form>
@@ -132,47 +431,62 @@
 
         <!-- ÁREA PRINCIPAL -->
         <div class="main-content">
+            <!-- TOPBAR SUPERIOR -->
             <header class="topbar">
-                <span class="topbar-date"><i class="bi bi-calendar3 me-1"></i><span th:text="${#temporals.format(#temporals.createNow(), 'dd/MM/yyyy')}">00/00/0000</span></span>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill small">
+                        <i class="bi bi-shield-check text-success me-1"></i> Ambiente Seguro Clyvo Vet v1.0
+                    </span>
+                    <span class="badge bg-teal-subtle text-teal border px-3 py-2 rounded-pill small d-none d-md-inline-block" style="background-color: #ccfbf1; color: #0d9488;">
+                        <i class="bi bi-heart-pulse-fill me-1"></i> Módulo de Medicina Preventiva Ativo
+                    </span>
+                </div>
 
                 <div class="d-flex align-items-center gap-2">
-                    <a href="https://wa.me/5511987654321" target="_blank" class="btn btn-sm btn-clyvo-outline">
-                        <i class="bi bi-whatsapp me-1"></i> Suporte
+                    <a href="https://wa.me/5511987654321" target="_blank" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-semibold">
+                        <i class="bi bi-whatsapp me-1"></i> Suporte WhatsApp
                     </a>
-                    <a th:href="@{/checkin/novo}" class="btn btn-sm btn-gold" sec:authorize="hasRole('TUTOR')">
-                        <i class="bi bi-calendar2-check me-1"></i> Check-in
+                    <a th:href="@{/checkin/novo}" class="btn btn-sm btn-clyvo rounded-pill px-3" sec:authorize="hasRole('TUTOR')">
+                        <i class="bi bi-plus-circle-fill me-1"></i> Check-in Rápido
                     </a>
-                    <a th:href="@{/triagem/fila}" class="btn btn-sm btn-clyvo" sec:authorize="hasRole('ADMIN')">
-                        <i class="bi bi-clipboard2-pulse me-1"></i> Fila clínica
+                    <a th:href="@{/triagem/fila}" class="btn btn-sm btn-danger rounded-pill px-3" sec:authorize="hasRole('ADMIN')">
+                        <i class="bi bi-activity me-1"></i> Fila Clínica
                     </a>
                 </div>
             </header>
 
+            <!-- ALERTAS GLOBAIS DE FEEDBACK -->
             <div class="container-fluid px-4 pt-3">
-                <div th:if="${successMessage}" class="selo selo-sage mb-2 d-inline-flex" role="alert" style="width: auto;">
-                    <i class="bi bi-check-circle"></i>
+                <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm border-0 border-start border-success border-4" role="alert">
+                    <i class="bi bi-check-circle-fill me-2 fs-5"></i>
                     <span th:text="${successMessage}">Sucesso!</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
-                <div th:if="${warningMessage}" class="selo selo-ouro mb-2 d-inline-flex" role="alert" style="width: auto;">
-                    <i class="bi bi-exclamation-triangle"></i>
+                <div th:if="${warningMessage}" class="alert alert-warning alert-dismissible fade show rounded-4 shadow-sm border-0 border-start border-warning border-4" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
                     <span th:text="${warningMessage}">Atenção!</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
-                <div th:if="${errorMessage}" class="selo selo-rust mb-2 d-inline-flex" role="alert" style="width: auto;">
-                    <i class="bi bi-x-circle"></i>
+                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm border-0 border-start border-danger border-4" role="alert">
+                    <i class="bi bi-x-circle-fill me-2 fs-5"></i>
                     <span th:text="${errorMessage}">Erro!</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             </div>
 
+            <!-- CONTEÚDO DA PÁGINA INJETADO -->
             <main class="container-fluid px-4 py-3 flex-grow-1">
                 <div th:replace="${content}"></div>
             </main>
 
-            <footer class="page-footer">
-                Clyvo Vet — caderneta digital de medicina preventiva e longevidade pet.
+            <!-- FOOTER DISCRETO -->
+            <footer class="py-3 px-4 bg-white border-top text-center text-muted small">
+                &copy; 2026 <strong>Clyvo Vet</strong> • Plataforma de Medicina Preventiva, Longevidade & Gamificação Pet (FIAP 3º Sprint).
             </footer>
         </div>
     </div>
 
+    <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
