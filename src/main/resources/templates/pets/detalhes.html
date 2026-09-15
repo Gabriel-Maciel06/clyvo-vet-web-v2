@@ -72,17 +72,17 @@
             <div class="mb-4">
                 <ul class="nav nav-pills clyvo-pills" id="petDetailTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="tab-prontuario-btn" data-bs-toggle="pill" data-bs-target="#tab-prontuario" type="button" role="tab" aria-controls="tab-prontuario" aria-selected="true">
+                        <button class="nav-link active" id="tab-prontuario-btn" data-bs-toggle="pill" data-bs-target="#tab-prontuario" type="button" role="tab" aria-controls="tab-prontuario" aria-selected="true" onclick="switchPetTab('#tab-prontuario')">
                             <i class="bi bi-file-earmark-medical me-1 text-teal"></i> Prontuário & Longevidade
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="tab-timeline-btn" data-bs-toggle="pill" data-bs-target="#tab-timeline" type="button" role="tab" aria-controls="tab-timeline" aria-selected="false">
+                        <button class="nav-link" id="tab-timeline-btn" data-bs-toggle="pill" data-bs-target="#tab-timeline" type="button" role="tab" aria-controls="tab-timeline" aria-selected="false" onclick="switchPetTab('#tab-timeline')">
                             <i class="bi bi-clock-history me-1 text-primary"></i> Linha do Tempo Clínica (<span th:text="${timeline != null ? timeline.size() : 0}">3</span>)
                         </button>
                     </li>
                     <li class="nav-item" role="presentation" sec:authorize="hasRole('TUTOR')">
-                        <button class="nav-link" id="tab-editar-btn" data-bs-toggle="pill" data-bs-target="#tab-editar" type="button" role="tab" aria-controls="tab-editar" aria-selected="false">
+                        <button class="nav-link" id="tab-editar-btn" data-bs-toggle="pill" data-bs-target="#tab-editar" type="button" role="tab" aria-controls="tab-editar" aria-selected="false" onclick="switchPetTab('#tab-editar')">
                             <i class="bi bi-pencil-square me-1" style="color: #6366f1;"></i> Editar Pet
                         </button>
                     </li>
@@ -713,7 +713,7 @@
                         </div>
 
                         <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-                            <button type="button" class="btn btn-outline-secondary px-4" onclick="document.getElementById('tab-prontuario-btn').click();">
+                            <button type="button" class="btn btn-outline-secondary px-4" onclick="switchPetTab('#tab-prontuario')">
                                 <i class="bi bi-x-lg me-1"></i> Cancelar
                             </button>
                             <button type="submit" class="btn btn-clyvo px-4">
@@ -726,56 +726,89 @@
 
             </div> <!-- Fim de petDetailTabsContent -->
 
+            <!-- SCRIPTS DE INTERAÇÃO (DENTRO DE MAINSECTION) -->
+            <script>
+                function switchPetTab(targetId) {
+                    // 1. Alterna estado visual dos botões de abas
+                    const buttons = document.querySelectorAll('#petDetailTabs .nav-link');
+                    buttons.forEach(function(btn) {
+                        const target = btn.getAttribute('data-bs-target') || btn.getAttribute('data-target');
+                        if (target === targetId) {
+                            btn.classList.add('active');
+                            btn.setAttribute('aria-selected', 'true');
+                        } else {
+                            btn.classList.remove('active');
+                            btn.setAttribute('aria-selected', 'false');
+                        }
+                    });
+
+                    // 2. Alterna visibilidade dos painéis de conteúdo
+                    const panes = document.querySelectorAll('#petDetailTabsContent .tab-pane');
+                    panes.forEach(function(pane) {
+                        if ('#' + pane.id === targetId) {
+                            pane.classList.add('show', 'active');
+                        } else {
+                            pane.classList.remove('show', 'active');
+                        }
+                    });
+
+                    // 3. Aciona API nativa do Bootstrap se estiver carregada
+                    try {
+                        var activeBtn = document.querySelector('#petDetailTabs [data-bs-target="' + targetId + '"]');
+                        if (window.bootstrap && window.bootstrap.Tab && activeBtn) {
+                            new bootstrap.Tab(activeBtn).show();
+                        }
+                    } catch (e) {
+                        console.warn('Bootstrap tab info:', e);
+                    }
+
+                    // 4. Scroll suave caso tenha sido solicitado editar
+                    if (targetId === '#tab-editar') {
+                        var editSection = document.getElementById('tab-editar');
+                        if (editSection) {
+                            editSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }
+                }
+
+                function filterTimeline(tipo, btn) {
+                    document.querySelectorAll('#timelineFilters button').forEach(function(b) {
+                        b.classList.remove('btn-white', 'active-filter', 'fw-bold');
+                        b.classList.add('btn-light', 'text-secondary', 'fw-semibold');
+                    });
+                    btn.classList.remove('btn-light', 'text-secondary', 'fw-semibold');
+                    btn.classList.add('btn-white', 'active-filter', 'fw-bold');
+
+                    var cards = document.querySelectorAll('.timeline-card-wrapper');
+                    cards.forEach(function(card) {
+                        var cardTipo = card.getAttribute('data-tipo');
+                        if (tipo === 'all' || cardTipo === tipo) {
+                            card.style.display = 'block';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+                }
+
+                function ativarAbaEditar() {
+                    switchPetTab('#tab-editar');
+                }
+
+                document.addEventListener("DOMContentLoaded", function() {
+                    var params = new URLSearchParams(window.location.search);
+                    var tabParam = params.get('tab');
+                    var hash = window.location.hash;
+
+                    if (tabParam === 'editar' || hash === '#editar' || hash === '#tab-editar') {
+                        switchPetTab('#tab-editar');
+                    } else if (tabParam === 'timeline' || hash === '#timeline' || hash === '#tab-timeline') {
+                        switchPetTab('#tab-timeline');
+                    }
+                });
+            </script>
+
         </div>
     </div>
 
-    <!-- SCRIPTS DE INTERAÇÃO -->
-    <script>
-        function filterTimeline(tipo, btn) {
-            document.querySelectorAll('#timelineFilters button').forEach(b => {
-                b.classList.remove('btn-white', 'active-filter', 'fw-bold');
-                b.classList.add('btn-light', 'text-secondary', 'fw-semibold');
-            });
-            btn.classList.remove('btn-light', 'text-secondary', 'fw-semibold');
-            btn.classList.add('btn-white', 'active-filter', 'fw-bold');
-
-            const cards = document.querySelectorAll('.timeline-card-wrapper');
-            cards.forEach(card => {
-                const cardTipo = card.getAttribute('data-tipo');
-                if (tipo === 'all' || cardTipo === tipo) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        }
-
-        function ativarAbaEditar() {
-            const editBtn = document.getElementById('tab-editar-btn');
-            if (editBtn) {
-                const tab = new bootstrap.Tab(editBtn);
-                tab.show();
-                const editSection = document.getElementById('tab-editar');
-                if (editSection) {
-                    editSection.scrollIntoView({ behavior: 'smooth' });
-                }
-            }
-        }
-
-        document.addEventListener("DOMContentLoaded", function() {
-            const params = new URLSearchParams(window.location.search);
-            const tabParam = params.get('tab');
-            const hash = window.location.hash;
-
-            if (tabParam === 'editar' || hash === '#editar' || hash === '#tab-editar') {
-                ativarAbaEditar();
-            } else if (tabParam === 'timeline' || hash === '#timeline' || hash === '#tab-timeline') {
-                const timelineBtn = document.getElementById('tab-timeline-btn');
-                if (timelineBtn) {
-                    new bootstrap.Tab(timelineBtn).show();
-                }
-            }
-        });
-    </script>
 </body>
 </html>
