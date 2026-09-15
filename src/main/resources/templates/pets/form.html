@@ -38,8 +38,8 @@
 
                                 <div class="col-md-6">
                                     <label for="racaId" class="form-label">Espécie & Raça *</label>
-                                    <select class="form-select" id="racaId" th:field="*{racaId}" required>
-                                        <option value="">Selecione a espécie e raça...</option>
+                                    <select class="form-select" id="racaId" th:field="*{racaId}" data-placeholder="Selecione ou digite para buscar espécie/raça...">
+                                        <option value=""></option>
                                         <th:block th:if="${racasPorEspecie != null}">
                                             <optgroup th:each="entry : ${racasPorEspecie}" th:label="${entry.value[0].emoji} + ' ' + ${entry.key}">
                                                 <option th:each="raca : ${entry.value}" th:value="${raca.id}" th:text="${raca.nome} + ' (Expectativa: ' + ${raca.expectativaVida} + ' anos)'"></option>
@@ -70,6 +70,31 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Inicialização do Select2 para Busca Dinâmica de Espécie e Raça -->
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    if (window.jQuery && jQuery().select2) {
+                        var $racaSelect = $('#racaId');
+                        $racaSelect.select2({
+                            theme: 'bootstrap-5',
+                            placeholder: 'Selecione ou digite para buscar espécie/raça...',
+                            allowClear: true,
+                            width: '100%',
+                            language: 'pt-BR'
+                        });
+
+                        // Validação amigável ao submeter o formulário
+                        $racaSelect.closest('form').on('submit', function(e) {
+                            if (!$racaSelect.val()) {
+                                e.preventDefault();
+                                $racaSelect.select2('open');
+                                return false;
+                            }
+                        });
+                    }
+                });
+            </script>
 
         </div>
     </div>

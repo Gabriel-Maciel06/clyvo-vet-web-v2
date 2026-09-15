@@ -410,3 +410,77 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
+/* --------------------------------------------------------------------------
+   Select2 Customizado (Design System Clyvo Vet)
+   -------------------------------------------------------------------------- */
+.select2-container--bootstrap-5 .select2-selection {
+    border-color: var(--clyvo-border, #cbd5e1) !important;
+    border-radius: var(--clyvo-radius-control, 8px) !important;
+    min-height: 42px !important;
+    padding: 0.35rem 0.75rem !important;
+    font-size: 0.95rem !important;
+    font-family: 'IBM Plex Sans', sans-serif !important;
+    color: var(--clyvo-ink, #0f172a) !important;
+    background-color: #ffffff !important;
+    display: flex !important;
+    align-items: center !important;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+}
+.select2-container--bootstrap-5.select2-container--focus .select2-selection,
+.select2-container--bootstrap-5.select2-container--open .select2-selection {
+    border-color: var(--clyvo-teal, #0d9488) !important;
+    box-shadow: 0 0 0 0.2rem rgba(13, 148, 136, 0.18) !important;
+}
+.select2-container--bootstrap-5 .select2-dropdown {
+    border-color: #cbd5e1 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12) !important;
+    font-family: 'IBM Plex Sans', sans-serif !important;
+    z-index: 9999 !important;
+    overflow: hidden !important;
+}
+.select2-container--bootstrap-5 .select2-dropdown .select2-search {
+    padding: 0.5rem !important;
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+.select2-container--bootstrap-5 .select2-dropdown .select2-search .select2-search__field {
+    border-radius: 6px !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 0.45rem 0.75rem !important;
+    font-size: 0.9rem !important;
+    background: #ffffff !important;
+}
+.select2-container--bootstrap-5 .select2-dropdown .select2-search .select2-search__field:focus {
+    border-color: var(--clyvo-teal, #0d9488) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 0.15rem rgba(13, 148, 136, 0.2) !important;
+}
+.select2-container--bootstrap-5 .select2-results__option {
+    padding: 0.5rem 0.85rem !important;
+    font-size: 0.9rem !important;
+}
+.select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: var(--clyvo-teal, #0d9488) !important;
+    color: #ffffff !important;
+}
+.select2-container--bootstrap-5 .select2-results__group {
+    font-weight: 700 !important;
+    color: #334155 !important;
+    background: #f1f5f9 !important;
+    padding: 6px 12px !important;
+    font-size: 0.78rem !important;
+    letter-spacing: 0.5px !important;
+    border-top: 1px solid #e2e8f0 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+.select2-container--bootstrap-5 .select2-selection__clear {
+    color: #94a3b8 !important;
+    font-size: 1.1rem !important;
+    margin-right: 0.5rem !important;
+}
+.select2-container--bootstrap-5 .select2-selection__clear:hover {
+    color: #ef4444 !important;
+}
+
+
