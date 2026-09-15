@@ -6,49 +6,49 @@
     <div th:replace="~{fragments/layout :: appShell('fila', ~{::#mainSection})}">
         <div id="mainSection">
 
-            <!-- Banner de Avaliação -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <!-- Cabeçalho da avaliação -->
+            <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
                 <div>
-                    <span class="badge bg-danger mb-1 px-3 py-1 rounded-pill">MÓDULO CLÍNICO • FLUXO 2</span>
-                    <h2 class="fw-bold text-dark mb-0">Avaliação Clínica & Triagem Preventiva</h2>
-                    <p class="text-muted small">Cálculo de escore de longevidade, cruzamento genético e registro em prontuário.</p>
+                    <span class="badge bg-danger mb-2">MÓDULO CLÍNICO • FLUXO 2</span>
+                    <h2 class="mb-1" style="font-size: 2rem;">Avaliação Clínica & Triagem Preventiva</h2>
+                    <p class="text-muted mb-0">Cálculo de escore de longevidade, cruzamento genético e registro em prontuário.</p>
                 </div>
-                <a th:href="@{/triagem/fila}" class="btn btn-outline-secondary rounded-pill">
+                <a th:href="@{/triagem/fila}" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-left me-1"></i> Fila de Triagem
                 </a>
             </div>
 
-            <div class="row g-4">
+            <div class="row g-3">
                 <!-- Dados do Pet e Histórico de Check-ins (Tutor) -->
                 <div class="col-lg-5">
-                    <div class="card p-4 mb-4 border-0 shadow-sm">
-                        <div class="d-flex align-items-center gap-3 mb-3">
-                            <div class="rounded-4 p-3" style="background-color: #ccfbf1; color: #0d9488;">
-                                <i class="bi bi-gitlab fs-2"></i>
+                    <div class="card p-4 mb-3">
+                        <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-gitlab fs-4" style="color: #0d9488;"></i>
+                                <h4 class="mb-0" th:text="${triagem.pet.nome}">Thor</h4>
                             </div>
-                            <div>
-                                <h4 class="fw-bold mb-0 text-dark" th:text="${triagem.pet.nome}">Thor</h4>
-                                <span class="badge bg-light text-secondary border" th:text="${triagem.pet.raca.nome}">Golden Retriever</span>
-                            </div>
+                            <span class="badge bg-light" th:text="${triagem.pet.raca.nome}">Golden Retriever</span>
                         </div>
 
-                        <ul class="list-unstyled small text-secondary mb-3">
-                            <li class="mb-2"><strong>Tutor:</strong> <span th:text="${triagem.pet.tutor.nome}">Gabriel Maciel</span></li>
-                            <li class="mb-2"><strong>WhatsApp:</strong> <span th:text="${triagem.pet.tutor.telefone}">(11) 98765-4321</span></li>
-                            <li class="mb-2"><strong>Idade Cronológica:</strong> <span th:text="${triagem.pet.idadeAnos}">4</span> anos</li>
-                            <li class="mb-2"><strong>Predisposição Genética:</strong> <span class="text-danger" th:text="${triagem.pet.raca.propensaoDoenca}">Displasia</span></li>
-                            <li><strong>Queixa / Motivo:</strong> <span class="text-dark fw-semibold" th:text="${triagem.queixaPrincipal}">Rotina</span></li>
-                        </ul>
+                        <div class="clyvo-vitals small">
+                            <div><strong class="text-muted">Tutor:</strong> <span th:text="${triagem.pet.tutor.nome}">Gabriel Maciel</span></div>
+                            <div><strong class="text-muted">WhatsApp:</strong> <span th:text="${triagem.pet.tutor.telefone}">(11) 98765-4321</span></div>
+                            <div><strong class="text-muted">Idade Cronológica:</strong> <span><span th:text="${triagem.pet.idadeAnos}">4</span> anos</span></div>
+                            <div><strong class="text-muted">Predisposição Genética:</strong> <span class="text-danger text-end" th:text="${triagem.pet.raca.propensaoDoenca}">Displasia</span></div>
+                            <div><strong class="text-muted">Queixa / Motivo:</strong> <span class="text-dark fw-semibold text-end" th:text="${triagem.queixaPrincipal}">Rotina</span></div>
+                        </div>
                     </div>
 
                     <!-- Histórico de Check-ins do Pet analisados pelo algoritmo -->
-                    <div class="card p-4 border-0 shadow-sm">
-                        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-clock-history me-2 text-teal" style="color: #0d9488;"></i>Últimos Check-ins do Tutor (IA Feed)</h6>
+                    <div class="card p-4">
+                        <div class="clyvo-section-title">
+                            <h6 class="mb-0"><i class="bi bi-clock-history me-2" style="color: #0d9488;"></i>Últimos Check-ins do Tutor (IA Feed)</h6>
+                        </div>
                         <div class="list-group list-group-flush small">
                             <div th:each="chk : ${checkins}" class="list-group-item px-0 py-2">
                                 <div class="d-flex justify-content-between">
                                     <strong th:text="${#temporals.format(chk.dataCheckin, 'dd/MM/yyyy')}">01/01</strong>
-                                    <span class="badge px-2 py-1 rounded-pill" th:classappend="${chk.alertaGerado ? 'bg-danger' : 'bg-success'}" th:text="${chk.humorPet}">ENERGICO</span>
+                                    <span class="badge" th:classappend="${chk.alertaGerado ? 'bg-danger' : 'bg-success'}" th:text="${chk.humorPet}">ENERGICO</span>
                                 </div>
                                 <div class="text-muted" th:text="'Dieta: ' + ${chk.alimentacaoStatus.descricao} + ' | Atividade: ' + ${chk.minutosAtividade} + ' min'"></div>
                                 <div th:if="${chk.sintomasObservados}" class="text-danger small mt-1" th:text="'Sintomas: ' + ${chk.sintomasObservados}"></div>
@@ -62,45 +62,45 @@
 
                 <!-- Formulário de Exame Clínico & Cálculo IA -->
                 <div class="col-lg-7">
-                    <div class="card p-4 p-md-5 border-0 shadow-sm">
-                        <h4 class="fw-bold text-dark mb-2">
+                    <div class="card p-4 p-md-5">
+                        <h4 class="mb-1">
                             <i class="bi bi-heart-pulse-fill text-danger me-2"></i>
                             Exame Físico & Cálculo de Longevidade
                         </h4>
-                        <p class="text-muted small mb-4">Ao submeter os dados clínicos, o algoritmo preditivo cruzará a biometria, idade, raça e check-ins para gerar o Escore de Longevidade.</p>
+                        <p class="text-muted mb-4">Ao submeter os dados clínicos, o algoritmo preditivo cruzará a biometria, idade, raça e check-ins para gerar o Escore de Longevidade.</p>
 
                         <form th:action="@{/triagem/avaliar}" th:object="${avaliacaoDto}" method="post">
                             <input type="hidden" th:field="*{triagemId}">
 
                             <div class="row g-3 mb-3">
                                 <div class="col-md-4">
-                                    <label for="pesoAferido" class="form-label fw-semibold">Peso Aferido (kg) *</label>
-                                    <input type="number" step="0.1" class="form-control rounded-3" id="pesoAferido" th:field="*{pesoAferido}" required>
+                                    <label for="pesoAferido" class="form-label">Peso Aferido (kg) *</label>
+                                    <input type="number" step="0.1" class="form-control" id="pesoAferido" th:field="*{pesoAferido}" required>
                                     <div class="text-danger small" th:if="${#fields.hasErrors('pesoAferido')}" th:errors="*{pesoAferido}"></div>
                                 </div>
 
                                 <div class="col-md-4">
-                                    <label for="temperatura" class="form-label fw-semibold">Temperatura (°C) *</label>
-                                    <input type="number" step="0.1" class="form-control rounded-3" id="temperatura" th:field="*{temperatura}" placeholder="38.5" required>
+                                    <label for="temperatura" class="form-label">Temperatura (°C) *</label>
+                                    <input type="number" step="0.1" class="form-control" id="temperatura" th:field="*{temperatura}" placeholder="38.5" required>
                                     <div class="text-danger small" th:if="${#fields.hasErrors('temperatura')}" th:errors="*{temperatura}"></div>
                                 </div>
 
                                 <div class="col-md-4">
-                                    <label for="frequenciaCardiaca" class="form-label fw-semibold">Freq. Cardíaca (bpm) *</label>
-                                    <input type="number" class="form-control rounded-3" id="frequenciaCardiaca" th:field="*{frequenciaCardiaca}" placeholder="100" required>
+                                    <label for="frequenciaCardiaca" class="form-label">Freq. Cardíaca (bpm) *</label>
+                                    <input type="number" class="form-control" id="frequenciaCardiaca" th:field="*{frequenciaCardiaca}" placeholder="100" required>
                                     <div class="text-danger small" th:if="${#fields.hasErrors('frequenciaCardiaca')}" th:errors="*{frequenciaCardiaca}"></div>
                                 </div>
                             </div>
 
                             <div class="mb-4">
-                                <label for="parecerVeterinario" class="form-label fw-semibold">Parecer Veterinário & Orientações de Longevidade *</label>
-                                <textarea class="form-control rounded-3" id="parecerVeterinario" th:field="*{parecerVeterinario}" rows="4" placeholder="Diagnóstico preliminar, recomendações preventivas para o tutor e plano terapêutico..." required></textarea>
+                                <label for="parecerVeterinario" class="form-label">Parecer Veterinário & Orientações de Longevidade *</label>
+                                <textarea class="form-control" id="parecerVeterinario" th:field="*{parecerVeterinario}" rows="4" placeholder="Diagnóstico preliminar, recomendações preventivas para o tutor e plano terapêutico..." required></textarea>
                                 <div class="text-danger small" th:if="${#fields.hasErrors('parecerVeterinario')}" th:errors="*{parecerVeterinario}"></div>
                             </div>
 
                             <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-                                <a th:href="@{/triagem/fila}" class="btn btn-outline-secondary rounded-pill px-4">Cancelar</a>
-                                <button type="submit" class="btn btn-clyvo rounded-pill px-4 fw-bold">
+                                <a th:href="@{/triagem/fila}" class="btn btn-outline-secondary px-4">Cancelar</a>
+                                <button type="submit" class="btn btn-clyvo px-4">
                                     <i class="bi bi-cpu-fill me-1"></i> Concluir Triagem & Gerar Insights IA
                                 </button>
                             </div>
