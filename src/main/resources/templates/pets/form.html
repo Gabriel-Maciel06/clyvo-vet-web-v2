@@ -31,10 +31,17 @@
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label for="racaId" class="form-label">Raça & Espécie *</label>
+                                    <label for="racaId" class="form-label">Espécie & Raça *</label>
                                     <select class="form-select" id="racaId" th:field="*{racaId}" required>
-                                        <option value="">Selecione a raça...</option>
-                                        <option th:each="raca : ${racas}" th:value="${raca.id}" th:text="${raca.emoji} + ' ' + ${raca.especie} + ' - ' + ${raca.nome} + ' (Expectativa: ' + ${raca.expectativaVida} + ' anos)'"></option>
+                                        <option value="">Selecione a espécie e raça...</option>
+                                        <th:block th:if="${racasPorEspecie != null}">
+                                            <optgroup th:each="entry : ${racasPorEspecie}" th:label="${entry.value[0].emoji} + ' ' + ${entry.key}">
+                                                <option th:each="raca : ${entry.value}" th:value="${raca.id}" th:text="${raca.nome} + ' (Expectativa: ' + ${raca.expectativaVida} + ' anos)'"></option>
+                                            </optgroup>
+                                        </th:block>
+                                        <th:block th:if="${racasPorEspecie == null}">
+                                            <option th:each="raca : ${racas}" th:value="${raca.id}" th:text="${raca.emoji} + ' ' + ${raca.especie} + ' - ' + ${raca.nome} + ' (Expectativa: ' + ${raca.expectativaVida} + ' anos)'"></option>
+                                        </th:block>
                                     </select>
                                     <div class="text-danger small" th:if="${#fields.hasErrors('racaId')}" th:errors="*{racaId}"></div>
                                 </div>

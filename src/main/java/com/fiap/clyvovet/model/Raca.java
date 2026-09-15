@@ -38,22 +38,25 @@ public class Raca {
     }
 
     /**
-     * Imagem (emoji) com trocadilho para a raça, usada em toda a tela em vez
-     * de um ícone de estoque genérico. Fonte única desse mapeamento: usada no
-     * cartão do pet, na ficha, na avaliação de triagem e no seletor de raça
-     * do formulário de cadastro. Uma raça nova que ainda não está no mapa
-     * cai no 🐾 genérico em vez de quebrar a tela.
+     * Imagem (emoji) padronizada por espécie / categoria biológica do paciente.
+     * Traz clareza imediata na UI: cães (🐶), gatos (🐱), aves (🦜), répteis (🐢/🐍),
+     * roedores (🐹), furões (🦦), peixes (🐠), aracnídeos (🕷️) e equinos (🐴).
      */
     public String getEmoji() {
-        if (nome == null) return "🐾";
-        return switch (nome) {
-            case "Golden Retriever" -> "🥇";      // Golden = ouro
-            case "Buldogue Francês" -> "🥐";      // Francês = croissant
-            case "Poodle Médio" -> "☁️";          // pompom de pelo cacheado = nuvem fofa
-            case "Labrador Retriever" -> "🧪";    // Labrador = "lab"
-            case "SRD (Vira-lata)" -> "🥫";        // vira-lata = vira a lata do lixo
-            case "Siamês" -> "💎";                 // olhos exóticos = pedra preciosa
-            case "Persa" -> "🏺";                  // Pérsia = cerâmica/arte persa
+        if (especie == null) return "🐾";
+        if (nome != null && (nome.contains("Cobra") || nome.contains("Snake"))) {
+            return "🐍";
+        }
+        return switch (especie.trim().toUpperCase()) {
+            case "CANINA" -> "🐶";
+            case "FELINA" -> "🐱";
+            case "AVE" -> "🦜";
+            case "REPTIL" -> "🐢";
+            case "ROEDOR" -> "🐹";
+            case "MUSTELIDEO" -> "🦦";
+            case "PEIXE" -> "🐠";
+            case "ARACNIDEO" -> "🕷️";
+            case "EQUINA" -> "🐴";
             default -> "🐾";
         };
     }

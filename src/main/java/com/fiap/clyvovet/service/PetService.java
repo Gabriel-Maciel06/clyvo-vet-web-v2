@@ -8,7 +8,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class PetService {
@@ -65,7 +68,12 @@ public class PetService {
     }
 
     public List<Raca> listarRacas() {
-        return racaRepository.findAll();
+        return racaRepository.findAllByOrderByEspecieAscNomeAsc();
+    }
+
+    public Map<String, List<Raca>> listarRacasAgrupadasPorEspecie() {
+        return racaRepository.findAllByOrderByEspecieAscNomeAsc().stream()
+                .collect(Collectors.groupingBy(Raca::getEspecie, LinkedHashMap::new, Collectors.toList()));
     }
 
     @Transactional

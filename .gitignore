@@ -25,8 +25,9 @@ target/
 /nbdist/
 /.nb-gradletaskcache/
 
-### VS Code ###
+### VS Code & Claude ###
 .vscode/
+.claude/
 
 ### Mac OS ###
 .DS_Store

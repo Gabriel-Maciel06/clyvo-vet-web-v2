@@ -56,6 +56,7 @@ public class PetController {
     public String formNovoPet(Model model) {
         model.addAttribute("petDto", new PetDto());
         model.addAttribute("racas", petService.listarRacas());
+        model.addAttribute("racasPorEspecie", petService.listarRacasAgrupadasPorEspecie());
         return "pets/form";
     }
 
@@ -67,6 +68,7 @@ public class PetController {
                             RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("racas", petService.listarRacas());
+            model.addAttribute("racasPorEspecie", petService.listarRacasAgrupadasPorEspecie());
             return "pets/form";
         }
 
@@ -77,6 +79,7 @@ public class PetController {
         } catch (Exception e) {
             model.addAttribute("errorMessage", "Erro ao salvar pet: " + e.getMessage());
             model.addAttribute("racas", petService.listarRacas());
+            model.addAttribute("racasPorEspecie", petService.listarRacasAgrupadasPorEspecie());
             return "pets/form";
         }
     }
