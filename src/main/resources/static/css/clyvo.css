@@ -1,0 +1,378 @@
+/* ==========================================================================
+   Clyvo Vet - folha de estilo compartilhada
+   --------------------------------------------------------------------------
+   Direção: "ficha clínica". A paleta é a mesma de sempre (teal / navy /
+   âmbar); o que muda é a disciplina de uso: sem gradientes, vidros ou
+   sombras decorativas. Cartões são folhas brancas com borda fina; o raio
+   diminui conforme o elemento fica menor (folha > controle > chip); a
+   tipografia carrega a personalidade (Bricolage Grotesque nos títulos,
+   IBM Plex Sans no corpo e nos números, com algarismos tabulares).
+   ========================================================================== */
+
+:root {
+    --clyvo-bg: #f8fafc;
+    --clyvo-sidebar-bg: #0b1329;
+    --clyvo-sidebar-hover: #172554;
+    --clyvo-teal: #0d9488;
+    --clyvo-teal-dark: #0f766e;
+    --clyvo-teal-light: #ccfbf1;
+    --clyvo-amber: #f59e0b;
+    --clyvo-indigo: #6366f1;
+    --clyvo-border: #e2e8f0;
+    --clyvo-card-bg: #ffffff;
+    --clyvo-navy: #0f172a;
+    --clyvo-ink: #1e293b;
+    --clyvo-muted: #64748b;
+
+    --clyvo-font-display: 'Bricolage Grotesque', 'IBM Plex Sans', system-ui, sans-serif;
+    --clyvo-font-body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+    --clyvo-radius-sheet: 10px;
+    --clyvo-radius-control: 8px;
+    --clyvo-radius-chip: 999px;
+}
+
+/* --------------------------------------------------------------------------
+   Base tipográfica
+   -------------------------------------------------------------------------- */
+html { font-size: 15px; }
+
+body {
+    font-family: var(--clyvo-font-body);
+    font-size: 1rem;
+    line-height: 1.55;
+    color: var(--clyvo-ink);
+    background-color: var(--clyvo-bg);
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6,
+.display-1, .display-2, .display-3, .display-4, .display-5, .display-6 {
+    font-family: var(--clyvo-font-display);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.12;
+    color: var(--clyvo-ink);
+}
+h1, .h1 { font-size: 2rem; }
+h2, .h2 { font-size: 1.6rem; }
+h3, .h3 { font-size: 1.3rem; }
+h4, .h4 { font-size: 1.15rem; }
+h5, .h5 { font-size: 1rem; letter-spacing: -0.005em; }
+h6, .h6 { font-size: 0.92rem; letter-spacing: 0; }
+
+.display-6 { font-size: 2rem; font-weight: 600; }
+.display-5 { font-size: 2.4rem; font-weight: 600; letter-spacing: -0.02em; }
+.display-4 { font-size: 2.6rem; }
+.display-3, .display-1 { font-size: 3rem; }
+
+p { max-width: 68ch; }
+.text-muted, .text-secondary { color: var(--clyvo-muted) !important; }
+small, .small { font-size: 0.86rem; }
+strong, b, .fw-bold { font-weight: 600; }
+.fw-extrabold { font-weight: 700 !important; }
+.fw-semibold { font-weight: 500; }
+
+/* Números de destaque (vitais, escores, contadores) */
+.clyvo-num {
+    font-family: var(--clyvo-font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Rótulo pequeno acima de um valor (sem caixa alta, sem tracking) */
+.clyvo-label {
+    font-size: 0.8rem;
+    color: var(--clyvo-muted);
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+/* Cabeçalho de seção com fio, no lugar de ícone em bolinha */
+.clyvo-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.6rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--clyvo-border);
+}
+.clyvo-section-title > i { color: var(--clyvo-teal); font-size: 1.05em; }
+
+/* Painel de vitais: linhas rótulo/valor separadas por fio */
+.clyvo-vitals { display: flex; flex-direction: column; }
+.clyvo-vitals > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.7rem 0;
+    border-top: 1px solid var(--clyvo-border);
+}
+.clyvo-vitals > div:first-child { border-top: 0; padding-top: 0; }
+.clyvo-vitals > div:last-child { padding-bottom: 0; }
+.clyvo-vitals-stack > div { flex-direction: column; align-items: flex-start; gap: 0.15rem; }
+
+/* Faixa de recompensa (âmbar é a cor de recompensa em todo o sistema) */
+.clyvo-reward {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+}
+
+/* --------------------------------------------------------------------------
+   Folhas (cards), sombras e raios
+   -------------------------------------------------------------------------- */
+.card {
+    background-color: var(--clyvo-card-bg);
+    border: 1px solid var(--clyvo-border);
+    border-radius: var(--clyvo-radius-sheet);
+    box-shadow: none;
+    transition: none;
+}
+.card:hover { box-shadow: none; }
+.card.border-0 { border: 1px solid var(--clyvo-border) !important; }
+.card.shadow-sm, .card.shadow, .card.shadow-lg { box-shadow: none !important; }
+.card .card { border-radius: var(--clyvo-radius-control); }
+
+.rounded-4, .rounded-3 { border-radius: var(--clyvo-radius-sheet) !important; }
+.rounded-3 { border-radius: var(--clyvo-radius-control) !important; }
+.shadow-sm, .shadow, .shadow-lg { box-shadow: none !important; }
+
+.clyvo-inset {
+    background: var(--clyvo-bg);
+    border: 1px solid var(--clyvo-border);
+    border-radius: var(--clyvo-radius-control);
+}
+
+/* --------------------------------------------------------------------------
+   Botões
+   -------------------------------------------------------------------------- */
+.btn {
+    font-weight: 500;
+    border-radius: var(--clyvo-radius-control);
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.btn.rounded-pill { border-radius: var(--clyvo-radius-control) !important; }
+.btn:focus-visible { outline: 2px solid var(--clyvo-teal); outline-offset: 2px; box-shadow: none; }
+
+.btn-clyvo {
+    background: var(--clyvo-teal);
+    color: #fff;
+    border: 1px solid var(--clyvo-teal);
+    padding: 0.55rem 1.1rem;
+    box-shadow: none;
+}
+.btn-clyvo:hover, .btn-clyvo:focus {
+    background: var(--clyvo-teal-dark);
+    border-color: var(--clyvo-teal-dark);
+    color: #fff;
+    transform: none;
+    box-shadow: none;
+}
+.btn-clyvo-outline {
+    background: transparent;
+    color: var(--clyvo-teal-dark);
+    border: 1px solid var(--clyvo-teal);
+    padding: 0.5rem 1.05rem;
+}
+.btn-clyvo-outline:hover { background: var(--clyvo-teal-light); color: var(--clyvo-teal-dark); }
+
+.btn-warning { background: var(--clyvo-amber); border-color: var(--clyvo-amber); color: #1e293b; }
+.btn-warning:hover { background: #d97706; border-color: #d97706; color: #1e293b; }
+.btn-light { background: #fff; border-color: var(--clyvo-border); color: var(--clyvo-ink); }
+.btn-light:hover { background: var(--clyvo-bg); border-color: #cbd5e1; }
+.btn-outline-light { border-color: rgba(255,255,255,0.5); }
+.btn-outline-secondary { border-color: var(--clyvo-border); color: var(--clyvo-ink); }
+.btn-outline-secondary:hover { background: var(--clyvo-bg); border-color: #cbd5e1; color: var(--clyvo-ink); }
+.btn-sm { padding: 0.35rem 0.75rem; font-size: 0.86rem; }
+
+/* --------------------------------------------------------------------------
+   Chips (badges): pílula é reservada a chips de estado
+   -------------------------------------------------------------------------- */
+.badge {
+    font-family: var(--clyvo-font-body);
+    font-weight: 500;
+    font-size: 0.76rem;
+    letter-spacing: 0;
+    padding: 0.32em 0.65em;
+    border-radius: var(--clyvo-radius-chip);
+    line-height: 1.25;
+}
+.badge.bg-light { background: #fff !important; color: var(--clyvo-ink) !important; border: 1px solid var(--clyvo-border); }
+.badge.bg-white { border: 1px solid var(--clyvo-border); }
+.badge.bg-warning { background: #fef3c7 !important; color: #92400e !important; }
+.badge.bg-danger { background: #fee2e2 !important; color: #991b1b !important; }
+.badge.bg-success { background: #dcfce7 !important; color: #166534 !important; }
+.badge.bg-primary { background: #e0e7ff !important; color: #3730a3 !important; }
+.badge.bg-info { background: var(--clyvo-teal-light) !important; color: var(--clyvo-teal-dark) !important; }
+.badge.bg-secondary { background: #f1f5f9 !important; color: #475569 !important; }
+.badge-clyvo { background: var(--clyvo-teal-light); color: var(--clyvo-teal-dark); }
+
+/* --------------------------------------------------------------------------
+   Tabelas: cabeçalho discreto, fios finos
+   -------------------------------------------------------------------------- */
+.table { --bs-table-hover-bg: #f8fafc; color: var(--clyvo-ink); }
+.table > thead > tr > th {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--clyvo-muted);
+    background: #fff;
+    border-bottom: 1px solid var(--clyvo-border);
+    padding-bottom: 0.6rem;
+}
+.table-light, .table > .table-light > tr > th { background: #fff !important; }
+.table > tbody > tr > td { border-color: #eef2f7; padding-top: 0.7rem; padding-bottom: 0.7rem; }
+.table-warning > td, .table-warning { --bs-table-bg: #fffbeb; }
+
+/* --------------------------------------------------------------------------
+   Formulários
+   -------------------------------------------------------------------------- */
+.form-label { font-size: 0.86rem; font-weight: 500; color: var(--clyvo-ink); margin-bottom: 0.35rem; }
+.form-control, .form-select {
+    border: 1px solid var(--clyvo-border);
+    border-radius: var(--clyvo-radius-control);
+    padding: 0.55rem 0.8rem;
+    color: var(--clyvo-ink);
+}
+.form-control:focus, .form-select:focus {
+    border-color: var(--clyvo-teal);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.18);
+}
+.form-control-lg, .form-select-lg { font-size: 1rem; }
+.input-group-text { background: #fff; border-color: var(--clyvo-border); color: var(--clyvo-muted); }
+.form-check-input:checked { background-color: var(--clyvo-teal); border-color: var(--clyvo-teal); }
+.form-check-input:focus { border-color: var(--clyvo-teal); box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.18); }
+.form-check.border { border-color: var(--clyvo-border) !important; background: #fff !important; }
+.form-check.border:has(input:checked) { border-color: var(--clyvo-teal) !important; background: var(--clyvo-teal-light) !important; }
+
+/* --------------------------------------------------------------------------
+   Alertas e progresso
+   -------------------------------------------------------------------------- */
+.alert { border-radius: var(--clyvo-radius-control); box-shadow: none !important; border-width: 1px; }
+.alert.border-0 { border: 1px solid transparent !important; }
+.alert-success { background: #f0fdf4; border-color: #bbf7d0 !important; color: #166534; }
+.alert-warning { background: #fffbeb; border-color: #fde68a !important; color: #92400e; }
+.alert-danger { background: #fef2f2; border-color: #fecaca !important; color: #991b1b; }
+.alert-info { background: var(--clyvo-teal-light); border-color: #99f6e4 !important; color: var(--clyvo-teal-dark); }
+
+.progress { height: 6px; border-radius: 3px; background: #eef2f7; }
+.progress-bar { background-color: var(--clyvo-teal); }
+
+/* --------------------------------------------------------------------------
+   Linha do tempo
+   -------------------------------------------------------------------------- */
+.timeline-item { position: relative; padding-left: 2rem; margin-bottom: 1.5rem; }
+.timeline-item::before {
+    content: ''; position: absolute; left: 0.45rem; top: 1.4rem; bottom: -1.1rem;
+    width: 1px; background: var(--clyvo-border);
+}
+.timeline-item:last-child::before { display: none; }
+.timeline-badge {
+    position: absolute; left: 0; top: 0.25rem; width: 1rem; height: 1rem;
+    border-radius: 50%; background: var(--clyvo-teal); border: 2px solid #fff;
+    box-shadow: 0 0 0 1px var(--clyvo-border);
+}
+
+/* --------------------------------------------------------------------------
+   Acessibilidade e movimento
+   -------------------------------------------------------------------------- */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--clyvo-teal);
+    outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+/* --------------------------------------------------------------------------
+   Páginas de autenticação (fora da casca): folha centrada sobre o fundo claro
+   -------------------------------------------------------------------------- */
+.auth-body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background-color: var(--clyvo-bg);
+}
+.auth-sheet {
+    width: 100%;
+    max-width: 440px;
+    background: #fff;
+    border: 1px solid var(--clyvo-border);
+    border-radius: var(--clyvo-radius-sheet);
+    padding: 2.25rem 2.25rem 2rem;
+}
+.auth-sheet.auth-sheet-wide { max-width: 600px; }
+.auth-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1.5rem;
+}
+.auth-brand-mark {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: var(--clyvo-teal);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.15rem;
+}
+.auth-brand h3 { margin: 0; font-size: 1.35rem; }
+.auth-brand h3 span { color: var(--clyvo-teal); }
+.auth-title { font-size: 1.6rem; margin-bottom: 0.25rem; }
+.auth-sheet .btn-clyvo { width: 100%; padding: 0.7rem 1rem; font-weight: 500; }
+.auth-sheet .form-label { color: var(--clyvo-muted); }
+.btn-google {
+    background: #fff;
+    color: var(--clyvo-ink);
+    font-weight: 500;
+    padding: 0.65rem 1rem;
+    border-radius: var(--clyvo-radius-control);
+    border: 1px solid var(--clyvo-border);
+    width: 100%;
+    display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+}
+.btn-google:hover { background: var(--clyvo-bg); border-color: #cbd5e1; color: var(--clyvo-ink); }
+.divisor {
+    display: flex; align-items: center; gap: 0.75rem;
+    color: var(--clyvo-muted); font-size: 0.82rem; margin: 1.1rem 0;
+}
+.divisor::before, .divisor::after { content: ""; flex: 1; height: 1px; background: var(--clyvo-border); }
+.cred-box {
+    background: var(--clyvo-bg);
+    border: 1px solid var(--clyvo-border);
+    border-radius: var(--clyvo-radius-control);
+    padding: 0.75rem 0.9rem;
+    font-size: 0.84rem;
+}
+.cred-box code { color: var(--clyvo-teal-dark); background: transparent; padding: 0; }
+.auth-link { color: var(--clyvo-teal-dark); text-decoration: none; font-weight: 500; }
+.auth-link:hover { color: var(--clyvo-teal); text-decoration: underline; }
+
+/* --------------------------------------------------------------------------
+   Filtros da linha do tempo (classes alternadas pelo script filterTimeline)
+   -------------------------------------------------------------------------- */
+#timelineFilters .btn-white, #timelineFilters .active-filter {
+    background: #fff;
+    border: 1px solid var(--clyvo-border);
+    color: var(--clyvo-ink);
+}
+#timelineFilters .btn-light { background: transparent; border-color: transparent; }
+#timelineFilters .btn-light:hover { background: #fff; border-color: var(--clyvo-border); }
+.text-teal { color: var(--clyvo-teal) !important; }
+.breadcrumb-item + .breadcrumb-item::before { color: #cbd5e1; }
+
+/* --------------------------------------------------------------------------
+   Largura cheia empilhado no celular, largura do conteúdo lado a lado no
+   tablet/desktop. O Bootstrap não tem "w-sm-auto" (só existe w-100/w-auto
+   sem variante responsiva) - por isso essa classe própria.
+   -------------------------------------------------------------------------- */
+.w-full-then-auto { width: 100%; }
+@media (min-width: 576px) {
+    .w-full-then-auto { width: auto; }
+}

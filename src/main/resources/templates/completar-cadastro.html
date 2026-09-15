@@ -8,15 +8,10 @@
 
             <div class="row justify-content-center">
                 <div class="col-lg-7">
-                    <div class="card p-4 p-md-5 border-0 shadow-sm">
-                        <div class="d-flex align-items-center gap-3 mb-4">
-                            <div class="rounded-circle p-3" style="background-color: #ccfbf1; color: #0d9488;">
-                                <i class="bi bi-person-check-fill fs-3"></i>
-                            </div>
-                            <div>
-                                <h3 class="fw-bold mb-0 text-dark">Complete seu cadastro</h3>
-                                <p class="text-muted small mb-0">Você entrou com o Google. Falta informar CPF e telefone para liberar o cadastro de pets.</p>
-                            </div>
+                    <div class="card p-4 p-md-5">
+                        <div class="mb-4">
+                            <h3 class="mb-1"><i class="bi bi-person-check-fill me-2" style="color: #0d9488;"></i>Complete seu cadastro</h3>
+                            <p class="text-muted mb-0">Você entrou com o Google. Falta informar CPF e telefone para liberar o cadastro de pets.</p>
                         </div>
 
                         <div th:if="${errorMessage}" class="alert alert-danger small" role="alert">
@@ -26,19 +21,19 @@
                         <form th:action="@{/perfil/completar-cadastro}" th:object="${completarCadastroDto}" method="post">
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold">CPF *</label>
+                                    <label class="form-label">CPF *</label>
                                     <input type="text" class="form-control" th:field="*{cpf}" placeholder="000.000.000-00" required autofocus>
                                     <div class="text-danger small" th:if="${#fields.hasErrors('cpf')}" th:errors="*{cpf}"></div>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold">Telefone *</label>
+                                    <label class="form-label">Telefone *</label>
                                     <input type="text" class="form-control" th:field="*{telefone}" placeholder="(11) 98765-4321" required>
                                     <div class="text-danger small" th:if="${#fields.hasErrors('telefone')}" th:errors="*{telefone}"></div>
                                 </div>
                             </div>
 
                             <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
-                                <button type="submit" class="btn btn-clyvo rounded-pill px-4">
+                                <button type="submit" class="btn btn-clyvo px-4">
                                     <i class="bi bi-check-lg me-1"></i> Concluir Cadastro
                                 </button>
                             </div>

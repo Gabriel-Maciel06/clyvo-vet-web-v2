@@ -8,37 +8,32 @@
 
             <div class="row justify-content-center">
                 <div class="col-lg-8">
-                    <div class="card p-4 p-md-5 border-0 shadow-sm">
-                        <div class="d-flex align-items-center gap-3 mb-4">
-                            <div class="rounded-4 p-3" style="background-color: #e0e7ff; color: #4338ca;">
-                                <i class="bi bi-shield-plus fs-2"></i>
-                            </div>
-                            <div>
-                                <span class="badge bg-primary-subtle text-primary mb-1 px-3 py-1 rounded-pill">MEDICINA PREVENTIVA</span>
-                                <h3 class="fw-bold mb-0 text-dark">Solicitar Triagem de Longevidade</h3>
-                                <p class="text-muted small mb-0">Abra uma avaliação para análise preditiva dos veterinários Clyvo Vet combinada com os dados diários do seu pet.</p>
-                            </div>
+                    <div class="card p-4 p-md-5">
+                        <div class="mb-4">
+                            <span class="badge badge-clyvo mb-2">MEDICINA PREVENTIVA</span>
+                            <h3 class="mb-1"><i class="bi bi-shield-plus me-2" style="color: #0d9488;"></i>Solicitar Triagem de Longevidade</h3>
+                            <p class="text-muted mb-0">Abra uma avaliação para análise preditiva dos veterinários Clyvo Vet combinada com os dados diários do seu pet.</p>
                         </div>
 
                         <form th:action="@{/triagem/solicitar}" th:object="${solicitacaoDto}" method="post">
-                            
+
                             <div class="mb-4">
-                                <label for="petId" class="form-label fw-semibold">Selecione o Pet *</label>
-                                <select class="form-select form-select-lg rounded-3" id="petId" th:field="*{petId}" required>
+                                <label for="petId" class="form-label">Selecione o Pet *</label>
+                                <select class="form-select form-select-lg" id="petId" th:field="*{petId}" required>
                                     <option th:each="p : ${pets}" th:value="${p.id}" th:text="${p.nome} + ' (' + ${p.raca.nome} + ')'"></option>
                                 </select>
                                 <div class="text-danger small" th:if="${#fields.hasErrors('petId')}" th:errors="*{petId}"></div>
                             </div>
 
                             <div class="mb-4">
-                                <label for="queixaPrincipal" class="form-label fw-semibold">Motivo da Triagem / Queixa Principal *</label>
-                                <textarea class="form-control rounded-3" id="queixaPrincipal" th:field="*{queixaPrincipal}" rows="4" placeholder="Descreva o motivo da solicitação preventiva (ex: checkup de rotina, prevenção articular da raça, acompanhamento de peso...)" required></textarea>
+                                <label for="queixaPrincipal" class="form-label">Motivo da Triagem / Queixa Principal *</label>
+                                <textarea class="form-control" id="queixaPrincipal" th:field="*{queixaPrincipal}" rows="4" placeholder="Descreva o motivo da solicitação preventiva (ex: checkup de rotina, prevenção articular da raça, acompanhamento de peso...)" required></textarea>
                                 <div class="text-danger small" th:if="${#fields.hasErrors('queixaPrincipal')}" th:errors="*{queixaPrincipal}"></div>
                             </div>
 
                             <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-                                <a th:href="@{/dashboard}" class="btn btn-outline-secondary rounded-pill px-4">Voltar</a>
-                                <button type="submit" class="btn btn-clyvo rounded-pill px-5 fw-bold">
+                                <a th:href="@{/dashboard}" class="btn btn-outline-secondary px-4">Voltar</a>
+                                <button type="submit" class="btn btn-clyvo px-5">
                                     <i class="bi bi-send-fill me-1"></i> Abrir Solicitação
                                 </button>
                             </div>
