@@ -83,10 +83,10 @@ public class SecurityConfig {
                         "/cadastro", "/recuperar-senha", "/redefinir-senha", "/login/google-demo").permitAll();
                 // Conclusão de cadastro (CPF real) para tutores criados via login social
                 auth.requestMatchers("/perfil/**").hasRole("TUTOR");
-                // Rotas exclusivas do Veterinário (ROLE_ADMIN): fila e avaliação clínica
-                auth.requestMatchers("/triagem/fila", "/triagem/avaliar/**").hasRole("ADMIN");
-                // Rotas exclusivas do Tutor (ROLE_TUTOR): cadastro de pets, check-in, recompensas e solicitação de triagem
-                auth.requestMatchers("/pets/novo", "/pets/salvar", "/pets/protocolo", "/checkin/**", "/triagem/solicitar").hasRole("TUTOR");
+                // Rotas exclusivas do Veterinário (ROLE_ADMIN): fila, avaliação clínica e validação de vouchers
+                auth.requestMatchers("/triagem/fila", "/triagem/avaliar/**", "/servicos/validar-voucher/**").hasRole("ADMIN");
+                // Rotas exclusivas do Tutor (ROLE_TUTOR): cadastro de pets, check-in, recompensas, solicitação de triagem e checkout in-app
+                auth.requestMatchers("/pets/novo", "/pets/salvar", "/pets/protocolo", "/checkin/**", "/triagem/solicitar", "/servicos/**").hasRole("TUTOR");
                 // Qualquer outra rota autenticada
                 auth.anyRequest().authenticated();
             })

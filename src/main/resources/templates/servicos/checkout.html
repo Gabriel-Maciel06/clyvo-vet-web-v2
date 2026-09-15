@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Checkout Seguro In-App')}"></head>
+<body>
+
+    <div th:replace="~{fragments/layout :: appShell('checkout', ~{::#mainSection})}">
+        <div id="mainSection">
+
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+
+                    <!-- Cabeçalho -->
+                    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+                        <div>
+                            <span class="badge badge-clyvo mb-2">CHECKOUT SEGURO COM SPLIT NATIVO</span>
+                            <h2 class="mb-1" style="font-size: 2rem;">Contratação do Procedimento & Voucher</h2>
+                            <p class="text-muted mb-0">Pagamento processado in-app com retenção automática do take-rate e garantia de atendimento.</p>
+                        </div>
+                        <a th:href="@{/servicos}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Catálogo
+                        </a>
+                    </div>
+
+                    <form th:action="@{/servicos/checkout}" th:object="${checkoutDto}" method="post">
+
+                        <div class="row g-4">
+                            <!-- Coluna da Esquerda: Configuração do Agendamento & Pagamento -->
+                            <div class="col-lg-7">
+                                <div class="card p-4 p-md-5 mb-4">
+                                    <h5 class="mb-3 fw-bold"><i class="bi bi-1-circle-fill text-primary me-2"></i>Dados do Atendimento</h5>
+
+                                    <!-- Seleção do Pet -->
+                                    <div class="mb-3">
+                                        <label for="petId" class="form-label">Paciente / Pet *</label>
+                                        <select class="form-select" id="petId" th:field="*{petId}" required>
+                                            <option th:each="p : ${pets}" th:value="${p.id}" th:text="${p.nome} + ' (' + ${p.raca.nome} + ' - ' + ${p.raca.especie} + ')'"></option>
+                                        </select>
+                                        <div class="text-danger small" th:if="${#fields.hasErrors('petId')}" th:errors="*{petId}"></div>
+                                    </div>
+
+                                    <!-- Seleção do Procedimento -->
+                                    <div class="mb-3">
+                                        <label for="tipoServico" class="form-label">Procedimento Preventivo *</label>
+                                        <select class="form-select" id="tipoServico" th:field="*{tipoServico}" onchange="window.location.href='/servicos/checkout?petId=' + document.getElementById('petId').value + '&tipoServico=' + this.value" required>
+                                            <option th:each="s : ${servicos}" th:value="${s}" th:text="${s.titulo} + ' - R$ ' + ${#numbers.formatDecimal(s.valorBase, 1, 2, 'POINT')}"></option>
+                                        </select>
+                                        <div class="text-danger small" th:if="${#fields.hasErrors('tipoServico')}" th:errors="*{tipoServico}"></div>
+                                    </div>
+
+                                    <!-- Hospital / Clínica Credenciada -->
+                                    <div class="mb-4 p-3 bg-light rounded-3 border">
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <i class="bi bi-hospital-fill text-primary"></i>
+                                            <strong class="small text-dark">Local de Atendimento:</strong>
+                                        </div>
+                                        <div class="small text-secondary">Hospital Veterinário Central Parceiro Clyvo (Rede Credenciada)</div>
+                                        <small class="text-muted">Apresentação exclusiva do Voucher Digital para liberação da consulta/vacina.</small>
+                                    </div>
+
+                                    <h5 class="mb-3 fw-bold pt-2 border-top"><i class="bi bi-2-circle-fill text-primary me-2"></i>Forma de Pagamento</h5>
+
+                                    <!-- Opções de Pagamento -->
+                                    <div class="row g-2 mb-4">
+                                        <div class="col-6">
+                                            <input type="radio" class="btn-check" name="metodoPagamento" id="pagPix" value="PIX" th:field="*{metodoPagamento}" checked>
+                                            <label class="btn btn-outline-secondary w-100 py-3 text-start d-flex align-items-center gap-2" for="pagPix">
+                                                <i class="bi bi-qr-code text-success fs-4"></i>
+                                                <div>
+                                                    <div class="fw-bold">Pix Instantâneo</div>
+                                                    <small class="text-muted" style="font-size: 0.75rem;">Confirmação imediata</small>
+                                                </div>
+                                            </label>
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="radio" class="btn-check" name="metodoPagamento" id="pagCartao" value="CARTAO_CREDITO" th:field="*{metodoPagamento}">
+                                            <label class="btn btn-outline-secondary w-100 py-3 text-start d-flex align-items-center gap-2" for="pagCartao">
+                                                <i class="bi bi-credit-card-2-front text-primary fs-4"></i>
+                                                <div>
+                                                    <div class="fw-bold">Cartão de Crédito</div>
+                                                    <small class="text-muted" style="font-size: 0.75rem;">Até 3x sem juros</small>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="observacoes" class="form-label">Observações Clínicas para a Clínica (Opcional)</label>
+                                        <textarea class="form-control" id="observacoes" th:field="*{observacoes}" rows="2" placeholder="Ex: Pet tem medo de outros animais, precisa de focinheira, jejum realizado..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Coluna da Direita: Resumo Financeiro & Split Transparente -->
+                            <div class="col-lg-5">
+                                <div class="card p-4 p-md-5 mb-4 sticky-top" style="top: 2rem;">
+                                    <h5 class="mb-3 fw-bold"><i class="bi bi-receipt text-primary me-2"></i>Resumo do Pedido</h5>
+
+                                    <div class="clyvo-vitals mb-3">
+                                        <div class="d-flex justify-content-between py-2 border-bottom">
+                                            <span class="text-muted">Valor Tabela:</span>
+                                            <span class="fw-semibold text-dark" th:text="'R$ ' + ${#numbers.formatDecimal(split.valorOriginal, 1, 2, 'POINT')}">R$ 150.00</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between py-2 border-bottom text-success" th:if="${split.descontoPercentual > 0}">
+                                            <span>
+                                                <i class="bi bi-stars me-1"></i>
+                                                Desconto <strong th:text="${split.nivelFidelidade}">OURO</strong> (<span th:text="${split.descontoPercentual}">15</span>% OFF):
+                                            </span>
+                                            <span class="fw-bold" th:text="'- R$ ' + ${#numbers.formatDecimal(split.valorDesconto, 1, 2, 'POINT')}">- R$ 22.50</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center py-3">
+                                            <span class="fs-5 fw-bold text-dark">Total a Pagar:</span>
+                                            <span class="fs-3 fw-bold text-primary" th:text="'R$ ' + ${#numbers.formatDecimal(split.valorFinal, 1, 2, 'POINT')}">R$ 127.50</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- CAIXA DE DEMONSTRAÇÃO DO SPLIT DE PAGAMENTO (ANTI-FUGA) -->
+                                    <div class="p-3 rounded-3 mb-4 border" style="background: #f8fafc;">
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <i class="bi bi-pie-chart-fill text-indigo" style="color: #6366f1;"></i>
+                                            <strong class="small text-dark">Split Automático via Gateway (Take-Rate):</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between small text-muted mb-1">
+                                            <span>🏥 Clínica Parceira (85% Líquido):</span>
+                                            <strong class="text-dark" th:text="'R$ ' + ${#numbers.formatDecimal(split.valorRepasseClinica, 1, 2, 'POINT')}">R$ 108.38</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between small text-muted">
+                                            <span>🐾 Clyvo Vet (Take-Rate 15%):</span>
+                                            <strong class="text-primary" th:text="'R$ ' + ${#numbers.formatDecimal(split.valorComissaoClyvo, 1, 2, 'POINT')}">R$ 19.12</strong>
+                                        </div>
+                                        <div class="text-muted mt-2 pt-2 border-top" style="font-size: 0.72rem;">
+                                            <i class="bi bi-lock-fill text-success me-1"></i> Custódia segura: A clínica recebe o repasse líquido garantido e você não paga nada no balcão físico.
+                                        </div>
+                                    </div>
+
+                                    <!-- Botão de Finalização -->
+                                    <button type="submit" class="btn btn-clyvo btn-lg w-100 py-3 d-flex align-items-center justify-content-center gap-2">
+                                        <i class="bi bi-shield-check"></i> Concluir Pagamento & Emitir Voucher
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

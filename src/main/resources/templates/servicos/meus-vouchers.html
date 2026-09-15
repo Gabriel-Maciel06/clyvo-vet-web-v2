@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Meus Vouchers de Procedimentos')}"></head>
+<body>
+
+    <div th:replace="~{fragments/layout :: appShell('meus-vouchers', ~{::#mainSection})}">
+        <div id="mainSection">
+
+            <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+                <div>
+                    <span class="badge badge-clyvo mb-2">VOUCHERS DIGITAIS</span>
+                    <h2 class="mb-1" style="font-size: 2rem;">Meus Vouchers & Procedimentos</h2>
+                    <p class="text-muted mb-0">Histórico de procedimentos contratados in-app e autorizações de atendimento.</p>
+                </div>
+                <a th:href="@{/servicos}" class="btn btn-clyvo">
+                    <i class="bi bi-cart-plus me-1"></i> Contratar Novo Procedimento
+                </a>
+            </div>
+
+            <div class="card p-4">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Código</th>
+                                <th>Data</th>
+                                <th>Pet</th>
+                                <th>Procedimento</th>
+                                <th>Valor Pago</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="v : ${vouchers}">
+                                <td>
+                                    <span class="font-monospace fw-bold text-dark" th:text="${v.codigoVoucher}">CLYVO-12345678</span>
+                                </td>
+                                <td th:text="${#temporals.format(v.dataCriacao, 'dd/MM/yyyy HH:mm')}">15/09 20:00</td>
+                                <td class="fw-bold" th:text="${v.pet.nome}">Thor</td>
+                                <td th:text="${v.descricaoServico}">Consulta Preventiva</td>
+                                <td class="fw-bold text-dark" th:text="'R$ ' + ${#numbers.formatDecimal(v.valorFinal, 1, 2, 'POINT')}">R$ 127.50</td>
+                                <td>
+                                    <span class="badge"
+                                          th:classappend="${v.statusPagamento.name() == 'PAGO_CONFIRMADO' ? 'bg-success' : (v.statusPagamento.name() == 'UTILIZADO_NA_CLINICA' ? 'bg-secondary' : 'bg-warning')}"
+                                          th:text="${v.statusPagamento.descricao}">PAGO</span>
+                                </td>
+                                <td>
+                                    <a th:href="@{/servicos/voucher/{id}(id=${v.id})}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-qr-code me-1"></i> Ver Voucher
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(vouchers)}">
+                                <td colspan="7" class="text-center text-muted py-5">
+                                    <i class="bi bi-ticket-perforated fs-1 d-block mb-2 text-muted"></i>
+                                    Nenhum voucher contratado ainda.<br>
+                                    <a th:href="@{/servicos}" class="btn btn-sm btn-clyvo mt-3">
+                                        Explorar Procedimentos Preventivos
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

@@ -17,6 +17,29 @@
                 </a>
             </div>
 
+            <!-- Validação de Voucher Digital (Recepção / Consultório) -->
+            <div class="card p-4 mb-4 border-0 shadow-sm" style="background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 100%); border-left: 4px solid #0d9488 !important;">
+                <div class="row align-items-center g-3">
+                    <div class="col-md-7">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <i class="bi bi-qr-code-scan fs-4 text-primary"></i>
+                            <h5 class="mb-0 fw-bold">Validar Voucher Digital do Paciente</h5>
+                        </div>
+                        <p class="text-muted small mb-0">
+                            Insira ou bipe o código do voucher apresentado pelo tutor (já pago in-app via split gateway) para registrar o atendimento e dar baixa no prontuário.
+                        </p>
+                    </div>
+                    <div class="col-md-5">
+                        <form th:action="@{/servicos/validar-voucher}" method="post" class="d-flex gap-2">
+                            <input type="text" name="codigoVoucher" class="form-control font-monospace" placeholder="Ex: CLYVO-8F39A1C2" required style="text-transform: uppercase;">
+                            <button type="submit" class="btn btn-clyvo text-nowrap px-3">
+                                <i class="bi bi-check-lg me-1"></i> Validar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
             <!-- Fila de Pendentes -->
             <div class="card p-4 mb-4">
                 <div class="clyvo-section-title">

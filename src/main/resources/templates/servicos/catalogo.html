@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Marketplace Preventivo & Procedimentos')}"></head>
+<body>
+
+    <div th:replace="~{fragments/layout :: appShell('marketplace', ~{::#mainSection})}">
+        <div id="mainSection">
+
+            <!-- Cabeçalho -->
+            <div class="card p-4 p-md-5 mb-4">
+                <div class="row align-items-center g-4">
+                    <div class="col-lg-8">
+                        <span class="badge badge-clyvo mb-2">MARKETPLACE DE LONGEVIDADE</span>
+                        <h2 class="mb-2" style="font-size: 2.1rem;">Contratação Preventiva & Vouchers In-App</h2>
+                        <p class="text-muted mb-0" style="max-width: 600px;">
+                            Contrate vacinas, exames e avaliações com pagamento direto na plataforma. Os descontos do seu nível de fidelidade são aplicados automaticamente e o atendimento é garantido via Voucher Digital.
+                        </p>
+                    </div>
+                    <div class="col-lg-4 text-lg-end" th:if="${recompensa != null}">
+                        <div class="clyvo-inset d-inline-block px-4 py-3">
+                            <div class="small text-muted mb-1">Seu Desconto Ativo:</div>
+                            <span class="fs-4 fw-bold text-success" th:text="${recompensa.descontoPercentual} + '% OFF'">15% OFF</span>
+                            <div class="small text-secondary mt-1">
+                                Categoria: <strong th:text="${recompensa.nivelFidelidade}">OURO</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerta explicativo do modelo anti-fuga -->
+            <div class="alert alert-info border-0 shadow-sm d-flex align-items-center gap-3 p-3 mb-4 rounded-3">
+                <i class="bi bi-shield-lock-fill fs-3 text-primary"></i>
+                <div class="small">
+                    <strong>Garantia de Atendimento e Split Seguro:</strong> Ao contratar in-app, o valor é processado com custódia automática. Você recebe o <strong>Voucher Digital com QR Code</strong> para apenas apresentar na clínica parceira credenciada — sem cobrança adicional no balcão!
+                </div>
+            </div>
+
+            <!-- Grade de Serviços Disponíveis -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-6 col-lg-6" th:each="s : ${servicos}">
+                    <div class="card p-4 h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background: #f0fdfa;">
+                                        <i class="bi fs-5 text-primary" th:classappend="${s.icone}"></i>
+                                    </div>
+                                    <h5 class="mb-0 fw-bold" th:text="${s.titulo}">Consulta Preventiva</h5>
+                                </div>
+                            </div>
+
+                            <p class="text-muted small mb-4" th:text="${s.descricao}">
+                                Descrição detalhada do procedimento preventivo.
+                            </p>
+                        </div>
+
+                        <div class="pt-3 border-top">
+                            <div class="d-flex align-items-end justify-content-between mb-3">
+                                <div>
+                                    <small class="text-muted d-block">Valor Base na Rede:</small>
+                                    <span class="fs-4 fw-bold text-dark" th:text="'R$ ' + ${#numbers.formatDecimal(s.valorBase, 1, 2, 'POINT')}">R$ 150.00</span>
+                                </div>
+                                <div class="text-end" th:if="${recompensa != null and recompensa.descontoPercentual > 0}">
+                                    <span class="badge bg-success small mb-1" th:text="${recompensa.descontoPercentual} + '% OFF Aplicado'">15% OFF</span>
+                                    <div class="small text-muted">no checkout in-app</div>
+                                </div>
+                            </div>
+
+                            <a th:href="@{/servicos/checkout(tipoServico=${s})}" class="btn btn-clyvo w-100 d-flex align-items-center justify-content-center gap-2">
+                                <i class="bi bi-cart-check-fill"></i> Contratar Procedimento In-App
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botão para Meus Vouchers -->
+            <div class="text-center py-3">
+                <a th:href="@{/servicos/meus-vouchers}" class="btn btn-outline-secondary px-4">
+                    <i class="bi bi-qr-code me-2"></i> Ver Meus Vouchers Emitidos
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

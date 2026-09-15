@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Voucher Digital de Atendimento')}"></head>
+<body>
+
+    <div th:replace="~{fragments/layout :: appShell('voucher', ~{::#mainSection})}">
+        <div id="mainSection">
+
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+
+                    <!-- Folha do Voucher Digital Estilizado -->
+                    <div class="card p-4 p-md-5 mb-4 border-0 shadow-sm" style="border-top: 6px solid #0d9488 !important; border-radius: 16px;">
+
+                        <!-- Cabeçalho do Voucher -->
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 pb-4 mb-4 border-bottom">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <div class="rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background: #0d9488; color: white;">
+                                        <i class="bi bi-heart-pulse-fill fs-5"></i>
+                                    </div>
+                                    <h4 class="mb-0 fw-bold">Clyvo<span>Vet</span> <small class="text-muted fw-normal fs-6">| Voucher Oficial</small></h4>
+                                </div>
+                                <p class="text-muted small mb-0">Comprovante de Pagamento In-App e Autorização de Procedimento</p>
+                            </div>
+
+                            <div class="text-end">
+                                <span class="badge px-3 py-2 fs-6"
+                                      th:classappend="${voucher.statusPagamento.name() == 'PAGO_CONFIRMADO' ? 'bg-success' : (voucher.statusPagamento.name() == 'UTILIZADO_NA_CLINICA' ? 'bg-secondary' : 'bg-warning')}"
+                                      th:text="${voucher.statusPagamento.descricao}">PAGO & ATIVO</span>
+                                <div class="small text-muted mt-1" th:text="${#temporals.format(voucher.dataCriacao, 'dd/MM/yyyy HH:mm')}">15/09/2026 20:00</div>
+                            </div>
+                        </div>
+
+                        <!-- Código do Voucher e QR Code -->
+                        <div class="row align-items-center g-4 p-4 rounded-3 mb-4" style="background: #f8fafc; border: 1px dashed #cbd5e1;">
+                            <div class="col-md-7">
+                                <small class="text-muted text-uppercase fw-bold">Código de Autorização do Atendimento:</small>
+                                <div class="fs-2 fw-bold text-dark font-monospace my-1" th:text="${voucher.codigoVoucher}">CLYVO-8F39A1C2</div>
+                                <p class="small text-secondary mb-0">
+                                    Apresente este código ou o QR Code ao chegar na recepção da clínica parceira para liberar a realização do procedimento.
+                                </p>
+                            </div>
+                            <div class="col-md-5 text-center">
+                                <!-- QR Code Ilustrado em SVG -->
+                                <div class="p-3 bg-white rounded-3 shadow-sm d-inline-block border">
+                                    <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="3" width="7" height="7"></rect>
+                                        <rect x="14" y="3" width="7" height="7"></rect>
+                                        <rect x="14" y="14" width="7" height="7"></rect>
+                                        <rect x="3" y="14" width="7" height="7"></rect>
+                                        <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                                        <line x1="17" y1="7" x2="17.01" y2="7"></line>
+                                        <line x1="7" y1="17" x2="7.01" y2="17"></line>
+                                        <line x1="17" y1="17" x2="17.01" y2="17"></line>
+                                        <line x1="10" y1="3" x2="10" y2="10"></line>
+                                        <line x1="14" y1="10" x2="21" y2="10"></line>
+                                        <line x1="10" y1="14" x2="10" y2="21"></line>
+                                    </svg>
+                                    <div class="small fw-semibold text-muted mt-1" style="font-size: 0.7rem;">QR CODE DO VOUCHER</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dados do Paciente e do Procedimento -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3 h-100">
+                                    <strong class="text-muted small d-block mb-1">PACIENTE & TUTOR:</strong>
+                                    <div class="fw-bold text-dark fs-5 mb-1" th:text="${voucher.pet.nome}">Thor</div>
+                                    <div class="small text-secondary" th:text="${voucher.pet.raca.nome} + ' • ' + ${voucher.pet.raca.especie}">Golden Retriever • CANINA</div>
+                                    <div class="small text-muted mt-2">
+                                        Tutor: <strong th:text="${voucher.tutor.nome}">Gabriel Maciel</strong> | CPF: <span th:text="${voucher.tutor.cpf}">***</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3 h-100">
+                                    <strong class="text-muted small d-block mb-1">LOCAL & PROCEDIMENTO:</strong>
+                                    <div class="fw-bold text-dark fs-6 mb-1" th:text="${voucher.descricaoServico}">Consulta Preventiva</div>
+                                    <div class="small text-primary fw-semibold mb-2" th:text="${voucher.clinicaParceira}">Hospital Veterinário Central Parceiro Clyvo</div>
+                                    <div class="small text-muted">
+                                        Método: <strong th:text="${voucher.metodoPagamento}">PIX</strong> | Total Pago: <strong class="text-dark" th:text="'R$ ' + ${#numbers.formatDecimal(voucher.valorFinal, 1, 2, 'POINT')}">R$ 127.50</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Transparência de Custódia e Split Financeiro -->
+                        <div class="p-3 rounded-3 mb-4" style="background: #f0fdfa; border: 1px solid #ccfbf1;">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <strong class="small text-dark">Pagamento In-App com Custódia & Split Liquidado:</strong>
+                            </div>
+                            <div class="small text-secondary">
+                                O valor de <strong>R$ <span th:text="${#numbers.formatDecimal(voucher.valorFinal, 1, 2, 'POINT')}">127.50</span></strong> foi liquidado com sucesso.
+                                A clínica parceira recebe seu repasse líquido garantido via split e a comissão da plataforma (take-rate de 15%) já foi retida automaticamente.
+                                <strong class="text-danger d-block mt-1">Nenhum pagamento adicional deve ser cobrado do tutor no balcão da clínica.</strong>
+                            </div>
+                        </div>
+
+                        <!-- Botões de Ação -->
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3 border-top">
+                            <a th:href="@{/servicos/meus-vouchers}" class="btn btn-outline-secondary">
+                                <i class="bi bi-wallet2 me-1"></i> Meus Vouchers
+                            </a>
+                            <div class="d-flex gap-2">
+                                <a th:href="@{/pets/{id}(id=${voucher.pet.id})}" class="btn btn-clyvo">
+                                    <i class="bi bi-arrow-right-circle me-1"></i> Ver Prontuário do Pet
+                                </a>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

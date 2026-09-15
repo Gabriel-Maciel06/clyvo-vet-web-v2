@@ -586,6 +586,44 @@
                                         </div>
                                     </div>
 
+                                    <!-- 5. EVENTO: VOUCHER DE PROCEDIMENTO IN-APP -->
+                                    <div th:if="${evento.tipoEvento == 'VOUCHER_PREVENTIVO'}"
+                                         class="card overflow-hidden"
+                                         style="border-left: 3px solid #0d9488;">
+
+                                        <div class="p-3 p-sm-4">
+                                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-ticket-perforated-fill me-1"></i> VOUCHER IN-APP PAGO
+                                                </span>
+                                                <span class="small text-muted">
+                                                    <i class="bi bi-clock me-1"></i> <span th:text="${#temporals.format(evento.dataRegistro, 'dd/MM/yyyy HH:mm')}">01/01/2026</span>
+                                                </span>
+                                            </div>
+                                            <h6 class="text-dark mt-2 mb-1" th:text="${evento.descricao}">Voucher Emitido</h6>
+                                            <p class="small text-secondary mb-0" th:text="${evento.condutaAdotada}">Pago via split in-app com garantia de atendimento.</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- 6. EVENTO: ATENDIMENTO CONCLUÍDO NA CLÍNICA -->
+                                    <div th:if="${evento.tipoEvento == 'ATENDIMENTO_CONCLUIDO'}"
+                                         class="card overflow-hidden"
+                                         style="border-left: 3px solid #10b981;">
+
+                                        <div class="p-3 p-sm-4">
+                                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle-fill me-1"></i> ATENDIMENTO CONCLUÍDO NA CLÍNICA
+                                                </span>
+                                                <span class="small text-muted">
+                                                    <i class="bi bi-clock me-1"></i> <span th:text="${#temporals.format(evento.dataRegistro, 'dd/MM/yyyy HH:mm')}">01/01/2026</span>
+                                                </span>
+                                            </div>
+                                            <h6 class="text-dark mt-2 mb-1" th:text="${evento.descricao}">Atendimento Realizado</h6>
+                                            <p class="small text-secondary mb-0" th:text="${evento.condutaAdotada}">Validado e liquidado pela clínica credenciada.</p>
+                                        </div>
+                                    </div>
+
                                 </div>
 
                                 <!-- SE NÃO HOUVER NENHUM EVENTO -->
@@ -626,7 +664,7 @@
                             </div>
 
                             <!-- CARD: CONSULTAS & TRIAGENS CADASTRADAS -->
-                            <div class="card p-4">
+                            <div class="card p-4 mb-3">
                                 <div class="clyvo-section-title justify-content-between">
                                     <h6 class="mb-0"><i class="bi bi-calendar2-heart me-2 text-primary"></i>Consultas Médicas</h6>
                                     <a th:href="@{/triagens/nova(petId=${pet.id})}" class="btn btn-sm btn-outline-primary py-0 px-2 small" sec:authorize="hasRole('TUTOR')">
@@ -651,7 +689,16 @@
                                 </div>
                             </div>
 
-                        </div>
+                            <!-- CARD: PROCEDIMENTOS & VOUCHERS IN-APP -->
+                            <div class="card p-4 border-0 shadow-sm" style="background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 100%); border-left: 4px solid #0d9488 !important;">
+                                <div class="clyvo-section-title justify-content-between mb-2">
+                                    <h6 class="mb-0"><i class="bi bi-cart-check-fill me-2 text-primary"></i>Procedimentos In-App</h6>
+                                </div>
+                                <p class="small text-muted mb-3">Contrate vacinas e check-ups com desconto de fidelidade e split seguro no gateway.</p>
+                                <a th:href="@{/servicos/checkout(petId=${pet.id})}" class="btn btn-sm btn-clyvo w-100" sec:authorize="hasRole('TUTOR')">
+                                    <i class="bi bi-bag-plus-fill me-1"></i> Contratar com Desconto
+                                </a>
+                            </div>
 
                     </div>
 

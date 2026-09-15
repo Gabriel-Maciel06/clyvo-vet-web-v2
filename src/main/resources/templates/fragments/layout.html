@@ -261,6 +261,13 @@
                         </div>
                         <span class="badge bg-success text-white rounded-pill" style="font-size: 0.65rem;">Descontos</span>
                     </a>
+                    <a th:href="@{/servicos}" class="sidebar-link" th:classappend="${activeTab == 'marketplace' or activeTab == 'checkout' or activeTab == 'voucher' or activeTab == 'meus-vouchers'} ? 'active' : ''">
+                        <div class="sidebar-link-content">
+                            <i class="bi bi-bag-check-fill text-info"></i>
+                            <span>Procedimentos & Vouchers</span>
+                        </div>
+                        <span class="badge bg-info text-white rounded-pill" style="font-size: 0.65rem;">In-App</span>
+                    </a>
                 </div>
 
                 <!-- SEÇÃO 3: MÓDULO MÉDICO VETERINÁRIO (ADMIN) -->
