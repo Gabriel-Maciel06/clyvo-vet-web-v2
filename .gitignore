@@ -35,3 +35,5 @@ target/
 ### Temporary files ###
 /tmp/
 *.log
+.env
+application-local.properties
