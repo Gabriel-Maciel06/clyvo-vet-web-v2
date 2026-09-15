@@ -82,8 +82,18 @@ public class PetService {
     }
 
     public Map<String, List<Raca>> listarRacasAgrupadasPorEspecie() {
-        return racaRepository.findAllByOrderByEspecieAscNomeAsc().stream()
+        return racaRepository.findAll().stream()
+                .sorted(java.util.Comparator
+                        .comparing(Raca::getEspecie)
+                        .thenComparing((Raca r) -> isRacaGeral(r) ? 0 : 1)
+                        .thenComparing(Raca::getNome))
                 .collect(Collectors.groupingBy(Raca::getEspecie, LinkedHashMap::new, Collectors.toList()));
+    }
+
+    private boolean isRacaGeral(Raca r) {
+        if (r == null || r.getNome() == null) return false;
+        String n = r.getNome().toLowerCase();
+        return n.contains("geral") || n.contains("não listada");
     }
 
     @Transactional

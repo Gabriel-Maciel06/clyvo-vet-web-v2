@@ -42,11 +42,14 @@
                                         <option value=""></option>
                                         <th:block th:if="${racasPorEspecie != null}">
                                             <optgroup th:each="entry : ${racasPorEspecie}" th:label="${entry.value[0].emoji} + ' ' + ${entry.key}">
-                                                <option th:each="raca : ${entry.value}" th:value="${raca.id}" th:text="${raca.nome} + ' (Expectativa: ' + ${raca.expectativaVida} + ' anos)'"></option>
+                                                <option th:each="raca : ${entry.value}" 
+                                                        th:value="${raca.id}" 
+                                                        th:text="${(raca.nome.contains('Geral') or raca.nome.contains('Não Listada') or raca.nome.contains('SRD') ? '★ ' : '') + raca.nome + ' (Expectativa: ' + raca.expectativaVida + ' anos)'}">
+                                                </option>
                                             </optgroup>
                                         </th:block>
                                         <th:block th:if="${racasPorEspecie == null}">
-                                            <option th:each="raca : ${racas}" th:value="${raca.id}" th:text="${raca.emoji} + ' ' + ${raca.especie} + ' - ' + ${raca.nome} + ' (Expectativa: ' + ${raca.expectativaVida} + ' anos)'"></option>
+                                            <option th:each="raca : ${racas}" th:value="${raca.id}" th:text="${raca.emoji} + ' ' + ${raca.especie} + ' - ' + raca.nome + ' (Expectativa: ' + ${raca.expectativaVida} + ' anos)'"></option>
                                         </th:block>
                                     </select>
                                     <div class="text-danger small" th:if="${#fields.hasErrors('racaId')}" th:errors="*{racaId}"></div>
@@ -89,6 +92,19 @@
                             allowClear: true,
                             width: '100%',
                             language: 'pt-BR'
+                        });
+
+                        // Clique no título/categoria para selecionar a opção geral daquela espécie
+                        $(document).on('mouseup click', '.select2-results__group', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            var $groupLi = $(this).closest('.select2-results__option--group');
+                            var $firstOption = $groupLi.find('.select2-results__options--nested .select2-results__option--selectable').first();
+
+                            if ($firstOption.length) {
+                                $firstOption.trigger('mouseup');
+                            }
                         });
 
                         // Validação amigável ao submeter o formulário

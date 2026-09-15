@@ -89,4 +89,29 @@ class LongevidadeCalculadoraMultiEspecieTest {
         assertTrue(agrupadas.containsKey("AVE"));
         assertTrue(agrupadas.containsKey("REPTIL"));
     }
+
+    @Test
+    @DisplayName("PetService deve posicionar a opção geral/srd no índice 0 de cada grupo de espécie")
+    void devePosicionarOpcaoGeralNoInicioDoGrupo() {
+        Map<String, List<Raca>> agrupadas = petService.listarRacasAgrupadasPorEspecie();
+
+        // Verifica que AVE tem opção geral no índice 0
+        List<Raca> aves = agrupadas.get("AVE");
+        assertNotNull(aves);
+        assertTrue(aves.get(0).getNome().contains("Geral"));
+
+        // Verifica que FELINA tem opção geral no índice 0
+        List<Raca> felinos = agrupadas.get("FELINA");
+        assertNotNull(felinos);
+        assertTrue(felinos.get(0).getNome().contains("Geral"));
+
+        // Verifica que CANINA tem opção geral no índice 0
+        List<Raca> caninos = agrupadas.get("CANINA");
+        assertNotNull(caninos);
+        assertTrue(caninos.get(0).getNome().contains("Geral"));
+
+        // Verifica que categoria OUTRO está cadastrada e disponível
+        assertTrue(agrupadas.containsKey("OUTRO"));
+        assertEquals("Outro Animal (Espécie Não Listada)", agrupadas.get("OUTRO").get(0).getNome());
+    }
 }

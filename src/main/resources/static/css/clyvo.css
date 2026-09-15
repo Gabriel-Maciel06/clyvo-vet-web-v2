@@ -462,7 +462,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     margin: 0 !important;
 }
 .select2-container--bootstrap-5 .select2-results__group {
-    display: block !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
     width: 100% !important;
     box-sizing: border-box !important;
     padding: 7px 14px !important;
@@ -471,12 +473,38 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     font-size: 0.76rem !important;
     letter-spacing: 0.05em !important;
     text-transform: uppercase !important;
-    color: #475569 !important;
+    color: #334155 !important;
     background-color: #f1f5f9 !important;
     border-top: 1px solid #e2e8f0 !important;
     border-bottom: 1px solid #e2e8f0 !important;
     line-height: 1.4 !important;
-    cursor: default !important;
+    cursor: pointer !important;
+    user-select: none !important;
+    transition: background-color 0.15s ease, color 0.15s ease !important;
+}
+.select2-container--bootstrap-5 .select2-results__group:hover {
+    background-color: #e2e8f0 !important;
+    color: var(--clyvo-teal-dark, #0f766e) !important;
+}
+.select2-container--bootstrap-5 .select2-results__group::after {
+    content: "Selecionar Categoria Geral ➜";
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--clyvo-teal, #0d9488);
+    background-color: #ffffff;
+    border: 1px solid #ccfbf1;
+    border-radius: 4px;
+    padding: 2px 7px;
+    opacity: 0.9;
+    transition: all 0.15s ease;
+}
+.select2-container--bootstrap-5 .select2-results__group:hover::after {
+    opacity: 1;
+    background-color: var(--clyvo-teal, #0d9488);
+    color: #ffffff;
+    border-color: var(--clyvo-teal, #0d9488);
 }
 .select2-container--bootstrap-5 .select2-results__options > .select2-results__option--group:first-child .select2-results__group {
     border-top: none !important;
@@ -496,7 +524,17 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     display: block !important;
     clear: both !important;
 }
+.select2-container--bootstrap-5 .select2-results__options--nested .select2-results__option:first-child {
+    font-weight: 600 !important;
+    color: var(--clyvo-teal-dark, #0f766e) !important;
+    background-color: #f8fafc !important;
+    border-bottom: 1px dashed #e2e8f0 !important;
+}
 .select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: var(--clyvo-teal, #0d9488) !important;
+    color: #ffffff !important;
+}
+.select2-container--bootstrap-5 .select2-results__options--nested .select2-results__option:first-child.select2-results__option--highlighted {
     background-color: var(--clyvo-teal, #0d9488) !important;
     color: #ffffff !important;
 }
