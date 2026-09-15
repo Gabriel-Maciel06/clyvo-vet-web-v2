@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  Ícone de raça: uma imagem (emoji) com trocadilho por raça, no lugar do
+  ícone genérico de estoque repetido em todo pet. O elemento que envolve o
+  th:replace continua controlando o tamanho (font-size/fs-4), já que emoji
+  escala com a fonte como texto normal.
+
+  Golden Retriever      -> 🥇 (Golden = ouro)
+  Buldogue Francês      -> 🥐 (Francês = croissant)
+  Poodle Médio          -> ☁️ (pompom de pelo cacheado = nuvem fofa)
+  Labrador Retriever    -> 🧪 (Labrador = "lab")
+  SRD (Vira-lata)       -> 🥫 (vira-lata = vira a lata do lixo)
+  Siamês                -> 💎 (olhos azuis exóticos = pedra preciosa)
+  Persa                 -> 🏺 (Pérsia = arte/cerâmica persa)
+  Qualquer outra raça   -> 🐾 (padrão genérico)
+-->
+<th:block th:fragment="icon(nome)">
+    <span th:if="${nome == 'Golden Retriever'}">🥇</span>
+    <span th:if="${nome == 'Buldogue Francês'}">🥐</span>
+    <span th:if="${nome == 'Poodle Médio'}">☁️</span>
+    <span th:if="${nome == 'Labrador Retriever'}">🧪</span>
+    <span th:if="${nome == 'SRD (Vira-lata)'}">🥫</span>
+    <span th:if="${nome == 'Siamês'}">💎</span>
+    <span th:if="${nome == 'Persa'}">🏺</span>
+    <span th:if="${nome != 'Golden Retriever' and nome != 'Buldogue Francês' and nome != 'Poodle Médio'
+                  and nome != 'Labrador Retriever' and nome != 'SRD (Vira-lata)'
+                  and nome != 'Siamês' and nome != 'Persa'}">🐾</span>
+</th:block>
+
+</body>
+</html>
