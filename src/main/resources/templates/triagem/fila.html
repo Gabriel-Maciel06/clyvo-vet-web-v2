@@ -90,9 +90,9 @@
                                 <th>Data Consulta</th>
                                 <th>Pet</th>
                                 <th>Veterinário</th>
-                                <th>Escore Longevidade</th>
+                                <th>Escore & Inferência ML</th>
                                 <th>Classificação Risco</th>
-                                <th>Parecer</th>
+                                <th>Parecer & Insights IA</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -102,11 +102,18 @@
                                 <td th:text="${c.veterinario != null ? c.veterinario.nomeCompleto : '-'}">Dr. Carlos</td>
                                 <td>
                                     <span class="badge" th:classappend="${c.escoreLongevidade >= 80 ? 'bg-success' : (c.escoreLongevidade >= 50 ? 'bg-warning text-dark' : 'bg-danger')}" th:text="${c.escoreLongevidade} + '/100'">85/100</span>
+                                    <span th:if="${c.probabilidadeHigidez != null}" class="badge bg-light text-dark border ms-1" th:text="'P(Higidez): ' + ${c.probabilidadeHigidez} + '%'">P(Higidez): 88.5%</span>
+                                    <div class="small text-muted mt-1 font-monospace" style="font-size: 0.75rem;" th:text="${c.modeloVersao ?: 'CanineWellness-ML-v1.0'}">CanineWellness-ML-v1.0</div>
                                 </td>
                                 <td>
                                     <span class="badge" th:classappend="${c.classificacaoRisco != null && c.classificacaoRisco.name() == 'ALTO' ? 'bg-danger' : (c.classificacaoRisco != null && c.classificacaoRisco.name() == 'MODERADO' ? 'bg-warning text-dark' : 'bg-success')}" th:text="${c.classificacaoRisco}">BAIXO</span>
                                 </td>
-                                <td class="small" th:text="${c.parecerVeterinario}">Parecer clínico</td>
+                                <td class="small">
+                                    <div class="fw-semibold text-dark" th:text="${c.parecerVeterinario}">Parecer clínico</div>
+                                    <div th:if="${c.insightIa}" class="text-muted small mt-1 text-truncate" style="max-width: 320px;" th:title="${c.insightIa}">
+                                        <i class="bi bi-cpu text-primary me-1"></i><span th:text="${c.insightIa}"></span>
+                                    </div>
+                                </td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(concluidas)}">
                                 <td colspan="6" class="text-center text-muted py-3">Nenhuma triagem concluída registrada ainda.</td>

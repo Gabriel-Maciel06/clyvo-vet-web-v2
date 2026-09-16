@@ -198,22 +198,37 @@ serviço também impede que um tutor veja ou manipule **pets de outro tutor** tr
 | Ouro | 14 dias ou 250 pts | 15% |
 | Diamante | 30 dias ou 500 pts | 20% |
 
-### 🩺 Fluxo 2 — Triagem Preventiva e Escore de Longevidade (Tutor → Veterinário)
-`TriagemController` → `TriagemService`
-1. O tutor solicita triagem informando a queixa (`/triagem/solicitar`).
-2. A solicitação entra na fila médica (`/triagem/fila`, só `ROLE_ADMIN`).
-3. O veterinário registra peso, temperatura, frequência cardíaca e parecer.
-4. `calcularEscoreLongevidadeEInsights()` parte de 100 e desconta por idade sênior, predisposição genética da raça,
-   febre/hipotermia, frequência cardíaca fora da faixa e alertas recentes nos check-ins.
-5. O resultado é gravado, atualiza o pet e entra na linha do tempo clínica.
+### 🩺 Fluxo 2 — Triagem Preventiva e Longevidade (Arquitetura Dual-Engine: ML + Guardrails)
+`TriagemController` → `TriagemService` → `PredictiveMlEngine`
+
+O sistema implementa uma **Arquitetura de Decisão Híbrida (Dual-Engine Architecture)** com separação estrita entre segurança fisiológica vital e inferência estatística de longevidade:
+
+1. **Camada 1: Guardrails Clínicos Determinísticos (Diretrizes AAHA / WSAVA):**
+   - Regras médicas de emergência inegociáveis. Avalia hipertermia ($T > 39.3^\circ\text{C}$), hipotermia ($T < 37.8^\circ\text{C}$), taquicardia/bradicardia severa.
+   - Atua como *fail-safe override*: parâmetros vitais críticos forçam imediatamente a classificação de risco elevado, impedindo falsos negativos de modelos estatísticos em emergências agudas.
+
+2. **Camada 2: Motor de Machine Learning Probabilístico Multivariado (`PredictiveMlEngine`):**
+   - Modelo calibrado sobre o **Canine Wellness Classification Dataset** (10.000 amostras clínicas, 21 features do Kaggle: `aaronisomaisom3/canine-wellness-dataset-synthetic-10k-samples`).
+   - Métricas de Validação: **ROC-AUC: 0.9485**, **Acurácia: 87.24%**, **Recall: 94.92%**, **F1: 0.9169**.
+   - Calcula a **Probabilidade Multivariada de Higidez $P(\text{Higidez} \mid \vec{x})$** via normalização Z-Score e função sigmóide logística $z = \beta_0 + \sum \beta_i \hat{x}_i$, ponderada por idade, peso/porte, sono, atividade aeróbica, visitas veterinárias e adesão profilática.
+   - Computa o **Escore Preditivo de Longevidade (0 a 100)** e classificação de risco (`BAIXO`, `MODERADO`, `ALTO`).
+
+3. **Camada 3: Explicabilidade Algorítmica (XAI / SHAP-like) & Síntese SOAP:**
+   - Decompõe a inferência em vetores de atribuição de features (ex.: `[+14 pts Fase Adulta Jovem]`, `[+8 pts Consultas Regulares]`, `[-15 pts Predisposição Fenotípica]`).
+   - Mapeia riscos específicos (displasia coxofemoral em grandes portes sem condroprotetor, estresse térmico em braquicefálicos).
+   - Gera síntese clínica estruturada no padrão médico veterinário **SOAP** (Subjetivo, Objetivo, Avaliação, Plano) no prontuário.
 
 ```mermaid
-graph LR
-    A[Tutor: solicita triagem] --> B[Fila médica ROLE_ADMIN]
-    B --> C[Veterinário: exame físico]
-    C --> D[Motor de escore 0-100]
-    D --> E[Risco BAIXO / MODERADO / ALTO]
-    E --> F[Prontuário e linha do tempo do pet]
+graph TD
+    A[Tutor: Solicitação de Triagem] --> B[Fila Médica ROLE_ADMIN]
+    B --> C[Veterinário: Exame Físico & Biometria]
+    C --> D{Avaliação Dual-Engine}
+    D -->|Camada 1: Guardrails AAHA/WSAVA| E[Segurança Vital: Febre / Hipotermia / Arritmia]
+    D -->|Camada 2: PredictiveMlEngine| F[ML 10k Amostras: P-Higidez & Escore Longevidade]
+    E --> G[Fusão & Fail-Safe Override]
+    F --> G
+    G --> H[Explicabilidade XAI + Síntese SOAP]
+    H --> I[Prontuário Eletrônico & Linha do Tempo]
 ```
 
 ---

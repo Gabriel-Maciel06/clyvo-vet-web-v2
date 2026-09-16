@@ -46,6 +46,15 @@ public class ConsultaTriagem {
     @Column(name = "CLASSIFICACAO_RISCO", length = 20)
     private ClassificacaoRisco classificacaoRisco;
 
+    @Column(name = "PROBABILIDADE_HIGIDEZ", precision = 5, scale = 2)
+    private BigDecimal probabilidadeHigidez;
+
+    @Column(name = "MODELO_VERSAO", length = 50)
+    private String modeloVersao;
+
+    @Column(name = "FATORES_XAI", length = 2000)
+    private String fatoresXai;
+
     @Column(name = "INSIGHT_IA", length = 1000)
     private String insightIa;
 
@@ -97,6 +106,12 @@ public class ConsultaTriagem {
     public void setEscoreLongevidade(Integer escoreLongevidade) { this.escoreLongevidade = escoreLongevidade; }
     public ClassificacaoRisco getClassificacaoRisco() { return classificacaoRisco; }
     public void setClassificacaoRisco(ClassificacaoRisco classificacaoRisco) { this.classificacaoRisco = classificacaoRisco; }
+    public BigDecimal getProbabilidadeHigidez() { return probabilidadeHigidez; }
+    public void setProbabilidadeHigidez(BigDecimal probabilidadeHigidez) { this.probabilidadeHigidez = probabilidadeHigidez; }
+    public String getModeloVersao() { return modeloVersao; }
+    public void setModeloVersao(String modeloVersao) { this.modeloVersao = modeloVersao; }
+    public String getFatoresXai() { return fatoresXai; }
+    public void setFatoresXai(String fatoresXai) { this.fatoresXai = fatoresXai; }
     public String getInsightIa() { return insightIa; }
     public void setInsightIa(String insightIa) { this.insightIa = insightIa; }
     public String getParecerVeterinario() { return parecerVeterinario; }

@@ -682,6 +682,10 @@
                                         <div class="small text-muted" th:if="${t.veterinario != null}">
                                             <i class="bi bi-person-check text-primary me-1"></i> <span th:text="${t.veterinario.nomeCompleto}">Dr. Carlos Mendes</span>
                                         </div>
+                                        <div th:if="${t.escoreLongevidade != null}" class="d-flex align-items-center gap-2 mt-2 pt-2 border-top">
+                                            <span class="badge" th:classappend="${t.escoreLongevidade >= 80 ? 'bg-success' : (t.escoreLongevidade >= 50 ? 'bg-warning text-dark' : 'bg-danger')}" th:text="'Escore: ' + ${t.escoreLongevidade} + '/100'">85/100</span>
+                                            <span th:if="${t.probabilidadeHigidez != null}" class="badge bg-light text-dark border small" th:text="'ML: ' + ${t.probabilidadeHigidez} + '% Higidez'">ML: 88.5%</span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div th:if="${#lists.isEmpty(triagens)}" class="text-center text-muted py-3 small">

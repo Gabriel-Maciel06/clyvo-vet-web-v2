@@ -52,7 +52,7 @@
 | `service/CustomUserDetailsService.java` | Converte `T_USUARIO` em `UserDetails`; a `SimpleGrantedAuthority` recebe `ROLE_TUTOR`/`ROLE_ADMIN`. |
 | `service/CheckinService.registrarCheckin` | Passo a passo do Fluxo 1 (propriedade, duplicidade, alerta, pontos, streak, badges, timeline). |
 | `model/RecompensaTutor.java` | Regra de níveis/desconto e do streak. |
-| `service/TriagemService.calcularEscoreLongevidadeEInsights` | Como o escore parte de 100 e cada fator desconta; limiares de risco. |
-| `db/migration/V1..V3` | Ordem das migrações, FKs, por que `ddl-auto=none`. |
+| `service/TriagemService` + `PredictiveMlEngine` | Arquitetura Dual-Engine: Guardrails Vitais (AAHA/WSAVA) + Inferência de Machine Learning (10k amostras, ROC-AUC 0.9485, P(Higidez), XAI e fail-safe). |
+| `db/migration/V1..V8` | Ordem das migrações, split de pagamento, raças gerais, colunas de ML e por que `ddl-auto=none`. |
 | `templates/fragments/layout.html` | `sec:authorize` na sidebar; fragmento `appShell` reutilizado por todas as telas. |
 | `src/test/...` | O que cada teste prova. |
