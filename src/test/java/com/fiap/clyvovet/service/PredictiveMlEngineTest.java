@@ -145,4 +145,79 @@ class PredictiveMlEngineTest {
         assertTrue(resultado.escoreLongevidade() >= 10, "Escore não pode ser inferior a 10");
         assertTrue(resultado.escoreLongevidade() <= 99, "Escore não pode ser superior a 99");
     }
+
+    @Test
+    @DisplayName("Motor Ectotérmico para Répteis deve gerar XAI de POTZ e Síntese SOAP especializada")
+    void deveExecutarInferenciaEctotermicaParaReptil() {
+        Pet jabuti = criarPetMock("Matusalém", "Jabuti-piranga", "REPTIL", 12, 7.0, "Osteometabólica / UVB");
+
+        PredictiveMlEngine.ResultadoInferenciaMl resultado = mlEngine.executarInferencia(
+                jabuti,
+                new BigDecimal("7.0"),
+                new BigDecimal("27.5"), // Temperatura de Recinto / POTZ
+                32, // Frequência cardíaca Doppler
+                List.of(),
+                2,
+                "Check-up do terrário e casca"
+        );
+
+        assertNotNull(resultado);
+        assertEquals("Ectothermic-Wellness-v1.0", resultado.versaoModelo());
+        assertEquals(ClassificacaoRisco.BAIXO, resultado.classificacaoRisco());
+        assertTrue(resultado.escoreLongevidade() >= 80);
+        assertTrue(resultado.fatoresXai().stream().anyMatch(f -> f.fator().contains("POTZ")),
+                "XAI deve conter fator de adequação de POTZ");
+        assertTrue(resultado.sinteseSoap().contains("SOAP CLÍNICO ECTOTÉRMICO"),
+                "Síntese deve seguir o formato SOAP de clínica de répteis");
+        assertTrue(resultado.sinteseSoap().contains("POTZ"),
+                "SOAP deve documentar a zona ótima de temperatura");
+    }
+
+    @Test
+    @DisplayName("Motor Aquático para Peixes deve avaliar Biótopo e Respiração Opercular")
+    void deveExecutarInferenciaAquaticaParaPeixe() {
+        Pet betta = criarPetMock("Glauber", "Peixe Betta", "PEIXE", 1, 0.005, "Ictiofitiríase");
+
+        PredictiveMlEngine.ResultadoInferenciaMl resultado = mlEngine.executarInferencia(
+                betta,
+                new BigDecimal("0.005"),
+                new BigDecimal("26.5"), // Temperatura da água
+                55, // Frequência opercular
+                List.of(),
+                1,
+                "Rotina de aquário"
+        );
+
+        assertNotNull(resultado);
+        assertEquals("Aquatic-Wellness-v1.0", resultado.versaoModelo());
+        assertEquals(ClassificacaoRisco.BAIXO, resultado.classificacaoRisco());
+        assertTrue(resultado.fatoresXai().stream().anyMatch(f -> f.fator().contains("Tropical")),
+                "XAI deve conter adequação ao biótopo tropical");
+        assertTrue(resultado.sinteseSoap().contains("SOAP CLÍNICO AQUÁTICO"),
+                "Síntese deve seguir o padrão de medicina de animais aquáticos");
+    }
+
+    @Test
+    @DisplayName("Motor Aviário deve reconhecer Eutermia Cloacal e FC rápida")
+    void deveExecutarInferenciaAviariaComParametrosAltos() {
+        Pet calopsita = criarPetMock("Lili", "Calopsita", "AVE", 2, 0.09, "Clamidiose");
+
+        PredictiveMlEngine.ResultadoInferenciaMl resultado = mlEngine.executarInferencia(
+                calopsita,
+                new BigDecimal("0.09"),
+                new BigDecimal("41.2"), // 41.2°C cloacal normal
+                300, // 300 bpm normal para calopsita
+                List.of(),
+                1,
+                "Rotina de penas"
+        );
+
+        assertNotNull(resultado);
+        assertEquals("Avian-Wellness-v1.0", resultado.versaoModelo());
+        assertEquals(ClassificacaoRisco.BAIXO, resultado.classificacaoRisco());
+        assertTrue(resultado.fatoresXai().stream().anyMatch(f -> f.fator().contains("Eutermia Aviária")),
+                "XAI deve validar eutermia aviária cloacal");
+        assertTrue(resultado.sinteseSoap().contains("SOAP CLÍNICO AVIÁRIO"),
+                "Síntese deve seguir o padrão de medicina de aves");
+    }
 }

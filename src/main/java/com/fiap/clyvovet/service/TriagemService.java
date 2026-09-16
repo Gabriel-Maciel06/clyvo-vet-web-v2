@@ -182,14 +182,14 @@ public class TriagemService {
                                                                    BigDecimal temperatura,
                                                                    Integer freqCardiaca,
                                                                    String queixaPrincipal) {
-        // 1. Guardrails Clínicos Determinísticos (Diretrizes Vitais AAHA/WSAVA)
-        List<String> alertasGuardrails = avaliarGuardrailsClinicos(temperatura, freqCardiaca);
+        // 1. Guardrails Clínicos Determinísticos Adaptados por Espécie (Diretrizes AAHA/WSAVA/ABRAVAS)
+        List<String> alertasGuardrails = avaliarGuardrailsClinicos(pet, temperatura, freqCardiaca);
 
         // 2. Histórico de Check-ins recentes do Pet
         List<CheckinDiario> ultimosCheckins = checkinRepository.findByPetIdOrderByDataCheckinDesc(pet.getId());
         int totalConsultas = triagemRepository.findByPetIdOrderByDataSolicitacaoDesc(pet.getId()).size();
 
-        // 3. Execução da Inferência de Machine Learning (CanineWellness ML Model)
+        // 3. Execução da Inferência de Machine Learning (Especializada por Grupo Fisiológico)
         PredictiveMlEngine.ResultadoInferenciaMl inferenciaMl = mlEngine.executarInferencia(
                 pet,
                 pesoAferido,
@@ -203,11 +203,36 @@ public class TriagemService {
         int escoreFinal = inferenciaMl.escoreLongevidade();
         ClassificacaoRisco riscoFinal = inferenciaMl.classificacaoRisco();
 
-        // 4. Mecanismo de Proteção Vital (Fail-Safe Override):
-        // Se houver hipertermia/febre grave (> 39.5) ou hipotermia (< 37.5), o protocolo de segurança
-        // clínica sobrepõe a predição estatística e eleva a prioridade de risco.
+        // 4. Mecanismo de Proteção Vital (Fail-Safe Override Específico por Espécie):
+        // Se houver emergência fisiológica grave confirmada pelo guardrail daquela espécie:
         if (!alertasGuardrails.isEmpty()) {
-            if (temperatura != null && (temperatura.compareTo(new BigDecimal("39.5")) >= 0 || temperatura.compareTo(new BigDecimal("37.5")) <= 0)) {
+            boolean emergenciaCritica = false;
+            String especie = (pet.getRaca() != null && pet.getRaca().getEspecie() != null)
+                    ? pet.getRaca().getEspecie().trim().toUpperCase() : "CANINA";
+
+            if ("CANINA".equals(especie) || "FELINA".equals(especie)) {
+                if (temperatura != null && (temperatura.compareTo(new BigDecimal("39.5")) >= 0 || temperatura.compareTo(new BigDecimal("37.5")) <= 0)) {
+                    emergenciaCritica = true;
+                }
+            } else if ("AVE".equals(especie)) {
+                if (temperatura != null && (temperatura.compareTo(new BigDecimal("43.0")) >= 0 || temperatura.compareTo(new BigDecimal("38.5")) <= 0)) {
+                    emergenciaCritica = true;
+                }
+            } else if ("REPTIL".equals(especie)) {
+                if (temperatura != null && (temperatura.compareTo(new BigDecimal("37.0")) >= 0 || temperatura.compareTo(new BigDecimal("18.0")) <= 0)) {
+                    emergenciaCritica = true;
+                }
+            } else if ("PEIXE".equals(especie)) {
+                if (temperatura != null && (temperatura.compareTo(new BigDecimal("31.0")) >= 0 || temperatura.compareTo(new BigDecimal("15.0")) <= 0)) {
+                    emergenciaCritica = true;
+                }
+            } else {
+                if (temperatura != null && (temperatura.compareTo(new BigDecimal("40.0")) >= 0 || temperatura.compareTo(new BigDecimal("36.5")) <= 0)) {
+                    emergenciaCritica = true;
+                }
+            }
+
+            if (emergenciaCritica) {
                 riscoFinal = ClassificacaoRisco.ALTO;
                 escoreFinal = Math.min(escoreFinal, 45);
             } else if (riscoFinal == ClassificacaoRisco.BAIXO) {
@@ -256,28 +281,184 @@ public class TriagemService {
     }
 
     /**
-     * Camada 1: Protocolos Clínicos Determinísticos (Diretrizes AAHA / WSAVA).
-     * Avalia sinais vitais e identifica desvios hemodinâmicos e termorreguladores imediatos.
+     * Camada 1: Protocolos Clínicos Determinísticos Adaptados por Espécie (Diretrizes AAHA / WSAVA / ABRAVAS).
+     * Respeita a fisiologia comparada:
+     * - Animais endotérmicos (cães, gatos, aves, mamíferos): termorregulação e ausculta cardiopulmonar direta.
+     * - Animais ectotérmicos (répteis e peixes): temperatura vinculada ao recinto (POTZ) ou água do biótopo;
+     *   não aplica penalidades mamíferas de febre/hipotermia.
      */
-    public List<String> avaliarGuardrailsClinicos(BigDecimal temperatura, Integer freqCardiaca) {
+    public List<String> avaliarGuardrailsClinicos(Pet pet, BigDecimal temperatura, Integer freqCardiaca) {
         List<String> alertas = new ArrayList<>();
-
-        if (temperatura != null) {
-            if (temperatura.compareTo(new BigDecimal("39.3")) > 0) {
-                alertas.add("Hipertermia/Febre Vital: " + temperatura + "°C (Diretriz WSAVA: risco de infecção/choque térmico)");
-            } else if (temperatura.compareTo(new BigDecimal("37.8")) < 0) {
-                alertas.add("Hipotermia Vital: " + temperatura + "°C (Diretriz WSAVA: risco de hipoperfusão sistêmica)");
-            }
+        if (pet == null) {
+            return avaliarGuardrailsClinicos(temperatura, freqCardiaca);
         }
 
-        if (freqCardiaca != null) {
-            if (freqCardiaca < 60) {
-                alertas.add("Bradicardia Severa: " + freqCardiaca + " bpm (Abaixo do limiar basal)");
-            } else if (freqCardiaca > 160) {
-                alertas.add("Taquicardia Severa: " + freqCardiaca + " bpm (Sobrecarga miocárdica / dor)");
+        String especie = (pet.getRaca() != null && pet.getRaca().getEspecie() != null)
+                ? pet.getRaca().getEspecie().trim().toUpperCase()
+                : "CANINA";
+
+        switch (especie) {
+            case "REPTIL" -> {
+                // ANIMAIS ECTOTÉRMICOS (RÉPTEIS):
+                // A temperatura é a Temperatura do Recinto / Faixa Ótima Preferida (POTZ: 22°C a 34°C).
+                // Ausculta cardíaca torácica é inviável em quelônios (carapaça óssea); avalia-se via Doppler.
+                if (temperatura != null) {
+                    if (temperatura.compareTo(new BigDecimal("20.0")) < 0) {
+                        alertas.add("Recinto Abaixo da Faixa Térmica Ótima (< 20°C): Risco de imunodepressão, estase digestiva e brumação involuntária em répteis");
+                    } else if (temperatura.compareTo(new BigDecimal("36.0")) > 0) {
+                        alertas.add("Superaquecimento do Recinto (> 36°C): Risco crítico de desidratação e estresse térmico em répteis");
+                    }
+                }
+                if (freqCardiaca != null) {
+                    if (freqCardiaca < 10) {
+                        alertas.add("Bradicardia Severa para Réptil (< 10 bpm com Doppler)");
+                    } else if (freqCardiaca > 80) {
+                        alertas.add("Taquicardia Severa para Réptil (> 80 bpm - estresse agudo/dor)");
+                    }
+                }
+            }
+            case "PEIXE" -> {
+                // ANIMAIS ECTOTÉRMICOS AQUÁTICOS (PEIXES):
+                // A temperatura é a Temperatura da Água do Aquário.
+                // A frequência indicada é a Frequência Opercular (movimentos branquiais/min).
+                if (temperatura != null) {
+                    if (temperatura.compareTo(new BigDecimal("16.0")) < 0) {
+                        alertas.add("Água Excessivamente Fria (< 16°C): Risco de choque osmótico e paralisia natatória em peixes ornamentais");
+                    } else if (temperatura.compareTo(new BigDecimal("30.0")) > 0) {
+                        alertas.add("Superaquecimento Aquático (> 30°C): Risco crítico de anóxia e colapso de oxigênio dissolvido no aquário");
+                    }
+                }
+                if (freqCardiaca != null) {
+                    if (freqCardiaca < 20) {
+                        alertas.add("Depressão Opercular Severa (< 20 mov/min)");
+                    } else if (freqCardiaca > 120) {
+                        alertas.add("Hiperventilação Opercular (> 120 mov/min - hipóxia aquática)");
+                    }
+                }
+            }
+            case "ARACNIDEO" -> {
+                if (temperatura != null) {
+                    if (temperatura.compareTo(new BigDecimal("18.0")) < 0) {
+                        alertas.add("Terrário Frio (< 18°C) para aracnídeo");
+                    } else if (temperatura.compareTo(new BigDecimal("32.0")) > 0) {
+                        alertas.add("Superaquecimento do Terrário (> 32°C)");
+                    }
+                }
+            }
+            case "AVE" -> {
+                // AVES ENDOTÉRMICAS (Metabolismo Acelerado):
+                // Temperatura normal cloacal: 39.5°C a 42.5°C.
+                // FC basal rápida: 150 a 400 bpm.
+                if (temperatura != null) {
+                    if (temperatura.compareTo(new BigDecimal("38.5")) < 0) {
+                        alertas.add("Hipotermia Aviária Crítica (< 38.5°C): Aves possuem metabolismo basal acelerado; risco iminente de choque");
+                    } else if (temperatura.compareTo(new BigDecimal("43.0")) > 0) {
+                        alertas.add("Hipertermia Severa em Aves (> 43.0°C): Risco de edema pulmonar e choque térmico agudo");
+                    }
+                }
+                if (freqCardiaca != null) {
+                    if (freqCardiaca < 120) {
+                        alertas.add("Bradicardia Severa para Ave (< 120 bpm)");
+                    } else if (freqCardiaca > 450) {
+                        alertas.add("Taquicardia Severa em Ave (> 450 bpm)");
+                    }
+                }
+            }
+            case "FELINA" -> {
+                // FELINOS DOMÉSTICOS:
+                // Temp normal: 38.0°C a 39.2°C. FC normal: 140 a 220 bpm.
+                if (temperatura != null) {
+                    if (temperatura.compareTo(new BigDecimal("39.3")) > 0) {
+                        alertas.add("Hipertermia/Febre Felina: " + temperatura + "°C (Diretriz AAFP/WSAVA)");
+                    } else if (temperatura.compareTo(new BigDecimal("37.8")) < 0) {
+                        alertas.add("Hipotermia Felina: " + temperatura + "°C (Risco de choque e hipotermia grave)");
+                    }
+                }
+                if (freqCardiaca != null) {
+                    if (freqCardiaca < 120) {
+                        alertas.add("Bradicardia Felina Severa (< 120 bpm)");
+                    } else if (freqCardiaca > 240) {
+                        alertas.add("Taquicardia Felina Severa (> 240 bpm)");
+                    }
+                }
+            }
+            case "EQUINA" -> {
+                // EQUINOS:
+                // Temp normal: 37.2°C a 38.3°C. FC normal: 28 a 44 bpm.
+                if (temperatura != null) {
+                    if (temperatura.compareTo(new BigDecimal("38.5")) > 0) {
+                        alertas.add("Hipertermia Equina: " + temperatura + "°C (Febre clínica)");
+                    } else if (temperatura.compareTo(new BigDecimal("37.0")) < 0) {
+                        alertas.add("Hipotermia Equina: " + temperatura + "°C");
+                    }
+                }
+                if (freqCardiaca != null) {
+                    if (freqCardiaca < 24) {
+                        alertas.add("Bradicardia Equina (< 24 bpm)");
+                    } else if (freqCardiaca > 60) {
+                        alertas.add("Taquicardia Equina (> 60 bpm - indicativo de dor aguda/cólica)");
+                    }
+                }
+            }
+            case "MUSTELIDEO" -> {
+                // FURÕES:
+                // Temp normal: 37.8°C a 40.0°C. FC: 180 a 250 bpm.
+                if (temperatura != null) {
+                    if (temperatura.compareTo(new BigDecimal("40.2")) > 0) {
+                        alertas.add("Hipertermia em Furão (> 40.2°C)");
+                    } else if (temperatura.compareTo(new BigDecimal("37.5")) < 0) {
+                        alertas.add("Hipotermia em Furão (< 37.5°C)");
+                    }
+                }
+                if (freqCardiaca != null) {
+                    if (freqCardiaca < 150) {
+                        alertas.add("Bradicardia em Furão (< 150 bpm)");
+                    } else if (freqCardiaca > 300) {
+                        alertas.add("Taquicardia em Furão (> 300 bpm)");
+                    }
+                }
+            }
+            case "ROEDOR" -> {
+                // ROEDORES:
+                // Temp normal: 36.5°C a 38.5°C. FC: 250 a 500 bpm.
+                if (temperatura != null) {
+                    if (temperatura.compareTo(new BigDecimal("39.0")) > 0) {
+                        alertas.add("Hipertermia em Roedor (> 39.0°C)");
+                    } else if (temperatura.compareTo(new BigDecimal("36.0")) < 0) {
+                        alertas.add("Hipotermia em Roedor (< 36.0°C)");
+                    }
+                }
+                if (freqCardiaca != null) {
+                    if (freqCardiaca < 200) {
+                        alertas.add("Bradicardia em Roedor (< 200 bpm)");
+                    }
+                }
+            }
+            default -> { // CANINA (Padrão AAHA / WSAVA)
+                if (temperatura != null) {
+                    if (temperatura.compareTo(new BigDecimal("39.3")) > 0) {
+                        alertas.add("Hipertermia/Febre Vital: " + temperatura + "°C (Diretriz WSAVA: risco de infecção/choque térmico)");
+                    } else if (temperatura.compareTo(new BigDecimal("37.8")) < 0) {
+                        alertas.add("Hipotermia Vital: " + temperatura + "°C (Diretriz WSAVA: risco de hipoperfusão sistêmica)");
+                    }
+                }
+                if (freqCardiaca != null) {
+                    if (freqCardiaca < 60) {
+                        alertas.add("Bradicardia Severa: " + freqCardiaca + " bpm (Abaixo do limiar basal)");
+                    } else if (freqCardiaca > 160) {
+                        alertas.add("Taquicardia Severa: " + freqCardiaca + " bpm (Sobrecarga miocárdica / dor)");
+                    }
+                }
             }
         }
 
         return alertas;
+    }
+
+    /**
+     * Sobrecarga mantida para retrocompatibilidade canina legada.
+     */
+    public List<String> avaliarGuardrailsClinicos(BigDecimal temperatura, Integer freqCardiaca) {
+        return avaliarGuardrailsClinicos(null, temperatura, freqCardiaca);
     }
 }

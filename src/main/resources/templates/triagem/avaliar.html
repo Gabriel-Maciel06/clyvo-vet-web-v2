@@ -69,10 +69,40 @@
                         </h4>
                         <p class="text-muted mb-3">Cruzamento de biometria, sinais vitais e micro-check-ins via <strong>Machine Learning Multivariado</strong> (Canine Wellness Dataset, 10k amostras, ROC-AUC 0.9485) integrado a <strong>Guardrails Clínicos Vitais</strong> (Diretrizes AAHA / WSAVA).</p>
 
-                        <div class="alert alert-light border d-flex align-items-center gap-3 py-2 px-3 mb-4 small text-secondary" style="background: #f8fafc; border-left: 3px solid #0d9488 !important;">
+                        <div class="alert alert-light border d-flex align-items-center gap-3 py-2 px-3 mb-3 small text-secondary" style="background: #f8fafc; border-left: 3px solid #0d9488 !important;">
                             <i class="bi bi-cpu text-teal fs-5"></i>
                             <div>
-                                <strong class="text-dark">Motor de Inferência Ativo:</strong> <code>CanineWellness-ML-v1.0</code> • Cálculo sigmóide de P(Higidez | X) e decomposição de explicabilidade (XAI / SHAP-like).
+                                <strong class="text-dark">Motor de Inferência Ativo:</strong>
+                                <code th:if="${triagem.pet.raca.especie == 'CANINA'}">CanineWellness-ML-v1.0</code>
+                                <code th:if="${triagem.pet.raca.especie == 'REPTIL'}">Ectothermic-Wellness-v1.0 (Termorregulação Exógena / POTZ)</code>
+                                <code th:if="${triagem.pet.raca.especie == 'PEIXE'}">Aquatic-Wellness-v1.0 (Biótopo & Qualidade de Água)</code>
+                                <code th:if="${triagem.pet.raca.especie == 'AVE'}">Avian-Wellness-v1.0 (Metabolismo Aviário Basal)</code>
+                                <code th:if="${triagem.pet.raca.especie != 'CANINA' and triagem.pet.raca.especie != 'REPTIL' and triagem.pet.raca.especie != 'PEIXE' and triagem.pet.raca.especie != 'AVE'}">Mammalian-Wellness-v1.0</code>
+                                • Cálculo sigmóide de P(Higidez | X) e explicabilidade (XAI).
+                            </div>
+                        </div>
+
+                        <!-- Banner Clínico Ectotérmico para Répteis -->
+                        <div th:if="${triagem.pet.raca.especie == 'REPTIL'}" class="alert alert-warning py-2 px-3 mb-3 small d-flex align-items-center gap-2">
+                            <span class="fs-5">🦎</span>
+                            <div>
+                                <strong>Paciente Ectotérmico (Termorregulação Exógena):</strong> Répteis não possuem febre/hipotermia de mamíferos. Aferir a <strong>Temperatura do Recinto / POTZ</strong> (Zona Térmica Ótima: 22°C a 34°C). Ausculta cardíaca torácica é inviável em quelônios (carapaça óssea); utilizar Doppler na fossa cervicobraquial ou deixar em branco se não aferido.
+                            </div>
+                        </div>
+
+                        <!-- Banner Clínico Pecilotérmico para Peixes -->
+                        <div th:if="${triagem.pet.raca.especie == 'PEIXE'}" class="alert alert-info py-2 px-3 mb-3 small d-flex align-items-center gap-2">
+                            <span class="fs-5">🐠</span>
+                            <div>
+                                <strong>Paciente Pecilotérmico Aquático:</strong> Aferir a <strong>Temperatura da Água do Aquário</strong> (Biótopo tropical: 24-28°C; Kinguio: 18-22°C). Ausculta cardíaca por estetoscópio é inaplicável; registrar a <strong>Frequência Opercular</strong> (movimentos branquiais/min) ou deixar em branco.
+                            </div>
+                        </div>
+
+                        <!-- Banner Clínico Aviário -->
+                        <div th:if="${triagem.pet.raca.especie == 'AVE'}" class="alert alert-success py-2 px-3 mb-3 small d-flex align-items-center gap-2">
+                            <span class="fs-5">🦜</span>
+                            <div>
+                                <strong>Paciente Aviário (Endotérmico de Alto Metabolismo):</strong> Temperatura cloacal basal fisiologicamente superior a mamíferos (<strong>39.5°C a 42.5°C</strong>). Frequência cardíaca basal rápida (<strong>150 a 400 bpm</strong>).
                             </div>
                         </div>
 
@@ -81,20 +111,35 @@
 
                             <div class="row g-3 mb-3">
                                 <div class="col-md-4">
-                                    <label for="pesoAferido" class="form-label">Peso Aferido (kg) *</label>
-                                    <input type="number" step="0.1" class="form-control" id="pesoAferido" th:field="*{pesoAferido}" required>
+                                    <label for="pesoAferido" class="form-label">
+                                        Peso Aferido (kg) *
+                                        <span class="text-muted small" th:if="${triagem.pet.raca.especie == 'AVE' or triagem.pet.raca.especie == 'ROEDOR' or triagem.pet.raca.especie == 'PEIXE'}">(ex: 0.10)</span>
+                                    </label>
+                                    <input type="number" step="0.001" class="form-control" id="pesoAferido" th:field="*{pesoAferido}" required>
                                     <div class="text-danger small" th:if="${#fields.hasErrors('pesoAferido')}" th:errors="*{pesoAferido}"></div>
                                 </div>
 
                                 <div class="col-md-4">
-                                    <label for="temperatura" class="form-label">Temperatura (°C) *</label>
-                                    <input type="number" step="0.1" class="form-control" id="temperatura" th:field="*{temperatura}" placeholder="38.5" required>
+                                    <label for="temperatura" class="form-label">
+                                        <span th:if="${triagem.pet.raca.especie == 'REPTIL'}">Temp. Recinto/POTZ (°C) *</span>
+                                        <span th:if="${triagem.pet.raca.especie == 'PEIXE'}">Temp. Água Aquário (°C) *</span>
+                                        <span th:if="${triagem.pet.raca.especie == 'AVE'}">Temp. Cloacal (°C) *</span>
+                                        <span th:if="${triagem.pet.raca.especie != 'REPTIL' and triagem.pet.raca.especie != 'PEIXE' and triagem.pet.raca.especie != 'AVE'}">Temperatura Corporal (°C) *</span>
+                                    </label>
+                                    <input type="number" step="0.1" class="form-control" id="temperatura" th:field="*{temperatura}"
+                                           th:placeholder="${triagem.pet.raca.especie == 'REPTIL' ? '26.0' : (triagem.pet.raca.especie == 'PEIXE' ? '25.0' : (triagem.pet.raca.especie == 'AVE' ? '41.0' : '38.5'))}" required>
                                     <div class="text-danger small" th:if="${#fields.hasErrors('temperatura')}" th:errors="*{temperatura}"></div>
                                 </div>
 
                                 <div class="col-md-4">
-                                    <label for="frequenciaCardiaca" class="form-label">Freq. Cardíaca (bpm) *</label>
-                                    <input type="number" class="form-control" id="frequenciaCardiaca" th:field="*{frequenciaCardiaca}" placeholder="100" required>
+                                    <label for="frequenciaCardiaca" class="form-label">
+                                        <span th:if="${triagem.pet.raca.especie == 'REPTIL'}">FC Doppler (bpm) <span class="text-muted fw-normal small">(opcional)</span></span>
+                                        <span th:if="${triagem.pet.raca.especie == 'PEIXE'}">Freq. Opercular <span class="text-muted fw-normal small">(opcional)</span></span>
+                                        <span th:if="${triagem.pet.raca.especie == 'AVE'}">FC Auscultada (bpm)</span>
+                                        <span th:if="${triagem.pet.raca.especie != 'REPTIL' and triagem.pet.raca.especie != 'PEIXE' and triagem.pet.raca.especie != 'AVE'}">Freq. Cardíaca (bpm)</span>
+                                    </label>
+                                    <input type="number" class="form-control" id="frequenciaCardiaca" th:field="*{frequenciaCardiaca}"
+                                           th:placeholder="${triagem.pet.raca.especie == 'REPTIL' ? '30' : (triagem.pet.raca.especie == 'PEIXE' ? '60' : (triagem.pet.raca.especie == 'AVE' ? '280' : '100'))}">
                                     <div class="text-danger small" th:if="${#fields.hasErrors('frequenciaCardiaca')}" th:errors="*{frequenciaCardiaca}"></div>
                                 </div>
                             </div>

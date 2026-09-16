@@ -35,6 +35,10 @@ import java.util.List;
 public class PredictiveMlEngine {
 
     public static final String MODEL_VERSION = "CanineWellness-ML-v1.0";
+    public static final String MODEL_VERSION_ECTOTHERMIC = "Ectothermic-Wellness-v1.0";
+    public static final String MODEL_VERSION_AQUATIC = "Aquatic-Wellness-v1.0";
+    public static final String MODEL_VERSION_AVIAN = "Avian-Wellness-v1.0";
+    public static final String MODEL_VERSION_INVERTEBRATE = "Invertebrate-Wellness-v1.0";
 
     // Constantes e Coeficientes de Regressão Logística e Normalização (model_metadata.json)
     private static final double INTERCEPT = 0.2814964638063569;
@@ -116,7 +120,24 @@ public class PredictiveMlEngine {
                                                     List<CheckinDiario> checkinsRecentes,
                                                     int totalConsultasHistorico,
                                                     String queixaPrincipal) {
-        // 1. Extração e conversão de variáveis
+        String especie = (pet != null && pet.getRaca() != null && pet.getRaca().getEspecie() != null)
+                ? pet.getRaca().getEspecie().trim().toUpperCase()
+                : "CANINA";
+
+        if ("REPTIL".equals(especie)) {
+            return inferirEctotermicoReptil(pet, pesoAferido, temperaturaCorporal, freqCardiaca, checkinsRecentes, totalConsultasHistorico, queixaPrincipal);
+        }
+        if ("PEIXE".equals(especie)) {
+            return inferirEctotermicoPeixe(pet, pesoAferido, temperaturaCorporal, freqCardiaca, checkinsRecentes, totalConsultasHistorico, queixaPrincipal);
+        }
+        if ("AVE".equals(especie)) {
+            return inferirAviano(pet, pesoAferido, temperaturaCorporal, freqCardiaca, checkinsRecentes, totalConsultasHistorico, queixaPrincipal);
+        }
+        if ("ARACNIDEO".equals(especie)) {
+            return inferirAracnideo(pet, pesoAferido, temperaturaCorporal, freqCardiaca, checkinsRecentes, totalConsultasHistorico, queixaPrincipal);
+        }
+
+        // 1. Extração e conversão de variáveis (Espécies Mamíferas / Caninas)
         int idadeAnos = (pet.getDataNascimento() != null)
                 ? Period.between(pet.getDataNascimento(), LocalDate.now()).getYears()
                 : 4;
@@ -357,5 +378,424 @@ public class PredictiveMlEngine {
                 resumoXai.toString(),
                 MODEL_VERSION
         );
+    }
+
+    /**
+     * Inferência Especializada para Répteis (Animais Ectotérmicos / Pecilotérmicos).
+     * Parâmetros fisiológicos baseados em termorregulação exógena (POTZ) e ausculta Doppler.
+     */
+    private ResultadoInferenciaMl inferirEctotermicoReptil(Pet pet,
+                                                           BigDecimal pesoAferido,
+                                                           BigDecimal tempRecinto,
+                                                           Integer freqCardiaca,
+                                                           List<CheckinDiario> checkins,
+                                                           int totalConsultas,
+                                                           String queixa) {
+        int expectativa = (pet.getRaca() != null && pet.getRaca().getExpectativaVida() != null)
+                ? pet.getRaca().getExpectativaVida() : 50;
+        int idadeAnos = (pet.getDataNascimento() != null)
+                ? Period.between(pet.getDataNascimento(), LocalDate.now()).getYears() : 5;
+
+        double pesoKg = (pesoAferido != null) ? pesoAferido.doubleValue() : (pet.getPeso() != null ? pet.getPeso().doubleValue() : 4.0);
+        double tempVal = (tempRecinto != null) ? tempRecinto.doubleValue() : 26.0;
+
+        List<FatorXai> fatoresXai = new ArrayList<>();
+        List<RiscoFenotipico> riscos = new ArrayList<>();
+
+        double logit = 1.2;
+
+        // 1. Adequação da POTZ (Preferred Optimal Temperature Zone: 24°C - 32°C)
+        if (tempVal >= 24.0 && tempVal <= 32.0) {
+            logit += 1.35;
+            fatoresXai.add(new FatorXai("Faixa Térmica Ótima (POTZ " + String.format(java.util.Locale.US, "%.1f", tempVal) + "°C)", "+14 pts", "positivo",
+                    "Temperatura do recinto perfeitamente alinhada à zona ótima metabólica de répteis (digestão e imunidade ativas)."));
+        } else if (tempVal >= 21.0 && tempVal <= 35.0) {
+            logit += 0.20;
+            fatoresXai.add(new FatorXai("Temperatura de Recinto Marginal (" + String.format(java.util.Locale.US, "%.1f", tempVal) + "°C)", "+4 pts", "neutro",
+                    "Recinto próximo aos limites limiares da espécie; recomenda-se checar lâmpada cerâmica e termostato."));
+        } else if (tempVal < 20.0) {
+            logit -= 1.80;
+            fatoresXai.add(new FatorXai("Recinto Hipotérmico (< 20°C)", "-22 pts", "negativo",
+                    "Temperatura ambiente baixa causa estase digestiva, parada fermentativa cecal e imunossupressão severa em répteis."));
+            riscos.add(new RiscoFenotipico("Manejo Térmico / POTZ", "Crítico", "Estase Fria",
+                    "Recinto a " + tempVal + "°C induz hipotermia ambiental involuntária e bloqueio metabólico. Ajustar aquecimento imediatamente."));
+        } else {
+            logit -= 1.60;
+            fatoresXai.add(new FatorXai("Superaquecimento do Recinto (> 35°C)", "-20 pts", "negativo",
+                    "Temperatura excessiva sem gradiente de fuga causa desidratação aguda e choque térmico."));
+            riscos.add(new RiscoFenotipico("Manejo Térmico / POTZ", "Crítico", "Hipertermia Recinto",
+                    "Recinto a " + tempVal + "°C excede limite fisiológico superior. Criar zona de resfriamento."));
+        }
+
+        // 2. Avaliação de Idade em Relação à Expectativa Zoológica
+        double percVida = (double) idadeAnos / Math.max(1, expectativa);
+        if (percVida < 0.40) {
+            logit += 0.80;
+            fatoresXai.add(new FatorXai("Fase Jovem/Adulta (" + idadeAnos + " de " + expectativa + " anos)", "+10 pts", "positivo",
+                    "Espécie com alta longevidade biológica em pleno vigor imunológico e esquelético."));
+        } else if (percVida < 0.75) {
+            logit += 0.30;
+            fatoresXai.add(new FatorXai("Maturidade Avançada (" + idadeAnos + " anos)", "+5 pts", "positivo",
+                    "Réptil consolidado, manutenção de escore corporal e carapaça/escamas estável."));
+        } else {
+            logit -= 0.60;
+            fatoresXai.add(new FatorXai("Geriátrico (" + idadeAnos + " anos)", "-12 pts", "negativo",
+                    "Avanço etário em quelônios requer monitoramento semestral de função renal e articular."));
+        }
+
+        // 3. Frequência Cardíaca (Doppler Cervical / Inguinal)
+        if (freqCardiaca != null) {
+            if (freqCardiaca >= 15 && freqCardiaca <= 60) {
+                logit += 0.40;
+                fatoresXai.add(new FatorXai("Ritmo Basal Ectotérmico (" + freqCardiaca + " bpm)", "+6 pts", "positivo",
+                        "Frequência cardíaca aferida via Doppler em perfeita harmonia com a temperatura ambiente."));
+            } else if (freqCardiaca > 75) {
+                logit -= 0.70;
+                fatoresXai.add(new FatorXai("Taquicardia por Estresse (" + freqCardiaca + " bpm)", "-8 pts", "negativo",
+                        "Frequência cardíaca elevada sugere dor, contenção estressante ou sobrecarga sistêmica."));
+            }
+        }
+
+        // 4. Check-ins do Tutor
+        boolean apetiteReduzido = false;
+        if (checkins != null && !checkins.isEmpty()) {
+            for (CheckinDiario chk : checkins) {
+                if (chk.getAlimentacaoStatus() == AlimentacaoStatus.POUCO_APETITE) apetiteReduzido = true;
+            }
+        }
+        if (apetiteReduzido) {
+            logit -= 0.80;
+            fatoresXai.add(new FatorXai("Inapetência / Hiporexia", "-10 pts", "negativo",
+                    "Recusa alimentar em répteis exige revisão imediata de temperatura, parasitas e fotoperíodo."));
+        } else {
+            logit += 0.50;
+            fatoresXai.add(new FatorXai("Nutrição e Apetite Normais", "+6 pts", "positivo",
+                    "Ingestão regular de forragem, folhas verdes e suplementação de cálcio."));
+        }
+
+        // Riscos Fenotípicos Gerais de Répteis
+        String propensao = (pet.getRaca() != null && pet.getRaca().getPropensaoDoenca() != null)
+                ? pet.getRaca().getPropensaoDoenca() : "MBD / Osteometabólica";
+        riscos.add(new RiscoFenotipico("Nutricional & Esquelético (MBD)", "Monitoramento Ativo", "Exigência UVB",
+                "Predisposição a " + propensao + ". Garantir fonte de radiação UVB (5.0/10.0) e suplemento de Cálcio sem fósforo + D3."));
+
+        // Cálculo sigmóide
+        double probHigidez = 1.0 / (1.0 + Math.exp(-logit));
+        probHigidez = Math.max(0.10, Math.min(0.97, probHigidez));
+
+        int escoreLongevidade = (int) Math.round(Math.max(15, Math.min(99, probHigidez * 100.0)));
+        ClassificacaoRisco risco = (escoreLongevidade >= 80) ? ClassificacaoRisco.BAIXO
+                : (escoreLongevidade >= 50 ? ClassificacaoRisco.MODERADO : ClassificacaoRisco.ALTO);
+
+        StringBuilder resumoXai = new StringBuilder();
+        resumoXai.append(String.format("P(Higidez)=%.1f%% | Modelo: %s\nFatores XAI: ", probHigidez * 100.0, MODEL_VERSION_ECTOTHERMIC));
+        for (int i = 0; i < fatoresXai.size(); i++) {
+            FatorXai f = fatoresXai.get(i);
+            resumoXai.append("[").append(f.impacto()).append(" ").append(f.fator()).append("]");
+            if (i < fatoresXai.size() - 1) resumoXai.append(" ");
+        }
+
+        String soap = String.format(
+                "SOAP CLÍNICO ECTOTÉRMICO (Clyvo Vet Ectothermic ML)\n" +
+                "[S - Subjetivo]: Paciente ectotérmico %s (%s, %d anos - expectativa: %d anos). Queixa: \"%s\".\n" +
+                "[O - Objetivo]: Peso aferido: %.2f kg. Temp Recinto (POTZ): %.1f°C. FC Doppler: %s.\n" +
+                "[A - Avaliação Ectotérmica]: P(Higidez) = %.1f%%. Escore Longevidade = %d/100 (Risco %s). XAI: %s.\n" +
+                "[P - Plano Profilático]: Manter zona térmica ótima (POTZ 24-32°C com basking spot a 34°C), iluminação UVB ativa e reposição de cálcio com D3.",
+                pet.getNome(), (pet.getRaca() != null ? pet.getRaca().getNome() : "Réptil"), idadeAnos, expectativa,
+                (queixa != null ? queixa : "Rotina preventiva"),
+                pesoKg, tempVal, (freqCardiaca != null ? freqCardiaca + " bpm" : "Não aplicável / Doppler"),
+                probHigidez * 100.0, escoreLongevidade, risco.name(),
+                fatoresXai.isEmpty() ? "Parâmetros de recinto estáveis" : fatoresXai.get(0).fator() + " (" + fatoresXai.get(0).impacto() + ")"
+        );
+
+        return new ResultadoInferenciaMl(
+                new BigDecimal(probHigidez * 100.0).setScale(1, RoundingMode.HALF_UP).doubleValue(),
+                escoreLongevidade,
+                risco,
+                fatoresXai,
+                riscos,
+                soap,
+                resumoXai.toString(),
+                MODEL_VERSION_ECTOTHERMIC
+        );
+    }
+
+    /**
+     * Inferência Especializada para Peixes Ornamentais (Pecilotérmicos Aquáticos).
+     * Parâmetros vitais focados na qualidade da água, temperatura do biótopo e respiração opercular.
+     */
+    private ResultadoInferenciaMl inferirEctotermicoPeixe(Pet pet,
+                                                         BigDecimal pesoAferido,
+                                                         BigDecimal tempAgua,
+                                                         Integer freqOpercular,
+                                                         List<CheckinDiario> checkins,
+                                                         int totalConsultas,
+                                                         String queixa) {
+        String racaNome = (pet.getRaca() != null) ? pet.getRaca().getNome().toLowerCase() : "";
+        double pesoKg = (pesoAferido != null) ? pesoAferido.doubleValue() : (pet.getPeso() != null ? pet.getPeso().doubleValue() : 0.05);
+        double tempVal = (tempAgua != null) ? tempAgua.doubleValue() : 25.0;
+
+        List<FatorXai> fatoresXai = new ArrayList<>();
+        List<RiscoFenotipico> riscos = new ArrayList<>();
+
+        double logit = 1.3;
+
+        // 1. Adequação da Temperatura da Água ao Biótopo da Espécie
+        boolean isKinguio = racaNome.contains("kinguio") || racaNome.contains("goldfish") || racaNome.contains("fria");
+        if (isKinguio) {
+            // Kinguio: espécie de água fria/temperada (18°C a 22°C)
+            if (tempVal >= 18.0 && tempVal <= 22.5) {
+                logit += 1.40;
+                fatoresXai.add(new FatorXai("Temperatura Ideal de Água Fria (" + String.format(java.util.Locale.US, "%.1f", tempVal) + "°C)", "+15 pts", "positivo",
+                        "Água temperada ideal para Kinguios, preservando alta taxa de oxigênio dissolvido e baixa taxa metabólica."));
+            } else if (tempVal > 25.0) {
+                logit -= 1.10;
+                fatoresXai.add(new FatorXai("Água Quente para Kinguio (" + String.format(java.util.Locale.US, "%.1f", tempVal) + "°C)", "-14 pts", "negativo",
+                        "Água acima de 24°C reduz oxigênio dissolvido e acelera metabolismo do Kinguio, propiciando estresse e poluição orgânica."));
+                riscos.add(new RiscoFenotipico("Qualidade de Água", "Atenção", "Temperatura Elevada",
+                        "Temperatura de " + tempVal + "°C incompatível com espécies de água fria. Aumentar aeração e refrigerar."));
+            } else {
+                logit += 0.30;
+            }
+        } else {
+            // Betta e peixes tropicais (24°C a 28°C)
+            if (tempVal >= 24.0 && tempVal <= 28.5) {
+                logit += 1.40;
+                fatoresXai.add(new FatorXai("Temperatura Tropical Ideal (" + String.format(java.util.Locale.US, "%.1f", tempVal) + "°C)", "+15 pts", "positivo",
+                        "Termostato e água estabilizados na faixa biológica ótima de peixes tropicais/labirintídeos."));
+            } else if (tempVal < 22.0) {
+                logit -= 1.40;
+                fatoresXai.add(new FatorXai("Água Fria para Peixe Tropical (< 22°C)", "-18 pts", "negativo",
+                        "Água fria causa paralisia digestiva, inativação do sistema imune e surtos de Ictiofitiríase (íctio)."));
+                riscos.add(new RiscoFenotipico("Manejo de Aquário", "Crítico", "Hipotermia Aquática",
+                        "Água a " + tempVal + "°C predispõe a ictio e choque osmótico. Instalar termostato com aquecedor imediatamente."));
+            } else if (tempVal > 30.0) {
+                logit -= 1.50;
+                fatoresXai.add(new FatorXai("Superaquecimento Aquático (> 30°C)", "-19 pts", "negativo",
+                        "Temperatura crítica com queda drástica de oxigênio dissolvido, forçando respiração superficial."));
+            } else {
+                logit += 0.40;
+            }
+        }
+
+        // 2. Frequência Opercular (Movimentos branquiais por minuto)
+        if (freqOpercular != null) {
+            if (freqOpercular >= 35 && freqOpercular <= 85) {
+                logit += 0.50;
+                fatoresXai.add(new FatorXai("Frequência Opercular Regular (" + freqOpercular + " mov/min)", "+7 pts", "positivo",
+                        "Movimentos branquiais rítmicos sem sinais de ofegação ou hipóxia aquática."));
+            } else if (freqOpercular > 100) {
+                logit -= 1.00;
+                fatoresXai.add(new FatorXai("Hiperventilação Opercular (" + freqOpercular + " mov/min)", "-12 pts", "negativo",
+                        "Batimentos branquiais acelerados sugerem pico de amônia, nitrito ou déficit de oxigênio."));
+                riscos.add(new RiscoFenotipico("Respiratório / Aquático", "Alerta", "Hipóxia Aquática",
+                        "Hiperventilação branquial requer teste imediato de Amônia Tóxica e Nitrito no aquário."));
+            }
+        }
+
+        // 3. Sintomas de Check-in
+        boolean apetiteReduzido = false;
+        if (checkins != null) {
+            for (CheckinDiario chk : checkins) {
+                if (chk.getAlimentacaoStatus() == AlimentacaoStatus.POUCO_APETITE) apetiteReduzido = true;
+                if (chk.getSintomasObservados() != null) {
+                    String s = chk.getSintomasObservados().toLowerCase();
+                    if (s.contains("boia") || s.contains("fundo") || s.contains("lado") || s.contains("nadadeira")) {
+                        logit -= 1.20;
+                        fatoresXai.add(new FatorXai("Distúrbio Natatório / Bexiga Natatória", "-15 pts", "negativo",
+                                "Alteração de flutuabilidade observada. Requer jejum terapêutico e controle de compactação gástrica."));
+                    }
+                }
+            }
+        }
+        if (!apetiteReduzido) {
+            logit += 0.40;
+            fatoresXai.add(new FatorXai("Alimentação e Natação Estáveis", "+5 pts", "positivo",
+                    "Pet alimenta-se prontamente com natação fluida e posicionamento horizontal correto."));
+        }
+
+        double probHigidez = 1.0 / (1.0 + Math.exp(-logit));
+        probHigidez = Math.max(0.10, Math.min(0.97, probHigidez));
+
+        int escoreLongevidade = (int) Math.round(Math.max(15, Math.min(99, probHigidez * 100.0)));
+        ClassificacaoRisco risco = (escoreLongevidade >= 80) ? ClassificacaoRisco.BAIXO
+                : (escoreLongevidade >= 50 ? ClassificacaoRisco.MODERADO : ClassificacaoRisco.ALTO);
+
+        StringBuilder resumoXai = new StringBuilder();
+        resumoXai.append(String.format("P(Higidez)=%.1f%% | Modelo: %s\nFatores XAI: ", probHigidez * 100.0, MODEL_VERSION_AQUATIC));
+        for (int i = 0; i < fatoresXai.size(); i++) {
+            FatorXai f = fatoresXai.get(i);
+            resumoXai.append("[").append(f.impacto()).append(" ").append(f.fator()).append("]");
+            if (i < fatoresXai.size() - 1) resumoXai.append(" ");
+        }
+
+        String soap = String.format(
+                "SOAP CLÍNICO AQUÁTICO (Clyvo Vet Aquatic ML)\n" +
+                "[S - Subjetivo]: Paciente pecilotérmico aquático %s (%s). Queixa: \"%s\".\n" +
+                "[O - Objetivo]: Peso aproximado: %.3f kg. Temp da Água: %.1f°C. Freq. Opercular: %s.\n" +
+                "[A - Avaliação Aquática]: P(Higidez) = %.1f%%. Escore Longevidade = %d/100 (Risco %s). XAI: %s.\n" +
+                "[P - Plano Profilático]: Manter trocas parciais de água (TPA 20%% semanais com condicionador de cloro), teste de pH/Amônia e aeração biológica.",
+                pet.getNome(), (pet.getRaca() != null ? pet.getRaca().getNome() : "Peixe"),
+                (queixa != null ? queixa : "Rotina de biótopo"),
+                pesoKg, tempVal, (freqOpercular != null ? freqOpercular + " mov/min" : "Estável / Não aferido"),
+                probHigidez * 100.0, escoreLongevidade, risco.name(),
+                fatoresXai.isEmpty() ? "Parâmetros do biótopo aquático regulares" : fatoresXai.get(0).fator() + " (" + fatoresXai.get(0).impacto() + ")"
+        );
+
+        return new ResultadoInferenciaMl(
+                new BigDecimal(probHigidez * 100.0).setScale(1, RoundingMode.HALF_UP).doubleValue(),
+                escoreLongevidade,
+                risco,
+                fatoresXai,
+                riscos,
+                soap,
+                resumoXai.toString(),
+                MODEL_VERSION_AQUATIC
+        );
+    }
+
+    /**
+     * Inferência Especializada para Aves (Psitacídeos, Passeriformes - Endotérmicos de Alto Metabolismo).
+     * Temperatura cloacal fisiológica: 39.5°C a 42.5°C.
+     * Frequência cardíaca basal: 150 a 400 bpm.
+     */
+    private ResultadoInferenciaMl inferirAviano(Pet pet,
+                                                BigDecimal pesoAferido,
+                                                BigDecimal tempCloacal,
+                                                Integer freqCardiaca,
+                                                List<CheckinDiario> checkins,
+                                                int totalConsultas,
+                                                String queixa) {
+        int expectativa = (pet.getRaca() != null && pet.getRaca().getExpectativaVida() != null)
+                ? pet.getRaca().getExpectativaVida() : 15;
+        int idadeAnos = (pet.getDataNascimento() != null)
+                ? Period.between(pet.getDataNascimento(), LocalDate.now()).getYears() : 2;
+
+        double pesoKg = (pesoAferido != null) ? pesoAferido.doubleValue() : (pet.getPeso() != null ? pet.getPeso().doubleValue() : 0.10);
+        double tempVal = (tempCloacal != null) ? tempCloacal.doubleValue() : 41.0;
+
+        List<FatorXai> fatoresXai = new ArrayList<>();
+        List<RiscoFenotipico> riscos = new ArrayList<>();
+
+        double logit = 1.25;
+
+        // 1. Termorregulação Aviária (Normal: 39.5°C a 42.5°C)
+        if (tempVal >= 39.5 && tempVal <= 42.5) {
+            logit += 1.30;
+            fatoresXai.add(new FatorXai("Eutermia Aviária Cloacal (" + String.format(java.util.Locale.US, "%.1f", tempVal) + "°C)", "+13 pts", "positivo",
+                    "Temperatura cloacal em perfeita consonância com o metabolismo acelerado característico de aves hígidas."));
+        } else if (tempVal < 38.5) {
+            logit -= 1.70;
+            fatoresXai.add(new FatorXai("Hipotermia Aviária Severa (< 38.5°C)", "-22 pts", "negativo",
+                    "Em aves, temperatura < 38.5°C indica choque térmico, esgotamento glicêmico ou prostração crítica."));
+            riscos.add(new RiscoFenotipico("Termorregulação Aviária", "Crítico", "Hipotermia Aguda",
+                    "Temperatura cloacal de " + tempVal + "°C é emergência médica em aves. Aquecimento imediato em UTI aviária necessário."));
+        } else if (tempVal > 43.0) {
+            logit -= 1.60;
+            fatoresXai.add(new FatorXai("Hipertermia Severa em Ave (> 43°C)", "-20 pts", "negativo",
+                    "Risco iminente de colapso respiratório e edema pulmonar por superaquecimento."));
+        } else {
+            logit += 0.30;
+        }
+
+        // 2. Frequência Cardíaca Aviária (Normal: 150 a 400 bpm)
+        int fc = (freqCardiaca != null) ? freqCardiaca : 250;
+        if (fc >= 150 && fc <= 400) {
+            logit += 0.40;
+            fatoresXai.add(new FatorXai("Ritmo Cardíaco Basal Aviário (" + fc + " bpm)", "+6 pts", "positivo",
+                    "Frequência cardíaca rápida fisiológica mantida sem arritmias audíveis."));
+        } else if (fc < 120) {
+            logit -= 0.90;
+            fatoresXai.add(new FatorXai("Bradicardia Severa para Ave (< 120 bpm)", "-12 pts", "negativo",
+                    "Queda da frequência em aves reflete hipotermia profunda ou depressão neurológica."));
+        }
+
+        // 3. Avaliação de Idade vs Expectativa
+        double percVida = (double) idadeAnos / Math.max(1, expectativa);
+        if (percVida < 0.50) {
+            logit += 0.60;
+            fatoresXai.add(new FatorXai("Fase Adulta Jovem (" + idadeAnos + " de " + expectativa + " anos)", "+8 pts", "positivo",
+                    "Ave em plenitude de plumagem e imunidade mucosal ativa."));
+        } else {
+            logit -= 0.30;
+        }
+
+        // Riscos Fenotípicos Aviários
+        String propensao = (pet.getRaca() != null && pet.getRaca().getPropensaoDoenca() != null)
+                ? pet.getRaca().getPropensaoDoenca() : "Clamidiose / Doenças respiratórias";
+        riscos.add(new RiscoFenotipico("Respiratório / Mucosas", "Prevenção Ativa", "Sensibilidade Aérea",
+                "Predisposição a " + propensao + ". Proteger estritamente contra aerossóis domésticos, fumaça e vapores de panelas com teflon."));
+
+        double probHigidez = 1.0 / (1.0 + Math.exp(-logit));
+        probHigidez = Math.max(0.10, Math.min(0.97, probHigidez));
+
+        int escoreLongevidade = (int) Math.round(Math.max(15, Math.min(99, probHigidez * 100.0)));
+        ClassificacaoRisco risco = (escoreLongevidade >= 80) ? ClassificacaoRisco.BAIXO
+                : (escoreLongevidade >= 50 ? ClassificacaoRisco.MODERADO : ClassificacaoRisco.ALTO);
+
+        StringBuilder resumoXai = new StringBuilder();
+        resumoXai.append(String.format("P(Higidez)=%.1f%% | Modelo: %s\nFatores XAI: ", probHigidez * 100.0, MODEL_VERSION_AVIAN));
+        for (int i = 0; i < fatoresXai.size(); i++) {
+            FatorXai f = fatoresXai.get(i);
+            resumoXai.append("[").append(f.impacto()).append(" ").append(f.fator()).append("]");
+            if (i < fatoresXai.size() - 1) resumoXai.append(" ");
+        }
+
+        String soap = String.format(
+                "SOAP CLÍNICO AVIÁRIO (Clyvo Vet Avian ML)\n" +
+                "[S - Subjetivo]: Paciente aviário %s (%s, %d anos - expectativa: %d anos). Queixa: \"%s\".\n" +
+                "[O - Objetivo]: Peso aferido: %.3f kg (%.0f g). Temp Cloacal: %.1f°C. FC: %d bpm.\n" +
+                "[A - Avaliação Aviária]: P(Higidez) = %.1f%%. Escore Longevidade = %d/100 (Risco %s). XAI: %s.\n" +
+                "[P - Plano Profilático]: Dieta com ração extrusada especializada, suplementação vitamínica em trocas de pena e enriquecimento com poleiros de diâmetros variados.",
+                pet.getNome(), (pet.getRaca() != null ? pet.getRaca().getNome() : "Ave"), idadeAnos, expectativa,
+                (queixa != null ? queixa : "Rotina profilática"),
+                pesoKg, pesoKg * 1000.0, tempVal, fc,
+                probHigidez * 100.0, escoreLongevidade, risco.name(),
+                fatoresXai.isEmpty() ? "Eutermia aviária confirmada" : fatoresXai.get(0).fator() + " (" + fatoresXai.get(0).impacto() + ")"
+        );
+
+        return new ResultadoInferenciaMl(
+                new BigDecimal(probHigidez * 100.0).setScale(1, RoundingMode.HALF_UP).doubleValue(),
+                escoreLongevidade,
+                risco,
+                fatoresXai,
+                riscos,
+                soap,
+                resumoXai.toString(),
+                MODEL_VERSION_AVIAN
+        );
+    }
+
+    /**
+     * Inferência Especializada para Aracnídeos / Invertebrados Exóticos.
+     */
+    private ResultadoInferenciaMl inferirAracnideo(Pet pet,
+                                                   BigDecimal pesoAferido,
+                                                   BigDecimal tempTerrario,
+                                                   Integer batimentos,
+                                                   List<CheckinDiario> checkins,
+                                                   int totalConsultas,
+                                                   String queixa) {
+        double tempVal = (tempTerrario != null) ? tempTerrario.doubleValue() : 25.0;
+        List<FatorXai> fatoresXai = new ArrayList<>();
+        List<RiscoFenotipico> riscos = new ArrayList<>();
+
+        double logit = 1.2;
+        if (tempVal >= 22.0 && tempVal <= 28.0) {
+            logit += 1.2;
+            fatoresXai.add(new FatorXai("Terrário Térmico Estável (" + String.format(java.util.Locale.US, "%.1f", tempVal) + "°C)", "+12 pts", "positivo",
+                    "Temperatura do terrário ideal para manutenção do ciclo de ecdise de aracnídeos."));
+        } else {
+            logit -= 0.8;
+            fatoresXai.add(new FatorXai("Temperatura Subótima de Terrário", "-10 pts", "negativo",
+                    "Temperatura fora da faixa segura de 22°C a 28°C."));
+        }
+
+        double probHigidez = 1.0 / (1.0 + Math.exp(-logit));
+        int escore = (int) Math.round(probHigidez * 100.0);
+        ClassificacaoRisco risco = escore >= 80 ? ClassificacaoRisco.BAIXO : ClassificacaoRisco.MODERADO;
+
+        String soap = "SOAP INVERTEBRADOS: Terrário a " + tempVal + "°C. Ecdise e hidratação estáveis.";
+        return new ResultadoInferenciaMl(probHigidez * 100.0, escore, risco, fatoresXai, riscos, soap, "Modelo Invertebrate-Wellness-v1.0", MODEL_VERSION_INVERTEBRATE);
     }
 }

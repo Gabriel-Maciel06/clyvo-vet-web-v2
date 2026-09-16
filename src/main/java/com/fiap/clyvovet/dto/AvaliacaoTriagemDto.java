@@ -11,13 +11,13 @@ public class AvaliacaoTriagemDto {
     private Long triagemId;
 
     @NotNull(message = "O peso aferido é obrigatório")
-    @DecimalMin(value = "0.1", message = "O peso deve ser maior que zero")
+    @DecimalMin(value = "0.001", message = "O peso deve ser maior que zero")
     private BigDecimal pesoAferido;
 
     @NotNull(message = "A temperatura é obrigatória")
     private BigDecimal temperatura;
 
-    @NotNull(message = "A frequência cardíaca é obrigatória")
+    // Opcional para animais ectotérmicos (peixes e répteis com carapaça onde estetoscópio é inaplicável)
     private Integer frequenciaCardiaca;
 
     @NotBlank(message = "O parecer veterinário é obrigatório")
