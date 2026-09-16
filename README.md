@@ -233,10 +233,45 @@ graph TD
 
 ---
 
+### 🏬 Modelagem Relacional do Two-Sided Marketplace (14 Entidades em 3FN)
+
+O ecossistema modela formalmente a intermediação entre tutores e clínicas credenciadas, superando prontuários isolados com transações in-app, split contábil e custódia (escrow):
+
+```mermaid
+erDiagram
+    T_CLINICA ||--o{ T_SERVICO : "cadastra catalogo"
+    T_CLINICA ||--o{ T_AGENDAMENTO : "recebe reserva"
+    T_CLINICA ||--o{ T_COMISSAO : "recebe repasse liquido"
+    
+    T_TUTOR ||--o{ T_PET : "possui"
+    T_TUTOR ||--o{ T_AGENDAMENTO : "solicita"
+    T_PET ||--o{ T_AGENDAMENTO : "paciente"
+    T_SERVICO ||--o{ T_AGENDAMENTO : "tipo_procedimento"
+    
+    T_AGENDAMENTO ||--|| T_TRANSACAO : "gera cobranca in-app"
+    T_TRANSACAO ||--|| T_COMISSAO : "split 15% & custodia escrow"
+    
+    T_USUARIO ||--o| T_TUTOR : "autenticacao"
+    T_PET ||--o{ T_CHECKIN_DIARIO : "monitoramento"
+    T_PET ||--o{ T_BADGE_CONQUISTA : "gamificacao"
+    T_PET ||--o{ T_CONSULTA_TRIAGEM : "exame_fisico"
+    T_PET ||--o{ T_HISTORICO_CLINICO : "prontuario"
+    T_TUTOR ||--o| T_RECOMPENSA_TUTOR : "fidelidade"
+    T_RACA ||--o{ T_PET : "propensao_genetica"
+```
+
+1. **`T_CLINICA`**: Credenciamento B2B com CNPJ, Razão Social, CRMV do responsável, chave PIX de liquidação e taxa de comissão.
+2. **`T_SERVICO`**: Catálogo de procedimentos profiláticos e preventivos de cada clínica com preço base, duração e elegibilidade a descontos.
+3. **`T_AGENDAMENTO`**: Contrato de intermediação com status (`SOLICITADO`, `CONFIRMADO`, `REALIZADO`, `CANCELADO`).
+4. **`T_TRANSACAO`**: Registro financeiro in-app retido pelo gateway (PIX/Cartão, abatimento de pontos, voucher e QR Code).
+5. **`T_COMISSAO`**: Livro-razão contábil do split retendo os **15% de take-rate** na fonte em custódia (`RETIDO_ESCROW`) e liberando o repasse líquido após o atendimento (`LIBERADO_APOS_ATENDIMENTO` $\rightarrow$ `PAGO_LIQUIDADO`).
+
+---
+
 ## 🧪 Testes Automatizados
 
 ```bash
-mvn test   # 31 testes
+mvn test   # 77 testes automatizados (100% aprovados)
 ```
 
 | Classe | O que cobre |
@@ -248,13 +283,17 @@ mvn test   # 31 testes
 | `CustomUserDetailsServiceTest` | Conta local carrega normalmente; conta só-Google (sem senha) não quebra o login local — cai como "usuário não encontrado" em vez de estourar exceção. |
 | `PerfilServiceTest` | Conclusão de cadastro troca o CPF provisório pelo real; não permite repetir a troca. |
 | `CheckinServiceTest` | Pontuação, streak, alerta clínico, duplicidade e vínculo do pet com o tutor. |
+| `TriagemServiceTest` | Triagem clínica fisiológica comparada: endodérmicos e ectotérmicos (répteis e peixes sem penalidade mamífera; aves com eutermia cloacal). |
+| `PredictiveMlEngineTest` | Motor preditivo multivariado com modelos especializados: `CanineWellness`, `Ectothermic`, `Aquatic` e `Avian`. |
+| `PetBiometriaValidacaoTest` | Validação biométrica estrita de limites de peso e idade por raça e formatação em gramas para pequenos animais. |
+| `MarketplaceModelagemTest` | Ciclo completo do marketplace: catálogo, agendamento, split de 15% em escrow, validação de voucher e liquidação PIX. |
 
 ---
 
 ## 💻 Tecnologias
 - **Java 21** · **Spring Boot 3.3.4** (Web MVC, Validation, Data JPA)
 - **Spring Security 6** (form login, **OAuth2 Client** para Google, BCrypt, CSRF, roles)
-- **Flyway** (4 migrações versionadas) · **H2** em memória, modo Oracle (driver `ojdbc11` incluído para troca de banco)
+- **Flyway** (10 migrações versionadas) · **H2** em memória, modo Oracle (driver `ojdbc11` incluído para troca de banco)
 - **Spring Mail** (opcional — recuperação de senha)
 - **Thymeleaf** + `thymeleaf-extras-springsecurity6` · **Bootstrap 5.3** + Bootstrap Icons
 - **JUnit 5** + `spring-security-test` (MockMvc)

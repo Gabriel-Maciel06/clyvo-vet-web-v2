@@ -40,8 +40,8 @@
 ### P9: Por que H2 e não Oracle? Dá para trocar?
 - **Resposta:** "Para a disciplina o foco é frontend, Flyway e Security, então usamos H2 em memória em modo Oracle para o avaliador rodar com um único comando. O driver `ojdbc11` já está no `pom.xml`: basta trocar `spring.datasource.*` e o dialeto no `application.properties`; as migrações do Flyway usam SQL compatível."
 
-### P10: Como a IA foi usada no processo?
-- **Resposta (adapte à sua realidade):** "Usei IA como par de programação: para revisar o código em busca de falhas (foi assim que identificamos a falta de validação de propriedade do pet e a regra de níveis duplicada), gerar o esqueleto dos testes com MockMvc e revisar o README. Toda sugestão foi lida, entendida e testada antes de entrar no projeto, e as decisões de arquitetura (Flyway como fonte única do esquema, regra de fidelidade na entidade, validação no service) são nossas."
+### P11: Como o banco modela um Two-Sided Marketplace em vez de um prontuário isolado?
+- **Resposta:** "O modelo relacional conta com **14 entidades normalizadas em 3FN**. Para sustentar o marketplace de intermediação entre tutores e clínicas credenciadas, implementamos o ciclo completo de transação: `T_CLINICA` (dados cadastrais, CNPJ, CRMV e chave PIX para repasse), `T_SERVICO` (catálogo de procedimentos preventivos de cada clínica com preço base e elegibilidade a descontos), `T_AGENDAMENTO` (contrato de atendimento vinculando Pet, Tutor, Clínica e Serviço), `T_TRANSACAO` (captura financeira in-app via gateway com voucher digital e QR Code) e `T_COMISSAO` (livro-razão do split com custódia/escrow retendo os 15% de take-rate na fonte e programando o repasse líquido após a validação do voucher)."
 
 ---
 
@@ -52,7 +52,8 @@
 | `service/CustomUserDetailsService.java` | Converte `T_USUARIO` em `UserDetails`; a `SimpleGrantedAuthority` recebe `ROLE_TUTOR`/`ROLE_ADMIN`. |
 | `service/CheckinService.registrarCheckin` | Passo a passo do Fluxo 1 (propriedade, duplicidade, alerta, pontos, streak, badges, timeline). |
 | `model/RecompensaTutor.java` | Regra de níveis/desconto e do streak. |
-| `service/TriagemService` + `PredictiveMlEngine` | Arquitetura Dual-Engine: Guardrails Vitais (AAHA/WSAVA) + Inferência de Machine Learning (10k amostras, ROC-AUC 0.9485, P(Higidez), XAI e fail-safe). |
-| `db/migration/V1..V8` | Ordem das migrações, split de pagamento, raças gerais, colunas de ML e por que `ddl-auto=none`. |
+| `service/TriagemService` + `PredictiveMlEngine` | Arquitetura Dual-Engine: Guardrails Vitais Fisiológicos (AAHA/WSAVA) + Inferência de Machine Learning (Canine, Ectothermic, Aquatic, Avian com XAI e fail-safe). |
+| `service/MarketplaceIntermediacaoService.java` | Orquestração do Marketplace: contratação de serviço, split contábil de 15%, retenção em escrow e liberação após validação do voucher. |
+| `db/migration/V1..V10` | Ordem das migrações, split de pagamento, biometria por espécie, ML e modelagem 3FN do marketplace (`V10`). |
 | `templates/fragments/layout.html` | `sec:authorize` na sidebar; fragmento `appShell` reutilizado por todas as telas. |
-| `src/test/...` | O que cada teste prova. |
+| `src/test/...` | O que cada teste prova (77 testes automatizados cobrindo segurança, fluxos clínicos, biometria e marketplace). |
