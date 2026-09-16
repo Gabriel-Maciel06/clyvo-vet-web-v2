@@ -34,11 +34,30 @@ import java.util.List;
 @Service
 public class PredictiveMlEngine {
 
-    public static final String MODEL_VERSION = "CanineWellness-ML-v1.0";
-    public static final String MODEL_VERSION_ECTOTHERMIC = "Ectothermic-Wellness-v1.0";
-    public static final String MODEL_VERSION_AQUATIC = "Aquatic-Wellness-v1.0";
-    public static final String MODEL_VERSION_AVIAN = "Avian-Wellness-v1.0";
-    public static final String MODEL_VERSION_INVERTEBRATE = "Invertebrate-Wellness-v1.0";
+    public enum TipoMotorDecisao {
+        MACHINE_LEARNING_PREDITIVO("Machine Learning Preditivo Supervisionado"),
+        SISTEMA_ESPECIALISTA_FISIOLOGIA_COMPARADA("Sistema Especialista em Fisiologia Comparada");
+
+        private final String descricao;
+        TipoMotorDecisao(String descricao) { this.descricao = descricao; }
+        public String getDescricao() { return descricao; }
+    }
+
+    public static final String MODEL_VERSION_CANINE = "CanineWellness-ML-v1.0";
+    public static final String MODEL_VERSION = MODEL_VERSION_CANINE;
+
+    // Motores Especialistas Baseados em Fisiologia Comparada (Regras Determinísticas Veterinárias)
+    public static final String ENGINE_VERSION_ECTOTHERMIC = "Ectothermic-Physiology-Rules-v1.0";
+    public static final String ENGINE_VERSION_AQUATIC = "Aquatic-Physiology-Rules-v1.0";
+    public static final String ENGINE_VERSION_AVIAN = "Avian-Physiology-Rules-v1.0";
+    public static final String ENGINE_VERSION_INVERTEBRATE = "Invertebrate-Physiology-Rules-v1.0";
+    public static final String ENGINE_VERSION_GENERIC = "Mammalian-Physiology-Rules-v1.0";
+
+    // Constantes mantidas como aliases diretos para evitar quebras em integrações legadas
+    public static final String MODEL_VERSION_ECTOTHERMIC = ENGINE_VERSION_ECTOTHERMIC;
+    public static final String MODEL_VERSION_AQUATIC = ENGINE_VERSION_AQUATIC;
+    public static final String MODEL_VERSION_AVIAN = ENGINE_VERSION_AVIAN;
+    public static final String MODEL_VERSION_INVERTEBRATE = ENGINE_VERSION_INVERTEBRATE;
 
     // Constantes e Coeficientes de Regressão Logística e Normalização (model_metadata.json)
     private static final double INTERCEPT = 0.2814964638063569;
@@ -106,8 +125,26 @@ public class PredictiveMlEngine {
             List<RiscoFenotipico> riscosEspecificos,
             String sinteseSoap,
             String resumoFormatadoXai,
-            String versaoModelo
-    ) {}
+            String versaoModelo,
+            TipoMotorDecisao tipoMotor
+    ) {
+        public ResultadoInferenciaMl(
+                double probabilidadeHigidez,
+                int escoreLongevidade,
+                ClassificacaoRisco classificacaoRisco,
+                List<FatorXai> fatoresXai,
+                List<RiscoFenotipico> riscosEspecificos,
+                String sinteseSoap,
+                String resumoFormatadoXai,
+                String versaoModelo
+        ) {
+            this(probabilidadeHigidez, escoreLongevidade, classificacaoRisco, fatoresXai, riscosEspecificos, sinteseSoap,
+                    resumoFormatadoXai, versaoModelo,
+                    MODEL_VERSION_CANINE.equals(versaoModelo)
+                            ? TipoMotorDecisao.MACHINE_LEARNING_PREDITIVO
+                            : TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGIA_COMPARADA);
+        }
+    }
 
     /**
      * Executa a inferência multivariada completa integrando os dados biométricos do pet,
@@ -376,7 +413,8 @@ public class PredictiveMlEngine {
                 riscos,
                 soap,
                 resumoXai.toString(),
-                MODEL_VERSION
+                MODEL_VERSION_CANINE,
+                TipoMotorDecisao.MACHINE_LEARNING_PREDITIVO
         );
     }
 
@@ -488,7 +526,7 @@ public class PredictiveMlEngine {
                 : (escoreLongevidade >= 50 ? ClassificacaoRisco.MODERADO : ClassificacaoRisco.ALTO);
 
         StringBuilder resumoXai = new StringBuilder();
-        resumoXai.append(String.format("P(Higidez)=%.1f%% | Modelo: %s\nFatores XAI: ", probHigidez * 100.0, MODEL_VERSION_ECTOTHERMIC));
+        resumoXai.append(String.format("Escore Fisiológico=%d/100 | Motor: %s\nFatores Fisiológicos (POTZ/Doppler): ", escoreLongevidade, ENGINE_VERSION_ECTOTHERMIC));
         for (int i = 0; i < fatoresXai.size(); i++) {
             FatorXai f = fatoresXai.get(i);
             resumoXai.append("[").append(f.impacto()).append(" ").append(f.fator()).append("]");
@@ -496,15 +534,15 @@ public class PredictiveMlEngine {
         }
 
         String soap = String.format(
-                "SOAP CLÍNICO ECTOTÉRMICO (Clyvo Vet Ectothermic ML)\n" +
+                "SOAP CLÍNICO ECTOTÉRMICO (Clyvo Vet Ectothermic Expert System - Fisiologia Comparada)\n" +
                 "[S - Subjetivo]: Paciente ectotérmico %s (%s, %d anos - expectativa: %d anos). Queixa: \"%s\".\n" +
                 "[O - Objetivo]: Peso aferido: %.2f kg. Temp Recinto (POTZ): %.1f°C. FC Doppler: %s.\n" +
-                "[A - Avaliação Ectotérmica]: P(Higidez) = %.1f%%. Escore Longevidade = %d/100 (Risco %s). XAI: %s.\n" +
+                "[A - Avaliação Ectotérmica]: Escore Fisiológico = %d/100 (Risco %s). XAI: %s.\n" +
                 "[P - Plano Profilático]: Manter zona térmica ótima (POTZ 24-32°C com basking spot a 34°C), iluminação UVB ativa e reposição de cálcio com D3.",
                 pet.getNome(), (pet.getRaca() != null ? pet.getRaca().getNome() : "Réptil"), idadeAnos, expectativa,
                 (queixa != null ? queixa : "Rotina preventiva"),
                 pesoKg, tempVal, (freqCardiaca != null ? freqCardiaca + " bpm" : "Não aplicável / Doppler"),
-                probHigidez * 100.0, escoreLongevidade, risco.name(),
+                escoreLongevidade, risco.name(),
                 fatoresXai.isEmpty() ? "Parâmetros de recinto estáveis" : fatoresXai.get(0).fator() + " (" + fatoresXai.get(0).impacto() + ")"
         );
 
@@ -516,7 +554,8 @@ public class PredictiveMlEngine {
                 riscos,
                 soap,
                 resumoXai.toString(),
-                MODEL_VERSION_ECTOTHERMIC
+                ENGINE_VERSION_ECTOTHERMIC,
+                TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGIA_COMPARADA
         );
     }
 
@@ -622,7 +661,7 @@ public class PredictiveMlEngine {
                 : (escoreLongevidade >= 50 ? ClassificacaoRisco.MODERADO : ClassificacaoRisco.ALTO);
 
         StringBuilder resumoXai = new StringBuilder();
-        resumoXai.append(String.format("P(Higidez)=%.1f%% | Modelo: %s\nFatores XAI: ", probHigidez * 100.0, MODEL_VERSION_AQUATIC));
+        resumoXai.append(String.format("Escore de Biótopo=%d/100 | Motor: %s\nFatores Aquáticos: ", escoreLongevidade, ENGINE_VERSION_AQUATIC));
         for (int i = 0; i < fatoresXai.size(); i++) {
             FatorXai f = fatoresXai.get(i);
             resumoXai.append("[").append(f.impacto()).append(" ").append(f.fator()).append("]");
@@ -630,15 +669,15 @@ public class PredictiveMlEngine {
         }
 
         String soap = String.format(
-                "SOAP CLÍNICO AQUÁTICO (Clyvo Vet Aquatic ML)\n" +
+                "SOAP CLÍNICO AQUÁTICO (Clyvo Vet Aquatic Expert System - Fisiologia Comparada)\n" +
                 "[S - Subjetivo]: Paciente pecilotérmico aquático %s (%s). Queixa: \"%s\".\n" +
                 "[O - Objetivo]: Peso aproximado: %.3f kg. Temp da Água: %.1f°C. Freq. Opercular: %s.\n" +
-                "[A - Avaliação Aquática]: P(Higidez) = %.1f%%. Escore Longevidade = %d/100 (Risco %s). XAI: %s.\n" +
+                "[A - Avaliação Aquática]: Escore de Biótopo = %d/100 (Risco %s). XAI: %s.\n" +
                 "[P - Plano Profilático]: Manter trocas parciais de água (TPA 20%% semanais com condicionador de cloro), teste de pH/Amônia e aeração biológica.",
                 pet.getNome(), (pet.getRaca() != null ? pet.getRaca().getNome() : "Peixe"),
                 (queixa != null ? queixa : "Rotina de biótopo"),
                 pesoKg, tempVal, (freqOpercular != null ? freqOpercular + " mov/min" : "Estável / Não aferido"),
-                probHigidez * 100.0, escoreLongevidade, risco.name(),
+                escoreLongevidade, risco.name(),
                 fatoresXai.isEmpty() ? "Parâmetros do biótopo aquático regulares" : fatoresXai.get(0).fator() + " (" + fatoresXai.get(0).impacto() + ")"
         );
 
@@ -650,7 +689,8 @@ public class PredictiveMlEngine {
                 riscos,
                 soap,
                 resumoXai.toString(),
-                MODEL_VERSION_AQUATIC
+                ENGINE_VERSION_AQUATIC,
+                TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGIA_COMPARADA
         );
     }
 
@@ -734,7 +774,7 @@ public class PredictiveMlEngine {
                 : (escoreLongevidade >= 50 ? ClassificacaoRisco.MODERADO : ClassificacaoRisco.ALTO);
 
         StringBuilder resumoXai = new StringBuilder();
-        resumoXai.append(String.format("P(Higidez)=%.1f%% | Modelo: %s\nFatores XAI: ", probHigidez * 100.0, MODEL_VERSION_AVIAN));
+        resumoXai.append(String.format("Escore Fisiológico Aviário=%d/100 | Motor: %s\nFatores Clínicos Aviários: ", escoreLongevidade, ENGINE_VERSION_AVIAN));
         for (int i = 0; i < fatoresXai.size(); i++) {
             FatorXai f = fatoresXai.get(i);
             resumoXai.append("[").append(f.impacto()).append(" ").append(f.fator()).append("]");
@@ -742,15 +782,15 @@ public class PredictiveMlEngine {
         }
 
         String soap = String.format(
-                "SOAP CLÍNICO AVIÁRIO (Clyvo Vet Avian ML)\n" +
+                "SOAP CLÍNICO AVIÁRIO (Clyvo Vet Avian Expert System - Fisiologia Comparada)\n" +
                 "[S - Subjetivo]: Paciente aviário %s (%s, %d anos - expectativa: %d anos). Queixa: \"%s\".\n" +
                 "[O - Objetivo]: Peso aferido: %.3f kg (%.0f g). Temp Cloacal: %.1f°C. FC: %d bpm.\n" +
-                "[A - Avaliação Aviária]: P(Higidez) = %.1f%%. Escore Longevidade = %d/100 (Risco %s). XAI: %s.\n" +
+                "[A - Avaliação Aviária]: Escore Fisiológico = %d/100 (Risco %s). XAI: %s.\n" +
                 "[P - Plano Profilático]: Dieta com ração extrusada especializada, suplementação vitamínica em trocas de pena e enriquecimento com poleiros de diâmetros variados.",
                 pet.getNome(), (pet.getRaca() != null ? pet.getRaca().getNome() : "Ave"), idadeAnos, expectativa,
                 (queixa != null ? queixa : "Rotina profilática"),
                 pesoKg, pesoKg * 1000.0, tempVal, fc,
-                probHigidez * 100.0, escoreLongevidade, risco.name(),
+                escoreLongevidade, risco.name(),
                 fatoresXai.isEmpty() ? "Eutermia aviária confirmada" : fatoresXai.get(0).fator() + " (" + fatoresXai.get(0).impacto() + ")"
         );
 
@@ -762,7 +802,8 @@ public class PredictiveMlEngine {
                 riscos,
                 soap,
                 resumoXai.toString(),
-                MODEL_VERSION_AVIAN
+                ENGINE_VERSION_AVIAN,
+                TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGIA_COMPARADA
         );
     }
 
@@ -795,7 +836,7 @@ public class PredictiveMlEngine {
         int escore = (int) Math.round(probHigidez * 100.0);
         ClassificacaoRisco risco = escore >= 80 ? ClassificacaoRisco.BAIXO : ClassificacaoRisco.MODERADO;
 
-        String soap = "SOAP INVERTEBRADOS: Terrário a " + tempVal + "°C. Ecdise e hidratação estáveis.";
-        return new ResultadoInferenciaMl(probHigidez * 100.0, escore, risco, fatoresXai, riscos, soap, "Modelo Invertebrate-Wellness-v1.0", MODEL_VERSION_INVERTEBRATE);
+        String soap = "SOAP INVERTEBRADOS (Clyvo Vet Invertebrate Expert System - Fisiologia Comparada): Terrário a " + tempVal + "°C. Ecdise e hidratação estáveis.";
+        return new ResultadoInferenciaMl(probHigidez * 100.0, escore, risco, fatoresXai, riscos, soap, "Regras Invertebrate-Physiology-Rules-v1.0", ENGINE_VERSION_INVERTEBRATE, TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGIA_COMPARADA);
     }
 }

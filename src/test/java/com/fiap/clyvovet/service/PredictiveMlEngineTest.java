@@ -51,6 +51,8 @@ class PredictiveMlEngineTest {
         assertTrue(resultado.escoreLongevidade() >= 80, "Escore de longevidade deve ser >= 80");
         assertEquals(ClassificacaoRisco.BAIXO, resultado.classificacaoRisco());
         assertEquals("CanineWellness-ML-v1.0", resultado.versaoModelo());
+        assertEquals(PredictiveMlEngine.TipoMotorDecisao.MACHINE_LEARNING_PREDITIVO, resultado.tipoMotor(),
+                "Para caninos, o motor deve ser Machine Learning Preditivo Supervisionado");
 
         // Validação da Explicabilidade (XAI)
         assertFalse(resultado.fatoresXai().isEmpty(), "Deve conter fatores de explicabilidade algorítmica");
@@ -162,7 +164,9 @@ class PredictiveMlEngineTest {
         );
 
         assertNotNull(resultado);
-        assertEquals("Ectothermic-Wellness-v1.0", resultado.versaoModelo());
+        assertEquals("Ectothermic-Physiology-Rules-v1.0", resultado.versaoModelo());
+        assertEquals(PredictiveMlEngine.TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGIA_COMPARADA, resultado.tipoMotor(),
+                "Para répteis, o motor deve ser Sistema Especialista em Fisiologia Comparada");
         assertEquals(ClassificacaoRisco.BAIXO, resultado.classificacaoRisco());
         assertTrue(resultado.escoreLongevidade() >= 80);
         assertTrue(resultado.fatoresXai().stream().anyMatch(f -> f.fator().contains("POTZ")),
@@ -189,7 +193,9 @@ class PredictiveMlEngineTest {
         );
 
         assertNotNull(resultado);
-        assertEquals("Aquatic-Wellness-v1.0", resultado.versaoModelo());
+        assertEquals("Aquatic-Physiology-Rules-v1.0", resultado.versaoModelo());
+        assertEquals(PredictiveMlEngine.TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGIA_COMPARADA, resultado.tipoMotor(),
+                "Para peixes, o motor deve ser Sistema Especialista em Fisiologia Comparada");
         assertEquals(ClassificacaoRisco.BAIXO, resultado.classificacaoRisco());
         assertTrue(resultado.fatoresXai().stream().anyMatch(f -> f.fator().contains("Tropical")),
                 "XAI deve conter adequação ao biótopo tropical");
@@ -213,7 +219,9 @@ class PredictiveMlEngineTest {
         );
 
         assertNotNull(resultado);
-        assertEquals("Avian-Wellness-v1.0", resultado.versaoModelo());
+        assertEquals("Avian-Physiology-Rules-v1.0", resultado.versaoModelo());
+        assertEquals(PredictiveMlEngine.TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGIA_COMPARADA, resultado.tipoMotor(),
+                "Para aves, o motor deve ser Sistema Especialista em Fisiologia Comparada");
         assertEquals(ClassificacaoRisco.BAIXO, resultado.classificacaoRisco());
         assertTrue(resultado.fatoresXai().stream().anyMatch(f -> f.fator().contains("Eutermia Aviária")),
                 "XAI deve validar eutermia aviária cloacal");

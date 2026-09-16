@@ -32,8 +32,8 @@ O **Clyvo Vet** é uma plataforma que integra **Medicina Veterinária Preventiva
 - **Persistência & Migrações:** Spring Data JPA · Hibernate 6 · Flyway Migration (10 scripts versionados `V1` a `V10`)
 - **Bancos de Dados:** H2 Database em memória configurado em modo de compatibilidade Oracle (`MODE=Oracle`) para desenvolvimento/testes rápidos; driver oficial Oracle JDBC (`ojdbc11`) pré-configurado no `pom.xml` para ambientes de produção.
 - **Frontend MVC:** Thymeleaf com layouts modulares e `thymeleaf-extras-springsecurity6` · Bootstrap 5.3 · Bootstrap Icons · Select2 4.1.
-- **Inteligência Preditiva:** Motor de Machine Learning Multivariado calibrado (`CanineWellness-ML-v1.0`, `Ectothermic-Wellness-v1.0`, `Aquatic-Wellness-v1.0`, `Avian-Wellness-v1.0`) + Guardrails Clínicos Vitais (AAHA/WSAVA) + Explicabilidade Algorítmica (XAI) e Síntese SOAP.
-- **Testes Automatizados:** JUnit 5 · MockMvc · AssertJ · Spring Security Test.
+- **Inteligência Clínica & Decisão Híbrida:** Sistema Híbrido em Camadas: Machine Learning Preditivo Supervisionado para Caninos (`CanineWellness-ML-v1.0`, 21 features, ROC-AUC 0.9485) + Sistema Especialista de Fisiologia Comparada para Não-Mamíferos (`Ectothermic-Physiology-Rules-v1.0`, `Aquatic-Physiology-Rules-v1.0`, `Avian-Physiology-Rules-v1.0`) + Guardrails Clínicos Vitais (AAHA/WSAVA) + Explicabilidade Algorítmica (XAI) e Síntese SOAP.
+- **Testes Automatizados:** JUnit 5 · MockMvc · AssertJ · Spring Security Test (79 testes automatizados aprovados).
 
 ---
 
@@ -138,55 +138,58 @@ A margem **não é canibalizada** porque o Clyvo Vet opera sob 4 mecanismos de s
 
 ---
 
-## 5. Resolução da Crítica 4: Resolução de AI-Washing (Arquitetura Dual-Engine: ML 10k + Guardrails)
+## 5. Arquitetura de Decisão Clínica: Sistema Híbrido Determinístico e Preditivo
 
-### A Crítica Apontada:
-> *"O texto vende 'Inteligência Artificial' e 'Medicina Preditiva', mas o detalhamento revela regras estáticas determinísticas (subtrai 10 se idoso). Isso é rule-based engine, não IA/ML."*
-
-### A Resolução Arquitetural:
-O Clyvo Vet implementa uma **Arquitetura de Decisão Híbrida (Dual-Engine Architecture)** que separa estritamente segurança fisiológica determinística de inferência probabilística de aprendizado de máquina.
+Para assegurar acurácia médica sem incorrer em decisões opacas de caixas-pretas estatísticas e eliminar qualquer indício de AI-washing, o motor clínico adota uma **arquitetura em camadas bem delimitadas**:
 
 ```mermaid
 graph TD
-    A[Exame Físico & Triagem do Paciente] --> B{Processamento Dual-Engine}
+    A[Exame Físico & Triagem do Paciente] --> B{Camada 1: Guardrails Determinísticos AAHA/WSAVA}
     
-    B -->|Camada 1: Guardrails AAHA/WSAVA| C[Segurança Vital Fisiológica: Limiares Críticos]
-    B -->|Camada 2: PredictiveMlEngine| D[Motor ML 10k Amostras: P-Higidez Multivariada]
+    B -->|Risco Vital Iminente: Choque, Hipotermia Grave, Colapso| C[Fail-Safe Override: Risco ALTO & Bloqueio Imediato]
+    B -->|Parâmetros Estáveis / Compensados| D{Camada 2: Avaliação Especializada por Espécie}
     
-    C --> E[Fusão de Decisão & Fail-Safe Override]
-    D --> E
+    D -->|Caninos: Dados Amostrais Abundantes| E[Modelo Preditivo ML Calibrado: CanineWellness-ML-v1.0<br>Regressão Multivariada Z-Score 21 features<br>ROC-AUC 0.9485 | Recall 94.92%]
+    D -->|Não-Mamíferos & Silvestres: Medicina Zoológica| F[Regras Fisiológicas Comparadas: Sistema Especialista<br>• Répteis: POTZ 22-34°C e Frequência Doppler<br>• Peixes: Biótopo Aquático e Freq. Opercular<br>• Aves: Eutermia Cloacal 39.5-42.5°C e Taquicardia Basal]
     
-    E --> F[Camada 3: Explicabilidade Algorítmica XAI & Síntese SOAP]
-    F --> G[Prontuário Eletrônico & Linha do Tempo]
+    C --> G[Camada 3: Explicabilidade XAI & Estruturação SOAP]
+    E --> G
+    F --> G
+    
+    G --> H[Prontuário Eletrônico & Linha do Tempo Médica]
 ```
 
-### Os Componentes do Motor:
-1. **Camada 1 — Guardrails Médicos Determinísticos (Diretrizes AAHA / WSAVA):**
-   - Trata de segurança clínica inegociável. Parâmetros críticos vitais atuam como *fail-safe override* (forçam risco ALTO e corte de pontuação para evitar que um modelo probabilístico libere um paciente em choque térmico ou sepse aguda).
-2. **Camada 2 — Motor de Machine Learning Multivariado (`PredictiveMlEngine`):**
-   - Treinado sobre o **Canine Wellness Classification Dataset** (10.000 prontuários sintéticos calibrados, 21 features do Kaggle: `aaronisomaisom3/canine-wellness-dataset-synthetic-10k-samples`).
-   - **Métricas Comprovadas:** **ROC-AUC: 0.9485**, **Acurácia: 87.24%**, **Recall: 94.92%**, **F1-Score: 0.9169**.
-   - Calcula a **Probabilidade Multivariada de Higidez $P(\text{Higidez} \mid \vec{x})$** via normalização Z-score e função logística sigmóide ponderada, correlacionando idade, porte corporal, sono, minutos de atividade física, frequência veterinária e adesão profilática.
-3. **Camada 3 — Explicabilidade Algorítmica (XAI / SHAP-like) & Síntese SOAP:**
-   - Emite vetores de atribuição de impacto (ex.: `[+14 pts Fase Adulta Jovem]`, `[-15 pts Predisposição Fenotípica]`).
-   - Consolida o prontuário no padrão médico internacional **SOAP** (Subjetivo, Objetivo, Avaliação, Plano).
+### Detalhamento das 3 Camadas de Decisão:
+
+1. **Camada 1 — Guardrails Determinísticos de Emergência (Diretrizes AAHA / WSAVA):**
+   - Parâmetros vitais que indiquem risco iminente de choque térmico, bradicardia severa ou colapso respiratório disparam bloqueio imediato (*fail-safe override*), forçando a classificação para **ALTO RISCO** independentemente de pontuações comportamentais prévias. Nenhum algoritmo probabilístico tem permissão para ignorar uma emergência clínica iminente.
+
+2. **Camada 2 — Avaliação Especializada por Espécie:**
+   - **Caninos (Modelo Preditivo Calibrado de Machine Learning — `CanineWellness-ML-v1.0`):**
+     - Aplica normalização Z-score e regressão multivariada treinada sobre 21 variáveis clínicas (Canine Wellness Dataset com 10.000 prontuários sintéticos calibrados do Kaggle).
+     - **Métricas Comprovadas:** **ROC-AUC: 0.9485**, **Acurácia: 87.24%**, **Recall: 94.92%**, **F1-Score: 0.9169**.
+     - Calcula a probabilidade estatística de higidez $P(\text{Higidez} \mid \vec{x})$ e a estimativa de longevidade ponderada, correlacionando idade, porte corporal, sono, minutos de atividade física, frequência veterinária e adesão profilática.
+   - **Espécies Não-Mamíferas (Regras Fisiológicas Comparadas — Sistema Especialista):**
+     - Em vez de forçar réguas mamíferas inapropriadas ou simular modelos estatísticos sem base amostral suficiente, o sistema avalia o paciente segundo parâmetros veterinários dedicados de literatura zoológica:
+       - **Répteis (`Ectothermic-Physiology-Rules-v1.0`):** Avaliação da faixa de temperatura do terrário / POTZ (*Preferred Optimal Temperature Zone*, 22°C a 34°C) e frequência cardíaca exclusivamente por Doppler na fossa cervicobraquial (dispensando ausculta fonendoscópica em quelônios com carapaça óssea).
+       - **Peixes Ornamentais (`Aquatic-Physiology-Rules-v1.0`):** Avaliação da estabilidade térmica da água do biótopo e aferição da frequência opercular (movimentos branquiais/minuto). Sem ausculta torácica.
+       - **Aves (`Avian-Physiology-Rules-v1.0`):** Calibração para a faixa fisiológica aviária (eutermia cloacal entre 39,5°C e 42,5°C e taquicardia basal de 150 a 400 bpm).
+       - **Aracnídeos (`Invertebrate-Physiology-Rules-v1.0`):** Monitoramento microclimático de terrário e acompanhamento de ecdise.
+
+3. **Camada 3 — Explicabilidade (XAI) e Estruturação SOAP:**
+   - Toda avaliação decompõe o peso das variáveis clínicas em vetores de atribuição transparentes (`[+13 pts Eutermia Aviária Cloacal]`, `[-22 pts Recinto Hipotérmico]`) e sintetiza os achados no prontuário eletrônico seguindo o padrão internacional **SOAP** (Subjetivo, Objetivo, Avaliação, Plano).
 
 ---
 
-## 6. Resolução da Crítica 5: Fisiologia Veterinária Comparada Multi-Espécie (Ectotérmicos & Aves)
+## 6. Fisiologia Veterinária Comparada Multi-Espécie: Matriz de Paradigmas Clínicos
 
-### A Crítica Apontada:
-> *"O sistema suporta 9 espécies, incluindo répteis e peixes. No entanto, aplica triagem que penaliza por febre, hipotermia e frequência cardíaca. Répteis e peixes são ectotérmicos (pecilotérmicos); aplicar regras mamíferas expõe desconhecimento de fisiologia básica."*
+| Classe Taxonômica | Parâmetro Térmico Avaliado | Parâmetro Cardiorrespiratório | Motor de Decisão Ativo | Paradigma Computacional | Foco Profilático Principal |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Caninos / Felinos** | Temp. Corpórea Central (37.5°C a 39.2°C) | Ausculta Estetoscópio (60–160 bpm cão / 120–220 bpm gato) | `CanineWellness-ML-v1.0` | **Machine Learning Supervisionado (21 features, ROC-AUC 0.9485)** | Doença articular, condição corporal, profilaxia dentária |
+| **Répteis (Quelônios/Saurios/Ofídios)** | **Temperatura do Recinto / POTZ** (22°C a 34°C). Zero penalidade de hipotermia mamífera. | **Frequência Doppler** (15 a 80 bpm - opcional). Sem ausculta em carapaça óssea. | `Ectothermic-Physiology-Rules-v1.0` | **Sistema Especialista (Fisiologia Comparada & POTZ)** | Radiação UVB, suplementação de cálcio com D3 e prevenção de MBD |
+| **Peixes (Teleósteos Ornamentais)** | **Temperatura da Água do Biótopo** (18°C a 29°C conforme espécie tropical vs fria). | **Frequência Opercular** (20 a 120 mov/min das brânquias). Sem ausculta cardíaca. | `Aquatic-Physiology-Rules-v1.0` | **Sistema Especialista (Biótopo & Qualidade de Água)** | Amônia tóxica, nitrito, trocas parciais (TPA) e oxigênio dissolvido |
+| **Aves (Psitacídeos/Passeriformes)** | **Eutermia Cloacal Aviária** (normal entre **39.5°C e 42.5°C**). Alerta febre > 43°C. | **Taquicardia Fisiológica Aviária** (150 a 400 bpm). | `Avian-Physiology-Rules-v1.0` | **Sistema Especialista (Metabolismo Aviário Basal)** | Ração extrusada balanceada, integridade de sacos aéreos e prevenção de fumaças tóxicas (PTFE) |
 
-### A Resolução Fisiológica & Especialização de Modelos:
-A avaliação clínica em `TriagemService` e os modelos do `PredictiveMlEngine` foram inteiramente calibrados para **Medicina Veterinária Comparada**:
-
-| Classe Taxonômica | Parâmetro Térmico Avaliado | Parâmetro Cardiorrespiratório | Modelo ML Dedicado | Foco Profilático |
-| :--- | :--- | :--- | :--- | :--- |
-| **Caninos / Felinos** | Temperatura Corpórea Central (37.5°C a 39.2°C) | Ausculta Torácica Estetoscópio (60–160 bpm cão / 120–220 bpm gato) | `CanineWellness-ML-v1.0` | Doença articular, controle de peso, tártaro, nefropatia |
-| **Répteis (Quelônios/Saurios/Ofídios)** | **Temperatura do Recinto / POTZ** (*Preferred Optimal Temperature Zone*, 22°C a 34°C). Zero penalidade de hipotermia mamífera. | **Frequência Doppler / Ecocardiografia** (15 a 80 bpm - opcional). Ausculta por estetoscópio é fisicamente inviável em jabutis (carapaça óssea). | `Ectothermic-Wellness-v1.0` | Radiação UVB, suplementação de cálcio e prevenção de Osteodistrofia Fibrosa (MBD) |
-| **Peixes (Teleósteos Ornamentais)** | **Temperatura da Água do Biótopo** (18°C a 29°C conforme espécie, ex: Kinguio vs. Betta/tropical). | **Frequência Opercular** (20 a 120 mov/min das brânquias). Sem ausculta torácica. | `Aquatic-Wellness-v1.0` | Qualidade de água, parâmetros de amônia/nitrito e estabilidade térmica |
-| **Aves (Psitacídeos/Passeriformes)** | **Eutermia Cloacal Aviária** (normal entre **39.5°C e 42.5°C**). Alerta de febre somente se > 43.0°C; hipotermia se < 38.5°C. | **Taquicardia Fisiológica Aviária** (150 a 400 bpm). | `Avian-Wellness-v1.0` | Alta taxa metabólica basal, integridade de sacos aéreos e plumagem |
 
 ---
 

@@ -129,8 +129,12 @@ class TriagemServiceTest {
                 "Réptil saudável com recinto em 26°C deve ter risco BAIXO");
         assertTrue(resultado.escore() >= 80,
                 "Escore de réptil com manejo térmico correto deve ser alto (>= 80)");
-        assertEquals("Ectothermic-Wellness-v1.0", resultado.modeloVersao(),
-                "Deve utilizar o motor de ML especializado para ectotérmicos");
+        assertEquals("Ectothermic-Physiology-Rules-v1.0", resultado.modeloVersao(),
+                "Deve utilizar o motor de regras fisiológicas especializado para ectotérmicos");
+        assertEquals(PredictiveMlEngine.TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGIA_COMPARADA, resultado.tipoMotor(),
+                "Motor deve ser Sistema Especialista de Fisiologia Comparada");
+        assertTrue(resultado.insights().contains("Regras Fisiológicas Comparadas"),
+                "Insights devem declarar expressamente o uso de Regras Fisiológicas Comparadas");
     }
 
     @Test
@@ -156,7 +160,9 @@ class TriagemServiceTest {
         assertFalse(resultado.insights().contains("Hipotermia"), "Não deve penalizar peixe tropical com água a 26°C");
         assertEquals(ClassificacaoRisco.BAIXO, resultado.risco());
         assertTrue(resultado.escore() >= 80);
-        assertEquals("Aquatic-Wellness-v1.0", resultado.modeloVersao());
+        assertEquals("Aquatic-Physiology-Rules-v1.0", resultado.modeloVersao());
+        assertEquals(PredictiveMlEngine.TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGIA_COMPARADA, resultado.tipoMotor());
+        assertTrue(resultado.insights().contains("Regras Fisiológicas Comparadas"));
     }
 
     @Test
@@ -183,6 +189,8 @@ class TriagemServiceTest {
                 "Temperatura cloacal de 41.5°C é fisiológica para aves e não deve receber alerta de febre");
         assertEquals(ClassificacaoRisco.BAIXO, resultado.risco());
         assertTrue(resultado.escore() >= 80);
-        assertEquals("Avian-Wellness-v1.0", resultado.modeloVersao());
+        assertEquals("Avian-Physiology-Rules-v1.0", resultado.modeloVersao());
+        assertEquals(PredictiveMlEngine.TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGIA_COMPARADA, resultado.tipoMotor());
+        assertTrue(resultado.insights().contains("Regras Fisiológicas Comparadas"));
     }
 }

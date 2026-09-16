@@ -157,10 +157,18 @@ public class TriagemService {
             String insights,
             double probabilidadeHigidez,
             String modeloVersao,
-            String fatoresXai
+            String fatoresXai,
+            PredictiveMlEngine.TipoMotorDecisao tipoMotor
     ) {
         public ResultadoCalculoEscore(int escore, ClassificacaoRisco risco, String insights) {
-            this(escore, risco, insights, 75.0, PredictiveMlEngine.MODEL_VERSION, "");
+            this(escore, risco, insights, 75.0, PredictiveMlEngine.MODEL_VERSION, "", PredictiveMlEngine.TipoMotorDecisao.MACHINE_LEARNING_PREDITIVO);
+        }
+
+        public ResultadoCalculoEscore(int escore, ClassificacaoRisco risco, String insights, double probabilidadeHigidez, String modeloVersao, String fatoresXai) {
+            this(escore, risco, insights, probabilidadeHigidez, modeloVersao, fatoresXai,
+                    PredictiveMlEngine.MODEL_VERSION_CANINE.equals(modeloVersao)
+                            ? PredictiveMlEngine.TipoMotorDecisao.MACHINE_LEARNING_PREDITIVO
+                            : PredictiveMlEngine.TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGIA_COMPARADA);
         }
     }
 
@@ -241,10 +249,15 @@ public class TriagemService {
             }
         }
 
-        // 5. Montagem dos Insights Transparentes (Dual-Layer: ML + Guardrails + XAI)
+        // 5. Montagem dos Insights Transparentes (Dual-Layer: ML/Regras + Guardrails + XAI)
         StringBuilder insightsBuilder = new StringBuilder();
-        insightsBuilder.append(String.format("[ML Preditivo: P(Higidez)=%.1f%% | Escore=%d/100 (%s) | Mod=%s] ",
-                inferenciaMl.probabilidadeHigidez(), escoreFinal, riscoFinal.name(), inferenciaMl.versaoModelo()));
+        if (inferenciaMl.tipoMotor() == PredictiveMlEngine.TipoMotorDecisao.MACHINE_LEARNING_PREDITIVO) {
+            insightsBuilder.append(String.format("[ML Preditivo: P(Higidez)=%.1f%% | Escore=%d/100 (%s) | Mod=%s] ",
+                    inferenciaMl.probabilidadeHigidez(), escoreFinal, riscoFinal.name(), inferenciaMl.versaoModelo()));
+        } else {
+            insightsBuilder.append(String.format("[Regras Fisiológicas Comparadas: Escore=%d/100 (%s) | Motor=%s] ",
+                    escoreFinal, riscoFinal.name(), inferenciaMl.versaoModelo()));
+        }
 
         // Adiciona Alertas Vitais dos Guardrails se existirem
         for (String alerta : alertasGuardrails) {
@@ -276,7 +289,8 @@ public class TriagemService {
                 insightsTexto,
                 inferenciaMl.probabilidadeHigidez(),
                 inferenciaMl.versaoModelo(),
-                inferenciaMl.resumoFormatadoXai()
+                inferenciaMl.resumoFormatadoXai(),
+                inferenciaMl.tipoMotor()
         );
     }
 

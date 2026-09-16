@@ -67,18 +67,33 @@
                             <i class="bi bi-heart-pulse-fill text-danger me-2"></i>
                             Exame Físico & Avaliação Preditiva Dual-Engine
                         </h4>
-                        <p class="text-muted mb-3">Cruzamento de biometria, sinais vitais e micro-check-ins via <strong>Machine Learning Multivariado</strong> (Canine Wellness Dataset, 10k amostras, ROC-AUC 0.9485) integrado a <strong>Guardrails Clínicos Vitais</strong> (Diretrizes AAHA / WSAVA).</p>
+                        <p class="text-muted mb-3">Cruzamento de biometria, sinais vitais e micro-check-ins via <strong>Arquitetura Híbrida em Camadas</strong>: Machine Learning Preditivo Supervisionado para Caninos e Sistema Especialista de Fisiologia Comparada para Não-Mamíferos, integrados a <strong>Guardrails Clínicos Vitais</strong> (Diretrizes AAHA / WSAVA).</p>
 
                         <div class="alert alert-light border d-flex align-items-center gap-3 py-2 px-3 mb-3 small text-secondary" style="background: #f8fafc; border-left: 3px solid #0d9488 !important;">
                             <i class="bi bi-cpu text-teal fs-5"></i>
                             <div>
-                                <strong class="text-dark">Motor de Inferência Ativo:</strong>
-                                <code th:if="${triagem.pet.raca.especie == 'CANINA'}">CanineWellness-ML-v1.0</code>
-                                <code th:if="${triagem.pet.raca.especie == 'REPTIL'}">Ectothermic-Wellness-v1.0 (Termorregulação Exógena / POTZ)</code>
-                                <code th:if="${triagem.pet.raca.especie == 'PEIXE'}">Aquatic-Wellness-v1.0 (Biótopo & Qualidade de Água)</code>
-                                <code th:if="${triagem.pet.raca.especie == 'AVE'}">Avian-Wellness-v1.0 (Metabolismo Aviário Basal)</code>
-                                <code th:if="${triagem.pet.raca.especie != 'CANINA' and triagem.pet.raca.especie != 'REPTIL' and triagem.pet.raca.especie != 'PEIXE' and triagem.pet.raca.especie != 'AVE'}">Mammalian-Wellness-v1.0</code>
-                                • Cálculo sigmóide de P(Higidez | X) e explicabilidade (XAI).
+                                <strong class="text-dark">Motor de Decisão Clínica Ativo:</strong>
+                                <span th:if="${triagem.pet.raca.especie == 'CANINA'}">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle me-1">Machine Learning Supervisionado</span>
+                                    <code>CanineWellness-ML-v1.0 (21 features, ROC-AUC 0.9485)</code>
+                                </span>
+                                <span th:if="${triagem.pet.raca.especie == 'REPTIL'}">
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1">Sistema Especialista de Fisiologia Comparada</span>
+                                    <code>Ectothermic-Physiology-Rules-v1.0 (POTZ & Doppler)</code>
+                                </span>
+                                <span th:if="${triagem.pet.raca.especie == 'PEIXE'}">
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle me-1">Sistema Especialista de Fisiologia Comparada</span>
+                                    <code>Aquatic-Physiology-Rules-v1.0 (Biótopo & Respiração Opercular)</code>
+                                </span>
+                                <span th:if="${triagem.pet.raca.especie == 'AVE'}">
+                                    <span class="badge bg-warning-subtle text-dark border border-warning-subtle me-1">Sistema Especialista de Fisiologia Comparada</span>
+                                    <code>Avian-Physiology-Rules-v1.0 (Metabolismo Aviário & Eutermia Cloacal)</code>
+                                </span>
+                                <span th:if="${triagem.pet.raca.especie != 'CANINA' and triagem.pet.raca.especie != 'REPTIL' and triagem.pet.raca.especie != 'PEIXE' and triagem.pet.raca.especie != 'AVE'}">
+                                    <span class="badge bg-secondary-subtle text-secondary border me-1">Sistema Especialista</span>
+                                    <code>Mammalian-Physiology-Rules-v1.0</code>
+                                </span>
+                                • Síntese estruturada SOAP e explicabilidade clínica (XAI).
                             </div>
                         </div>
 
