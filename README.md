@@ -17,6 +17,7 @@
   <a href="#-perfis-de-execução">Perfis</a> •
   <a href="#-fluxos-de-negócio-completos">Fluxos</a> •
   <a href="#-testes-automatizados">Testes</a> •
+  <a href="docs/DOSSIE_TECNICO_AVALIACAO_CRITICA.md"><b>Dossiê Técnico para Críticos / Banca</b></a> •
   <a href="#-estrutura-do-projeto">Estrutura</a>
 </p>
 
