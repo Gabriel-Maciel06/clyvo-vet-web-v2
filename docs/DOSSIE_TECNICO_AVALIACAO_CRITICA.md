@@ -2,7 +2,7 @@
 **Projeto:** Clyvo Vet Web v2 — Plataforma Transacional de Medicina Preventiva, Longevidade & Marketplace Pet  
 **Repositório Local:** `/Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2`  
 **Data:** 15 de Setembro de 2026  
-**Status dos Testes:** ✅ **77 testes automatizados aprovados (0 falhas, 0 erros)**  
+**Status dos Testes:** ✅ **80 testes automatizados aprovados (0 falhas, 0 erros)**  
 **Ambiente de Execução Local:** `http://localhost:8095`  
 
 ---
@@ -17,7 +17,7 @@
 6. [Resolução da Crítica 5: Fisiologia Veterinária Comparada Multi-Espécie (Ectotérmicos & Aves)](#6-resolução-da-crítica-5-fisiologia-veterinária-comparada-multi-espécie-ectotérmicos--aves)
 7. [Resolução da Crítica 6: Biometria, Validações Biológicas e Calibração de Pequenos Pets](#7-resolução-da-crítica-6-biometria-validações-biológicas-e-calibração-de-pequenos-pets)
 8. [Arquitetura de Segurança, Autenticação e Perfis (Spring Security 6)](#8-arquitetura-de-segurança-autenticação-e-perfis-spring-security-6)
-9. [Suíte de Testes Automatizados (77 Testes / 100% Cobertura de Requisitos)](#9-suíte-de-testes-automatizados-77-testes--100-cobertura-de-requisitos)
+9. [Suíte de Testes Automatizados (80 Testes / 100% Cobertura de Requisitos)](#9-suíte-de-testes-automatizados-80-testes--100-cobertura-de-requisitos)
 10. [Guia Passo a Passo para Execução e Auditoria Local pelo Crítico](#10-guia-passo-a-passo-para-execução-e-auditoria-local-pelo-crítico)
 
 ---
@@ -138,57 +138,146 @@ A margem **não é canibalizada** porque o Clyvo Vet opera sob 4 mecanismos de s
 
 ---
 
-## 5. Arquitetura de Decisão Clínica: Sistema Híbrido Determinístico e Preditivo
+## 5. Arquitetura de Decisão Clínica: Sistema Híbrido Determinístico e Preditivo (Padrão Strategy)
 
-Para assegurar acurácia médica sem incorrer em decisões opacas de caixas-pretas estatísticas e eliminar qualquer indício de AI-washing, o motor clínico adota uma **arquitetura em camadas bem delimitadas**:
+Para assegurar acurácia médica sem incorrer em decisões opacas de caixas-pretas estatísticas e eliminar qualquer indício de AI-washing, o motor clínico adota o **Padrão de Projeto Strategy**, orquestrado pelo serviço Spring `@Service` [`PredictiveMlEngine`](file:///Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2/src/main/java/com/fiap/clyvovet/service/PredictiveMlEngine.java). A arquitetura opera em 3 camadas rigorosamente delimitadas:
 
 ```mermaid
-graph TD
-    A[Exame Físico & Triagem do Paciente] --> B{Camada 1: Guardrails Determinísticos AAHA/WSAVA}
-    
-    B -->|Risco Vital Iminente: Choque, Hipotermia Grave, Colapso| C[Fail-Safe Override: Risco ALTO & Bloqueio Imediato]
-    B -->|Parâmetros Estáveis / Compensados| D{Camada 2: Avaliação Especializada por Espécie}
-    
-    D -->|Caninos: Dados Amostrais Abundantes| E[Modelo Preditivo ML Calibrado: CanineWellness-ML-v1.0<br>Regressão Multivariada Z-Score 21 features<br>ROC-AUC 0.9485 | Recall 94.92%]
-    D -->|Não-Mamíferos & Silvestres: Medicina Zoológica| F[Regras Fisiológicas Comparadas: Sistema Especialista<br>• Répteis: POTZ 22-34°C e Frequência Doppler<br>• Peixes: Biótopo Aquático e Freq. Opercular<br>• Aves: Eutermia Cloacal 39.5-42.5°C e Taquicardia Basal]
-    
-    C --> G[Camada 3: Explicabilidade XAI & Estruturação SOAP]
-    E --> G
-    F --> G
-    
-    G --> H[Prontuário Eletrônico & Linha do Tempo Médica]
+classDiagram
+    direction TB
+
+    class TriagemService {
+        -PredictiveMlEngine mlEngine
+        +concluirTriagemComIa(...) ConsultaTriagem
+        +avaliarGuardrailsClinicos(...) List~String~
+    }
+
+    class PredictiveMlEngine {
+        <<@Service - Context Orquestrador>>
+        -List~MotorDecisaoClinicaStrategy~ strategies
+        -DefaultPhysiologyEngine fallbackEngine
+        +executarDecisao(Pet pet, ParametrosClinicosEntrada entrada) ResultadoDecisaoClinica
+        +executarInferencia(Pet pet, ...) ResultadoDecisaoClinica
+    }
+
+    class MotorDecisaoClinicaStrategy {
+        <<interface>>
+        +suporta(String especie) boolean
+        +avaliar(Pet pet, ParametrosClinicosEntrada entrada) ResultadoDecisaoClinica
+    }
+
+    class CaninePredictiveMlEngine {
+        <<@Component>>
+        +suporta("CANINA") boolean
+        +avaliar(...) ResultadoDecisaoClinica
+    }
+
+    class FelinePhysiologyEngine {
+        <<@Component>>
+        +suporta("FELINA") boolean
+        +avaliar(...) ResultadoDecisaoClinica
+    }
+
+    class AvianPhysiologyEngine {
+        <<@Component>>
+        +suporta("AVE") boolean
+        +avaliar(...) ResultadoDecisaoClinica
+    }
+
+    class EctothermicPhysiologyEngine {
+        <<@Component>>
+        +suporta("REPTIL") boolean
+        +avaliar(...) ResultadoDecisaoClinica
+    }
+
+    class AquaticPhysiologyEngine {
+        <<@Component>>
+        +suporta("PEIXE") boolean
+        +avaliar(...) ResultadoDecisaoClinica
+    }
+
+    class SmallMammalPhysiologyEngine {
+        <<@Component>>
+        +suporta("ROEDOR") boolean
+        +avaliar(...) ResultadoDecisaoClinica
+    }
+
+    class MustelidPhysiologyEngine {
+        <<@Component>>
+        +suporta("MUSTELIDEO") boolean
+        +avaliar(...) ResultadoDecisaoClinica
+    }
+
+    class InvertebratePhysiologyEngine {
+        <<@Component>>
+        +suporta("ARACNIDEO") boolean
+        +avaliar(...) ResultadoDecisaoClinica
+    }
+
+    class EquinePhysiologyEngine {
+        <<@Component>>
+        +suporta("EQUINA") boolean
+        +avaliar(...) ResultadoDecisaoClinica
+    }
+
+    class DefaultPhysiologyEngine {
+        <<@Component - Fallback Universal>>
+        +suporta(String) boolean
+        +avaliar(...) ResultadoDecisaoClinica
+    }
+
+    TriagemService --> PredictiveMlEngine : orquestra
+    PredictiveMlEngine --> MotorDecisaoClinicaStrategy : despacha via Strategy
+    MotorDecisaoClinicaStrategy <|.. CaninePredictiveMlEngine
+    MotorDecisaoClinicaStrategy <|.. FelinePhysiologyEngine
+    MotorDecisaoClinicaStrategy <|.. AvianPhysiologyEngine
+    MotorDecisaoClinicaStrategy <|.. EctothermicPhysiologyEngine
+    MotorDecisaoClinicaStrategy <|.. AquaticPhysiologyEngine
+    MotorDecisaoClinicaStrategy <|.. SmallMammalPhysiologyEngine
+    MotorDecisaoClinicaStrategy <|.. MustelidPhysiologyEngine
+    MotorDecisaoClinicaStrategy <|.. InvertebratePhysiologyEngine
+    MotorDecisaoClinicaStrategy <|.. EquinePhysiologyEngine
+    MotorDecisaoClinicaStrategy <|.. DefaultPhysiologyEngine
 ```
 
 ### Detalhamento das 3 Camadas de Decisão:
 
 1. **Camada 1 — Guardrails Determinísticos de Emergência (Diretrizes AAHA / WSAVA):**
-   - Parâmetros vitais que indiquem risco iminente de choque térmico, bradicardia severa ou colapso respiratório disparam bloqueio imediato (*fail-safe override*), forçando a classificação para **ALTO RISCO** independentemente de pontuações comportamentais prévias. Nenhum algoritmo probabilístico tem permissão para ignorar uma emergência clínica iminente.
+   - Parâmetros vitais que indiquem risco iminente de choque térmico, colapso respiratório ou bradicardia severa disparam bloqueio imediato (*fail-safe override*), forçando a classificação para **ALTO RISCO** e limitando o escore clínico a 45 pontos, independentemente de comportamentos prévios.
 
-2. **Camada 2 — Avaliação Especializada por Espécie:**
-   - **Caninos (Modelo Preditivo Calibrado de Machine Learning — `CanineWellness-ML-v1.0`):**
-     - Aplica normalização Z-score e regressão multivariada treinada sobre 21 variáveis clínicas (Canine Wellness Dataset com 10.000 prontuários sintéticos calibrados do Kaggle).
-     - **Métricas Comprovadas:** **ROC-AUC: 0.9485**, **Acurácia: 87.24%**, **Recall: 94.92%**, **F1-Score: 0.9169**.
-     - Calcula a probabilidade estatística de higidez $P(\text{Higidez} \mid \vec{x})$ e a estimativa de longevidade ponderada, correlacionando idade, porte corporal, sono, minutos de atividade física, frequência veterinária e adesão profilática.
-   - **Espécies Não-Mamíferas (Regras Fisiológicas Comparadas — Sistema Especialista):**
-     - Em vez de forçar réguas mamíferas inapropriadas ou simular modelos estatísticos sem base amostral suficiente, o sistema avalia o paciente segundo parâmetros veterinários dedicados de literatura zoológica:
-       - **Répteis (`Ectothermic-Physiology-Rules-v1.0`):** Avaliação da faixa de temperatura do terrário / POTZ (*Preferred Optimal Temperature Zone*, 22°C a 34°C) e frequência cardíaca exclusivamente por Doppler na fossa cervicobraquial (dispensando ausculta fonendoscópica em quelônios com carapaça óssea).
-       - **Peixes Ornamentais (`Aquatic-Physiology-Rules-v1.0`):** Avaliação da estabilidade térmica da água do biótopo e aferição da frequência opercular (movimentos branquiais/minuto). Sem ausculta torácica.
-       - **Aves (`Avian-Physiology-Rules-v1.0`):** Calibração para a faixa fisiológica aviária (eutermia cloacal entre 39,5°C e 42,5°C e taquicardia basal de 150 a 400 bpm).
-       - **Aracnídeos (`Invertebrate-Physiology-Rules-v1.0`):** Monitoramento microclimático de terrário e acompanhamento de ecdise.
+2. **Camada 2 — Roteamento Taxonômico Especializado (Padrão Strategy):**
+   - O orquestrador `PredictiveMlEngine` recebe o paciente e o DTO agnóstico e neutro [`ParametrosClinicosEntrada`](file:///Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2/src/main/java/com/fiap/clyvovet/dto/ParametrosClinicosEntrada.java) (`pesoAferido`, `temperaturaAferida`, `frequenciaMensurada`, etc.), identificando dinamicamente a estratégia especializada correspondente à espécie.
+   - **Caninos (`CaninePredictiveMlEngine`):** **Machine Learning Supervisionado** treinado sobre o *Canine Wellness Dataset* (10.000 amostras, 21 variáveis clínicas, ROC-AUC 0.9485, Recall 94.92%). Calcula probabilidade real $P(\text{Higidez} \mid \vec{x}) \in [0.0, 100.0\%]$ via sigmóide calibrada e Z-score.
+   - **Sistemas Especialistas Determinísticos (Base 100):** Elimina qualquer falsificação estocástica ou pseudo-sigmóide em não-caninos. Aplica **Conformidade Fisiológica Base 100** com $P(\text{Higidez}) = \text{null}$:
+     - **Felinos (`FelinePhysiologyEngine`):** Diretrizes AAFP/ISFM. Eutermia 38.0–39.2°C, FC 140–220 bpm, triagem ativa de Doença Renal Crônica (DRC), FLUTD e lipidose hepática em jejum.
+     - **Répteis (`EctothermicPhysiologyEngine`):** Diretrizes ABRAVAS/ARAV. Monitoramento da Zona Térmica Ótima do Recinto / POTZ (22–34°C), FC por Doppler (15–85 bpm) e prevenção de Doença Osteometabólica (MBD).
+     - **Peixes (`AquaticPhysiologyEngine`):** Biótopo aquático e frequência opercular branquial (20–85 mov/min). Sem estetoscópio.
+     - **Aves (`AvianPhysiologyEngine`):** Diretrizes AAV. Eutermia cloacal (39.5–42.5°C), taquicardia fisiológica (150–400 bpm) e alerta contra vapores de teflon (PTFE) e aerossóis.
+     - **Roedores (`SmallMammalPhysiologyEngine`):** Diretrizes BSAVA Rodents. Dentição elodonte contínua, trânsito cecal e risco de estase gastrointestinal.
+     - **Mustelídeos (`MustelidPhysiologyEngine`):** Diretrizes BSAVA Ferrets. Trânsito rápido (3-4h), prevenção de insulinoma e manejo de fotoperíodo para doença adrenal.
+     - **Invertebrados (`InvertebratePhysiologyEngine`):** Diretrizes de Medicina de Invertebrados. Temperatura de terrário (22–28°C), integridade de ecdise e circulação de hemolinfa (ausculta inaplicável).
+     - **Equinos (`EquinePhysiologyEngine`):** Diretrizes AAEP Grandes Animais. Temp 37.2–38.3°C, FC repouso 28–44 bpm, prevenção de Síndrome Cólica, laminite e odontologia hipsodonte.
+     - **Fallback Universal (`DefaultPhysiologyEngine`):** Garante resiliência operacional total contra espécies não catalogadas, prevenindo `NoSuchElementException` ou HTTP 500.
 
-3. **Camada 3 — Explicabilidade (XAI) e Estruturação SOAP:**
-   - Toda avaliação decompõe o peso das variáveis clínicas em vetores de atribuição transparentes (`[+13 pts Eutermia Aviária Cloacal]`, `[-22 pts Recinto Hipotérmico]`) e sintetiza os achados no prontuário eletrônico seguindo o padrão internacional **SOAP** (Subjetivo, Objetivo, Avaliação, Plano).
+3. **Camada 3 — Explicabilidade (XAI) e Síntese Clínica SOAP:**
+   - Retorna o record unificado [`ResultadoDecisaoClinica`](file:///Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2/src/main/java/com/fiap/clyvovet/dto/ResultadoDecisaoClinica.java), consolidando fatores de explicabilidade clínica, riscos fenotípicos específicos, versão do motor, badge semântico e síntese completa no padrão **SOAP** (Subjetivo, Objetivo, Avaliação, Plano).
 
 ---
 
 ## 6. Fisiologia Veterinária Comparada Multi-Espécie: Matriz de Paradigmas Clínicos
 
-| Classe Taxonômica | Parâmetro Térmico Avaliado | Parâmetro Cardiorrespiratório | Motor de Decisão Ativo | Paradigma Computacional | Foco Profilático Principal |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Caninos / Felinos** | Temp. Corpórea Central (37.5°C a 39.2°C) | Ausculta Estetoscópio (60–160 bpm cão / 120–220 bpm gato) | `CanineWellness-ML-v1.0` | **Machine Learning Supervisionado (21 features, ROC-AUC 0.9485)** | Doença articular, condição corporal, profilaxia dentária |
-| **Répteis (Quelônios/Saurios/Ofídios)** | **Temperatura do Recinto / POTZ** (22°C a 34°C). Zero penalidade de hipotermia mamífera. | **Frequência Doppler** (15 a 80 bpm - opcional). Sem ausculta em carapaça óssea. | `Ectothermic-Physiology-Rules-v1.0` | **Sistema Especialista (Fisiologia Comparada & POTZ)** | Radiação UVB, suplementação de cálcio com D3 e prevenção de MBD |
-| **Peixes (Teleósteos Ornamentais)** | **Temperatura da Água do Biótopo** (18°C a 29°C conforme espécie tropical vs fria). | **Frequência Opercular** (20 a 120 mov/min das brânquias). Sem ausculta cardíaca. | `Aquatic-Physiology-Rules-v1.0` | **Sistema Especialista (Biótopo & Qualidade de Água)** | Amônia tóxica, nitrito, trocas parciais (TPA) e oxigênio dissolvido |
-| **Aves (Psitacídeos/Passeriformes)** | **Eutermia Cloacal Aviária** (normal entre **39.5°C e 42.5°C**). Alerta febre > 43°C. | **Taquicardia Fisiológica Aviária** (150 a 400 bpm). | `Avian-Physiology-Rules-v1.0` | **Sistema Especialista (Metabolismo Aviário Basal)** | Ração extrusada balanceada, integridade de sacos aéreos e prevenção de fumaças tóxicas (PTFE) |
+| Espécie no Banco (`V5`) | Motor de Decisão Ativo | Paradigma Computacional | Faixa Térmica / Frequência Normal | Riscos Críticos e Foco Profilático |
+| :--- | :--- | :--- | :--- | :--- |
+| **`CANINA`** | `CaninePredictiveMlEngine` | **Machine Learning Supervisionado** ($P \in [0, 100\%]$, ROC-AUC 0.9485) | Temp: 37.8–39.2°C \| FC: 60–140 bpm | Displasia coxofemoral, estresse térmico braquicefálico, convulsões |
+| **`FELINA`** | `FelinePhysiologyEngine` | **Sistema Especialista Base 100** ($P = \text{null}$, AAFP/ISFM) | Temp: 38.0–39.2°C \| FC: 140–220 bpm | Lipidose hepática em jejum, Doença Renal Crônica (DRC), FLUTD |
+| **`AVE`** | `AvianPhysiologyEngine` | **Sistema Especialista Base 100** ($P = \text{null}$, AAV) | Temp Cloacal: 39.5–42.5°C \| FC: 150–400 bpm | Hipotermia aguda, toxicidade por PTFE/aerossóis, aspergilose |
+| **`REPTIL`** | `EctothermicPhysiologyEngine` | **Sistema Especialista Base 100** ($P = \text{null}$, ABRAVAS/ARAV) | POTZ Recinto: 22–34°C \| Doppler: 15–85 bpm | Osteodistrofia Fibrosa (MBD por falta de UVB/Cálcio), estase digestiva |
+| **`PEIXE`** | `AquaticPhysiologyEngine` | **Sistema Especialista Base 100** ($P = \text{null}$, Medicina Aquática) | Temp Água: Biótopo \| Mov. Operculares: 20–85/min | Hipóxia aquática (amônia/nitrito), disfunção de bexiga natatória |
+| **`ROEDOR`** | `SmallMammalPhysiologyEngine` | **Sistema Especialista Base 100** ($P = \text{null}$, BSAVA Rodents) | Temp: 36.5–38.5°C \| FC: 250–500 bpm | Estase cecal por jejum, maloclusão de dentes elodontes contínuos |
+| **`MUSTELIDEO`** | `MustelidPhysiologyEngine` | **Sistema Especialista Base 100** ($P = \text{null}$, BSAVA Ferrets) | Temp: 37.8–40.0°C \| FC: 180–250 bpm | Insulinoma (hipoglicemia severa), hiperadrenocorticismo (fotoperíodo), corpo estranho GI |
+| **`ARACNIDEO`** | `InvertebratePhysiologyEngine` | **Sistema Especialista Base 100** ($P = \text{null}$, Lewbart) | Temp Terrário: 22–28°C \| Ausculta Inaplicável | Desidratação de opistossoma, retenção de muda (disecdise) |
+| **`EQUINA`** | `EquinePhysiologyEngine` | **Sistema Especialista Base 100** ($P = \text{null}$, AAEP) | Temp: 37.2–38.3°C \| FC Repouso: 28–44 bpm | Síndrome Cólica Equina, laminite (aguamento), desgaste odontológico |
+| **Não-Mapeada** | `DefaultPhysiologyEngine` | **Fallback Universal Base 100** ($P = \text{null}$, Resiliência) | Avaliação biométrica comparada geral | Elimina risco de `NoSuchElementException` ou HTTP 500 |
 
 
 ---
@@ -228,34 +317,33 @@ graph TD
 
 ---
 
-## 9. Suíte de Testes Automatizados (77 Testes / 100% Cobertura de Requisitos)
+## 9. Suíte de Testes Automatizados (80 Testes / 100% Cobertura de Requisitos)
 
-A aplicação conta com **77 testes automatizados de integração e unidade**, executados e aprovados com **0 falhas e 0 erros**:
+A aplicação conta com **80 testes automatizados de integração e unidade**, executados e aprovados com **0 falhas e 0 erros**:
 
 ```
 [INFO] -------------------------------------------------------
 [INFO]  T E S T S
 [INFO] -------------------------------------------------------
-[INFO] Running com.fiap.clyvovet.controller.PetControllerTest (4 tests) - PASS
-[INFO] Running com.fiap.clyvovet.controller.CheckinControllerTest (4 tests) - PASS
-[INFO] Running com.fiap.clyvovet.controller.TriagemControllerTest (3 tests) - PASS
-[INFO] Running com.fiap.clyvovet.security.ControleDeAcessoPorPerfilTest (6 tests) - PASS
-[INFO] Running com.fiap.clyvovet.security.CadastroERecuperacaoSenhaTest (3 tests) - PASS
-[INFO] Running com.fiap.clyvovet.security.CustomOAuth2UserServiceTest (3 tests) - PASS
-[INFO] Running com.fiap.clyvovet.security.CustomUserDetailsServiceTest (2 tests) - PASS
-[INFO] Running com.fiap.clyvovet.service.CheckinServiceTest (6 tests) - PASS
-[INFO] Running com.fiap.clyvovet.service.TriagemServiceTest (9 tests) - PASS
-[INFO] Running com.fiap.clyvovet.service.PetServiceTest (5 tests) - PASS
-[INFO] Running com.fiap.clyvovet.service.PetServiceEditTest (4 tests) - PASS
-[INFO] Running com.fiap.clyvovet.service.PetBiometriaValidacaoTest (10 tests) - PASS
-[INFO] Running com.fiap.clyvovet.service.PredictiveMlEngineTest (8 tests) - PASS
-[INFO] Running com.fiap.clyvovet.service.PagamentoSplitServiceTest (3 tests) - PASS
-[INFO] Running com.fiap.clyvovet.service.MarketplaceModelagemTest (4 tests) - PASS
+[INFO] Running com.fiap.clyvovet.controller.CheckoutControllerTest (5 tests) - PASS
+[INFO] Running com.fiap.clyvovet.security.CadastroERecuperacaoSenhaTest (9 tests) - PASS
+[INFO] Running com.fiap.clyvovet.security.ControleDeAcessoPorPerfilTest (8 tests) - PASS
+[INFO] Running com.fiap.clyvovet.security.DashboardTutorSemPerfilTest (1 test) - PASS
+[INFO] Running com.fiap.clyvovet.service.CheckinServiceTest (4 tests) - PASS
+[INFO] Running com.fiap.clyvovet.service.CustomOAuth2UserServiceTest (3 tests) - PASS
+[INFO] Running com.fiap.clyvovet.service.CustomUserDetailsServiceTest (2 tests) - PASS
+[INFO] Running com.fiap.clyvovet.service.LongevidadeCalculadoraMultiEspecieTest (4 tests) - PASS
+[INFO] Running com.fiap.clyvovet.service.MarketplaceModelagemTest (5 tests) - PASS
+[INFO] Running com.fiap.clyvovet.service.PagamentoSplitServiceTest (4 tests) - PASS
 [INFO] Running com.fiap.clyvovet.service.PerfilServiceTest (2 tests) - PASS
+[INFO] Running com.fiap.clyvovet.service.PetBiometriaValidacaoTest (10 tests) - PASS
+[INFO] Running com.fiap.clyvovet.service.PetServiceEditTest (4 tests) - PASS
+[INFO] Running com.fiap.clyvovet.service.PredictiveMlEngineTest (8 tests) - PASS
 [INFO] Running com.fiap.clyvovet.service.RecuperacaoSenhaServiceTest (5 tests) - PASS
+[INFO] Running com.fiap.clyvovet.service.TriagemServiceTest (6 tests) - PASS
 [INFO] 
 [INFO] Results:
-[INFO] Tests run: 77, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 80, Failures: 0, Errors: 0, Skipped: 0
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 ```
@@ -270,13 +358,13 @@ Para que o crítico execute e audite todo o ecossistema diretamente no terminal 
 - **Java JDK 21** instalado (`java -version`).
 - **Maven 3.8+** instalado (`mvn -version`).
 
-### 2. Rodar os 77 Testes Automatizados:
+### 2. Rodar os 80 Testes Automatizados:
 Abra o terminal no diretório do projeto e execute:
 ```bash
 cd /Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2
 mvn test
 ```
-*O Maven executará todas as migrações Flyway de V1 a V10 no H2 e rodará os 77 testes com 100% de sucesso.*
+*O Maven executará todas as migrações Flyway de V1 a V12 no H2 e rodará os 80 testes com 100% de sucesso.*
 
 ### 3. Iniciar a Aplicação Localmente:
 ```bash

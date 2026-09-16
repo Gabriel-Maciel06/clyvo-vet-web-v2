@@ -77,23 +77,51 @@
                                     <span class="badge bg-success-subtle text-success border border-success-subtle me-1">Machine Learning Supervisionado</span>
                                     <code>CanineWellness-ML-v1.0 (21 features, ROC-AUC 0.9485)</code>
                                 </span>
+                                <span th:if="${triagem.pet.raca.especie == 'FELINA'}">
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle me-1">Sistema Especialista (AAFP/ISFM)</span>
+                                    <code>Feline-Physiology-Rules-v1.0 (Conformidade Base 100)</code>
+                                </span>
                                 <span th:if="${triagem.pet.raca.especie == 'REPTIL'}">
-                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1">Sistema Especialista de Fisiologia Comparada</span>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1">Sistema Especialista (ABRAVAS/ARAV)</span>
                                     <code>Ectothermic-Physiology-Rules-v1.0 (POTZ & Doppler)</code>
                                 </span>
                                 <span th:if="${triagem.pet.raca.especie == 'PEIXE'}">
-                                    <span class="badge bg-info-subtle text-info border border-info-subtle me-1">Sistema Especialista de Fisiologia Comparada</span>
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle me-1">Sistema Especialista de Medicina Aquática</span>
                                     <code>Aquatic-Physiology-Rules-v1.0 (Biótopo & Respiração Opercular)</code>
                                 </span>
                                 <span th:if="${triagem.pet.raca.especie == 'AVE'}">
-                                    <span class="badge bg-warning-subtle text-dark border border-warning-subtle me-1">Sistema Especialista de Fisiologia Comparada</span>
+                                    <span class="badge bg-warning-subtle text-dark border border-warning-subtle me-1">Sistema Especialista Aviário (AAV)</span>
                                     <code>Avian-Physiology-Rules-v1.0 (Metabolismo Aviário & Eutermia Cloacal)</code>
                                 </span>
-                                <span th:if="${triagem.pet.raca.especie != 'CANINA' and triagem.pet.raca.especie != 'REPTIL' and triagem.pet.raca.especie != 'PEIXE' and triagem.pet.raca.especie != 'AVE'}">
-                                    <span class="badge bg-secondary-subtle text-secondary border me-1">Sistema Especialista</span>
-                                    <code>Mammalian-Physiology-Rules-v1.0</code>
+                                <span th:if="${triagem.pet.raca.especie == 'ROEDOR'}">
+                                    <span class="badge bg-secondary-subtle text-secondary border me-1">Sistema Especialista (BSAVA Rodents)</span>
+                                    <code>SmallMammal-Physiology-Rules-v1.0 (Dentição Elodonte & Cecotrofia)</code>
+                                </span>
+                                <span th:if="${triagem.pet.raca.especie == 'MUSTELIDEO'}">
+                                    <span class="badge bg-warning-subtle text-dark border me-1">Sistema Especialista (BSAVA Ferrets)</span>
+                                    <code>Mustelid-Physiology-Rules-v1.0 (Insulinoma & Manejo Fotoperíodo)</code>
+                                </span>
+                                <span th:if="${triagem.pet.raca.especie == 'ARACNIDEO'}">
+                                    <span class="badge bg-dark-subtle text-dark border me-1">Sistema Especialista Invertebrados</span>
+                                    <code>Invertebrate-Physiology-Rules-v1.0 (Terrário & Ecdise)</code>
+                                </span>
+                                <span th:if="${triagem.pet.raca.especie == 'EQUINA'}">
+                                    <span class="badge bg-primary-subtle text-primary border me-1">Sistema Especialista Grandes Animais (AAEP)</span>
+                                    <code>Equine-Physiology-Rules-v1.0 (Sanidade Cólica & Repouso)</code>
+                                </span>
+                                <span th:if="${triagem.pet.raca.especie != 'CANINA' and triagem.pet.raca.especie != 'FELINA' and triagem.pet.raca.especie != 'REPTIL' and triagem.pet.raca.especie != 'PEIXE' and triagem.pet.raca.especie != 'AVE' and triagem.pet.raca.especie != 'ROEDOR' and triagem.pet.raca.especie != 'MUSTELIDEO' and triagem.pet.raca.especie != 'ARACNIDEO' and triagem.pet.raca.especie != 'EQUINA'}">
+                                    <span class="badge bg-secondary-subtle text-secondary border me-1">Fallback Universal Resiliente</span>
+                                    <code>Generic-Physiology-Rules-v1.0 (Conformidade Base 100)</code>
                                 </span>
                                 • Síntese estruturada SOAP e explicabilidade clínica (XAI).
+                            </div>
+                        </div>
+
+                        <!-- Banner Clínico Felino -->
+                        <div th:if="${triagem.pet.raca.especie == 'FELINA'}" class="alert alert-info py-2 px-3 mb-3 small d-flex align-items-center gap-2">
+                            <span class="fs-5">🐱</span>
+                            <div>
+                                <strong>Paciente Felino (Medicina Felina AAFP/ISFM):</strong> Eutermia central fisiológica felina (<strong>38.0°C a 39.2°C</strong>). Frequência cardíaca basal (<strong>140 a 220 bpm</strong>). Monitoramento estrito de desidratação, prevenção de lipidose hepática em jejum e triagem precoce de FLUTD / DRC.
                             </div>
                         </div>
 
@@ -121,6 +149,30 @@
                             </div>
                         </div>
 
+                        <!-- Banner Clínico Mustelídeo -->
+                        <div th:if="${triagem.pet.raca.especie == 'MUSTELIDEO'}" class="alert alert-warning py-2 px-3 mb-3 small d-flex align-items-center gap-2">
+                            <span class="fs-5">🦡</span>
+                            <div>
+                                <strong>Paciente Mustelídeo (Furão / Ferret):</strong> Carnívoro estrito com trânsito intestinal ultra-rápido (3-4h). Temperatura (<strong>37.8°C a 40.0°C</strong>) e FC (<strong>180 a 250 bpm</strong>). Vigilância ativa de insulinoma, doença adrenal e corpos estranhos de borracha/silicone.
+                            </div>
+                        </div>
+
+                        <!-- Banner Clínico Aracnídeo -->
+                        <div th:if="${triagem.pet.raca.especie == 'ARACNIDEO'}" class="alert alert-dark py-2 px-3 mb-3 small d-flex align-items-center gap-2">
+                            <span class="fs-5">🕷️</span>
+                            <div>
+                                <strong>Invertebrado Exótico (Tarântula / Artrópode):</strong> Aferir a <strong>Temperatura do Terrário</strong> (faixa segura: 22°C a 28°C). Ausculta torácica inaplicável (circulação de hemolinfa; deixar FC em branco). Monitorar umidade para muda de exoesqueleto (ecdise).
+                            </div>
+                        </div>
+
+                        <!-- Banner Clínico Equino -->
+                        <div th:if="${triagem.pet.raca.especie == 'EQUINA'}" class="alert alert-primary py-2 px-3 mb-3 small d-flex align-items-center gap-2">
+                            <span class="fs-5">🐴</span>
+                            <div>
+                                <strong>Paciente Equino (Grandes Animais - AAEP):</strong> Temperatura retal de repouso (<strong>37.2°C a 38.3°C</strong>). FC de repouso (<strong>28 a 44 bpm</strong>; valores > 50 bpm indicam dor visceral/cólica). Peso adulto típico: 350–600 kg.
+                            </div>
+                        </div>
+
                         <form th:action="@{/triagem/avaliar}" th:object="${avaliacaoDto}" method="post">
                             <input type="hidden" th:field="*{triagemId}">
 
@@ -128,7 +180,8 @@
                                 <div class="col-md-4">
                                     <label for="pesoAferido" class="form-label">
                                         Peso Aferido (kg) *
-                                        <span class="text-muted small" th:if="${triagem.pet.raca.especie == 'AVE' or triagem.pet.raca.especie == 'ROEDOR' or triagem.pet.raca.especie == 'PEIXE'}">(ex: 0.10)</span>
+                                        <span class="text-muted small" th:if="${triagem.pet.raca.especie == 'AVE' or triagem.pet.raca.especie == 'ROEDOR' or triagem.pet.raca.especie == 'PEIXE' or triagem.pet.raca.especie == 'ARACNIDEO'}">(ex: 0.10)</span>
+                                        <span class="text-muted small" th:if="${triagem.pet.raca.especie == 'EQUINA'}">(ex: 450.0)</span>
                                     </label>
                                     <input type="number" step="0.001" class="form-control" id="pesoAferido" th:field="*{pesoAferido}" required>
                                     <div class="text-danger small" th:if="${#fields.hasErrors('pesoAferido')}" th:errors="*{pesoAferido}"></div>
@@ -139,10 +192,11 @@
                                         <span th:if="${triagem.pet.raca.especie == 'REPTIL'}">Temp. Recinto/POTZ (°C) *</span>
                                         <span th:if="${triagem.pet.raca.especie == 'PEIXE'}">Temp. Água Aquário (°C) *</span>
                                         <span th:if="${triagem.pet.raca.especie == 'AVE'}">Temp. Cloacal (°C) *</span>
-                                        <span th:if="${triagem.pet.raca.especie != 'REPTIL' and triagem.pet.raca.especie != 'PEIXE' and triagem.pet.raca.especie != 'AVE'}">Temperatura Corporal (°C) *</span>
+                                        <span th:if="${triagem.pet.raca.especie == 'ARACNIDEO'}">Temp. do Terrário (°C) *</span>
+                                        <span th:if="${triagem.pet.raca.especie != 'REPTIL' and triagem.pet.raca.especie != 'PEIXE' and triagem.pet.raca.especie != 'AVE' and triagem.pet.raca.especie != 'ARACNIDEO'}">Temperatura Corporal (°C) *</span>
                                     </label>
                                     <input type="number" step="0.1" class="form-control" id="temperatura" th:field="*{temperatura}"
-                                           th:placeholder="${triagem.pet.raca.especie == 'REPTIL' ? '26.0' : (triagem.pet.raca.especie == 'PEIXE' ? '25.0' : (triagem.pet.raca.especie == 'AVE' ? '41.0' : '38.5'))}" required>
+                                           th:placeholder="${triagem.pet.raca.especie == 'REPTIL' ? '26.0' : (triagem.pet.raca.especie == 'PEIXE' ? '25.0' : (triagem.pet.raca.especie == 'AVE' ? '41.0' : (triagem.pet.raca.especie == 'ARACNIDEO' ? '25.0' : (triagem.pet.raca.especie == 'EQUINA' ? '37.8' : '38.5'))))}" required>
                                     <div class="text-danger small" th:if="${#fields.hasErrors('temperatura')}" th:errors="*{temperatura}"></div>
                                 </div>
 
@@ -151,10 +205,12 @@
                                         <span th:if="${triagem.pet.raca.especie == 'REPTIL'}">FC Doppler (bpm) <span class="text-muted fw-normal small">(opcional)</span></span>
                                         <span th:if="${triagem.pet.raca.especie == 'PEIXE'}">Freq. Opercular <span class="text-muted fw-normal small">(opcional)</span></span>
                                         <span th:if="${triagem.pet.raca.especie == 'AVE'}">FC Auscultada (bpm)</span>
-                                        <span th:if="${triagem.pet.raca.especie != 'REPTIL' and triagem.pet.raca.especie != 'PEIXE' and triagem.pet.raca.especie != 'AVE'}">Freq. Cardíaca (bpm)</span>
+                                        <span th:if="${triagem.pet.raca.especie == 'ARACNIDEO'}">Ausculta <span class="text-muted fw-normal small">(inaplicável)</span></span>
+                                        <span th:if="${triagem.pet.raca.especie == 'EQUINA'}">FC Repouso (bpm)</span>
+                                        <span th:if="${triagem.pet.raca.especie != 'REPTIL' and triagem.pet.raca.especie != 'PEIXE' and triagem.pet.raca.especie != 'AVE' and triagem.pet.raca.especie != 'ARACNIDEO' and triagem.pet.raca.especie != 'EQUINA'}">Freq. Cardíaca (bpm)</span>
                                     </label>
                                     <input type="number" class="form-control" id="frequenciaCardiaca" th:field="*{frequenciaCardiaca}"
-                                           th:placeholder="${triagem.pet.raca.especie == 'REPTIL' ? '30' : (triagem.pet.raca.especie == 'PEIXE' ? '60' : (triagem.pet.raca.especie == 'AVE' ? '280' : '100'))}">
+                                           th:placeholder="${triagem.pet.raca.especie == 'REPTIL' ? '30' : (triagem.pet.raca.especie == 'PEIXE' ? '60' : (triagem.pet.raca.especie == 'AVE' ? '280' : (triagem.pet.raca.especie == 'EQUINA' ? '36' : (triagem.pet.raca.especie == 'FELINA' ? '180' : '100'))))}">
                                     <div class="text-danger small" th:if="${#fields.hasErrors('frequenciaCardiaca')}" th:errors="*{frequenciaCardiaca}"></div>
                                 </div>
                             </div>

@@ -61,6 +61,10 @@ public class ConsultaTriagem {
     @Column(name = "PARECER_VETERINARIO", length = 1000)
     private String parecerVeterinario;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "TIPO_MOTOR", length = 50)
+    private TipoMotorDecisao tipoMotor;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "VETERINARIO_ID")
     private Usuario veterinario;
@@ -118,4 +122,6 @@ public class ConsultaTriagem {
     public void setParecerVeterinario(String parecerVeterinario) { this.parecerVeterinario = parecerVeterinario; }
     public Usuario getVeterinario() { return veterinario; }
     public void setVeterinario(Usuario veterinario) { this.veterinario = veterinario; }
+    public TipoMotorDecisao getTipoMotor() { return tipoMotor; }
+    public void setTipoMotor(TipoMotorDecisao tipoMotor) { this.tipoMotor = tipoMotor; }
 }

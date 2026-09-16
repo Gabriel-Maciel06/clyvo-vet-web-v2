@@ -2,6 +2,7 @@ package com.fiap.clyvovet.service;
 
 import com.fiap.clyvovet.model.*;
 import com.fiap.clyvovet.repository.*;
+import com.fiap.clyvovet.service.engine.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,10 +14,9 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-@DisplayName("Testes do TriagemService com Arquitetura Dual-Engine (ML + Guardrails)")
+@DisplayName("Testes do TriagemService com Padrão Strategy e Guardrails Clínicos")
 class TriagemServiceTest {
 
     private ConsultaTriagemRepository triagemRepository;
@@ -36,7 +36,21 @@ class TriagemServiceTest {
         historicoClinicoRepository = Mockito.mock(HistoricoClinicoRepository.class);
         usuarioRepository = Mockito.mock(UsuarioRepository.class);
         petService = Mockito.mock(PetService.class);
-        mlEngine = new PredictiveMlEngine(); // Usa a instância real do motor de ML para validação fim-a-fim
+
+        DefaultPhysiologyEngine fallback = new DefaultPhysiologyEngine();
+        List<MotorDecisaoClinicaStrategy> strategies = List.of(
+                new CaninePredictiveMlEngine(),
+                new FelinePhysiologyEngine(),
+                new AvianPhysiologyEngine(),
+                new EctothermicPhysiologyEngine(),
+                new AquaticPhysiologyEngine(),
+                new SmallMammalPhysiologyEngine(),
+                new MustelidPhysiologyEngine(),
+                new InvertebratePhysiologyEngine(),
+                new EquinePhysiologyEngine(),
+                fallback
+        );
+        mlEngine = new PredictiveMlEngine(strategies, fallback);
 
         triagemService = new TriagemService(
                 triagemRepository,
@@ -72,6 +86,7 @@ class TriagemServiceTest {
         assertNotNull(resultado);
         assertTrue(resultado.escore() >= 80, "Escore de pet jovem eutérmico deve ser >= 80");
         assertEquals(ClassificacaoRisco.BAIXO, resultado.risco());
+        assertNotNull(resultado.probabilidadeHigidez());
         assertTrue(resultado.probabilidadeHigidez() > 70.0, "P(Higidez) deve ser estatisticamente calculada");
         assertTrue(resultado.insights().contains("ML Preditivo"), "Insights devem explicitar inferência de ML");
         assertTrue(resultado.insights().contains("XAI"), "Insights devem incluir explicabilidade algorítmica");
@@ -94,8 +109,6 @@ class TriagemServiceTest {
         );
 
         assertNotNull(resultado);
-        // Mesmo sendo um pet jovem onde o ML estatístico daria alta higidez,
-        // o Guardrail Clínico de Emergência (AAHA/WSAVA) força o risco ALTO e penaliza o score.
         assertEquals(ClassificacaoRisco.ALTO, resultado.risco(), "Febre grave deve acionar Fail-Safe para risco ALTO");
         assertTrue(resultado.escore() <= 50, "Escore deve ser contido devido à emergência clínica");
         assertTrue(resultado.insights().contains("Hipertermia/Febre Vital"), "Insight deve registrar o alerta do guardrail");
@@ -131,10 +144,11 @@ class TriagemServiceTest {
                 "Escore de réptil com manejo térmico correto deve ser alto (>= 80)");
         assertEquals("Ectothermic-Physiology-Rules-v1.0", resultado.modeloVersao(),
                 "Deve utilizar o motor de regras fisiológicas especializado para ectotérmicos");
-        assertEquals(PredictiveMlEngine.TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGIA_COMPARADA, resultado.tipoMotor(),
-                "Motor deve ser Sistema Especialista de Fisiologia Comparada");
-        assertTrue(resultado.insights().contains("Regras Fisiológicas Comparadas"),
-                "Insights devem declarar expressamente o uso de Regras Fisiológicas Comparadas");
+        assertEquals(TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGICO, resultado.tipoMotor(),
+                "Motor deve ser Sistema Especialista");
+        assertNull(resultado.probabilidadeHigidez(), "Probabilidade estocástica deve ser nula em sistemas de regras");
+        assertTrue(resultado.insights().contains("Conformidade Fisiológica"),
+                "Insights devem declarar expressamente o uso de Conformidade Fisiológica");
     }
 
     @Test
@@ -147,7 +161,6 @@ class TriagemServiceTest {
         when(checkinRepository.findByPetIdOrderByDataCheckinDesc(30L)).thenReturn(Collections.emptyList());
         when(triagemRepository.findByPetIdOrderByDataSolicitacaoDesc(30L)).thenReturn(Collections.emptyList());
 
-        // Água do aquário a 26.0°C e sem ausculta cardíaca (FC nula / NA)
         TriagemService.ResultadoCalculoEscore resultado = triagemService.calcularEscoreLongevidadeEInsights(
                 betta,
                 new BigDecimal("0.004"),
@@ -161,8 +174,9 @@ class TriagemServiceTest {
         assertEquals(ClassificacaoRisco.BAIXO, resultado.risco());
         assertTrue(resultado.escore() >= 80);
         assertEquals("Aquatic-Physiology-Rules-v1.0", resultado.modeloVersao());
-        assertEquals(PredictiveMlEngine.TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGIA_COMPARADA, resultado.tipoMotor());
-        assertTrue(resultado.insights().contains("Regras Fisiológicas Comparadas"));
+        assertEquals(TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGICO, resultado.tipoMotor());
+        assertNull(resultado.probabilidadeHigidez());
+        assertTrue(resultado.insights().contains("Conformidade Fisiológica"));
     }
 
     @Test
@@ -175,7 +189,6 @@ class TriagemServiceTest {
         when(checkinRepository.findByPetIdOrderByDataCheckinDesc(40L)).thenReturn(Collections.emptyList());
         when(triagemRepository.findByPetIdOrderByDataSolicitacaoDesc(40L)).thenReturn(Collections.emptyList());
 
-        // Temperatura cloacal de 41.5°C (perfeita para aves) e FC 280 bpm (normal para calopsita)
         TriagemService.ResultadoCalculoEscore resultado = triagemService.calcularEscoreLongevidadeEInsights(
                 calopsita,
                 new BigDecimal("0.095"),
@@ -190,7 +203,35 @@ class TriagemServiceTest {
         assertEquals(ClassificacaoRisco.BAIXO, resultado.risco());
         assertTrue(resultado.escore() >= 80);
         assertEquals("Avian-Physiology-Rules-v1.0", resultado.modeloVersao());
-        assertEquals(PredictiveMlEngine.TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGIA_COMPARADA, resultado.tipoMotor());
-        assertTrue(resultado.insights().contains("Regras Fisiológicas Comparadas"));
+        assertEquals(TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGICO, resultado.tipoMotor());
+        assertNull(resultado.probabilidadeHigidez());
+        assertTrue(resultado.insights().contains("Conformidade Fisiológica"));
+    }
+
+    @Test
+    @DisplayName("Fisiologia Felina: Gato de 4.2 kg com 38.6°C e 180 bpm deve ser avaliado com Conformidade Fisiológica e P(Higidez) nula")
+    void deveAvaliarFelinoComSistemaEspecialistaSemPontoCego() {
+        Raca racaGato = new Raca(12L, "Siamês", "FELINA", "DRC", 16, "Estímulo hídrico",
+                new BigDecimal("3.5"), new BigDecimal("5.5"));
+        Pet gato = new Pet(50L, "Oliver", LocalDate.now().minusYears(4), new BigDecimal("4.2"), "Ativo", 85, racaGato, null);
+
+        when(checkinRepository.findByPetIdOrderByDataCheckinDesc(50L)).thenReturn(Collections.emptyList());
+        when(triagemRepository.findByPetIdOrderByDataSolicitacaoDesc(50L)).thenReturn(Collections.emptyList());
+
+        TriagemService.ResultadoCalculoEscore resultado = triagemService.calcularEscoreLongevidadeEInsights(
+                gato,
+                new BigDecimal("4.2"),
+                new BigDecimal("38.6"),
+                180,
+                "Exame preventivo anual"
+        );
+
+        assertNotNull(resultado);
+        assertEquals(ClassificacaoRisco.BAIXO, resultado.risco());
+        assertTrue(resultado.escore() >= 80);
+        assertEquals("Feline-Physiology-Rules-v1.0", resultado.modeloVersao());
+        assertEquals(TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGICO, resultado.tipoMotor());
+        assertNull(resultado.probabilidadeHigidez(), "Gatos operam em sistema especialista determinístico; P(Higidez) deve ser nula");
+        assertTrue(resultado.insights().contains("Conformidade Fisiológica"));
     }
 }

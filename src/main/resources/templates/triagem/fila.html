@@ -103,6 +103,7 @@
                                 <td>
                                     <span class="badge" th:classappend="${c.escoreLongevidade >= 80 ? 'bg-success' : (c.escoreLongevidade >= 50 ? 'bg-warning text-dark' : 'bg-danger')}" th:text="${c.escoreLongevidade} + '/100'">85/100</span>
                                     <span th:if="${c.probabilidadeHigidez != null}" class="badge bg-light text-dark border ms-1" th:text="'P(Higidez): ' + ${c.probabilidadeHigidez} + '%'">P(Higidez): 88.5%</span>
+                                    <span th:if="${c.probabilidadeHigidez == null}" class="badge bg-info-subtle text-info border ms-1">Base 100</span>
                                     <div class="small text-muted mt-1 font-monospace" style="font-size: 0.75rem;" th:text="${c.modeloVersao ?: 'CanineWellness-ML-v1.0'}">CanineWellness-ML-v1.0</div>
                                 </td>
                                 <td>

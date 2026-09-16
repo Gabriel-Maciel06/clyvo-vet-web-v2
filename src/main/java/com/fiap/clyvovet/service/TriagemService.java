@@ -1,6 +1,9 @@
 package com.fiap.clyvovet.service;
 
 import com.fiap.clyvovet.dto.AvaliacaoTriagemDto;
+import com.fiap.clyvovet.dto.FatorExplicabilidade;
+import com.fiap.clyvovet.dto.ResultadoDecisaoClinica;
+import com.fiap.clyvovet.dto.RiscoFenotipico;
 import com.fiap.clyvovet.dto.SolicitacaoTriagemDto;
 import com.fiap.clyvovet.model.*;
 import com.fiap.clyvovet.repository.*;
@@ -126,24 +129,34 @@ public class TriagemService {
         triagem.setEscoreLongevidade(resultado.escore());
         triagem.setClassificacaoRisco(resultado.risco());
         triagem.setInsightIa(resultado.insights());
-        triagem.setProbabilidadeHigidez(BigDecimal.valueOf(resultado.probabilidadeHigidez()));
+        triagem.setProbabilidadeHigidez(resultado.probabilidadeHigidez() != null ? BigDecimal.valueOf(resultado.probabilidadeHigidez()) : null);
         triagem.setModeloVersao(resultado.modeloVersao());
         triagem.setFatoresXai(resultado.fatoresXai());
+        triagem.setTipoMotor(resultado.tipoMotor());
 
         // Atualiza escore no Pet
         pet.setEscoreSaude(resultado.escore());
-        pet.setStatusLongevidade(String.format("Escore: %d/100 (ML P(Higidez)=%.1f%%) - Risco %s",
-                resultado.escore(), resultado.probabilidadeHigidez(), resultado.risco().name()));
+        String statusLong = (resultado.tipoMotor() == TipoMotorDecisao.MACHINE_LEARNING_SUPERVISIONADO && resultado.probabilidadeHigidez() != null)
+                ? String.format("Escore: %d/100 (ML P(Higidez)=%.1f%%) - Risco %s",
+                        resultado.escore(), resultado.probabilidadeHigidez(), resultado.risco().name())
+                : String.format("Escore: %d/100 (Conformidade Fisiológica Base 100) - Risco %s",
+                        resultado.escore(), resultado.risco().name());
+        pet.setStatusLongevidade(statusLong);
         petRepository.save(pet);
 
         ConsultaTriagem salva = triagemRepository.save(triagem);
 
         // 3. Registrar na Linha do Tempo Clínica (Prontuário Consolidado)
+        String descHist = (resultado.tipoMotor() == TipoMotorDecisao.MACHINE_LEARNING_SUPERVISIONADO && resultado.probabilidadeHigidez() != null)
+                ? String.format("Triagem Concluída por Dr(a). %s. Escore Longevidade: %d/100 (ML P(Higidez)=%.1f%%, Risco %s).",
+                        vet.getNomeCompleto(), resultado.escore(), resultado.probabilidadeHigidez(), resultado.risco().name())
+                : String.format("Triagem Concluída por Dr(a). %s. Escore Longevidade: %d/100 (Conformidade Fisiológica Base 100, Risco %s).",
+                        vet.getNomeCompleto(), resultado.escore(), resultado.risco().name());
+
         HistoricoClinico hist = new HistoricoClinico(
                 null, pet, LocalDateTime.now(),
                 "TRIAGEM_PREVENTIVA",
-                String.format("Triagem Concluída por Dr(a). %s. Escore Longevidade: %d/100 (ML P(Higidez)=%.1f%%, Risco %s).",
-                        vet.getNomeCompleto(), resultado.escore(), resultado.probabilidadeHigidez(), resultado.risco().name()),
+                descHist,
                 "Insights da IA / XAI: " + resultado.insights() + " | Parecer: " + dto.getParecerVeterinario()
         );
         historicoClinicoRepository.save(hist);
@@ -155,20 +168,20 @@ public class TriagemService {
             int escore,
             ClassificacaoRisco risco,
             String insights,
-            double probabilidadeHigidez,
+            Double probabilidadeHigidez,
             String modeloVersao,
             String fatoresXai,
-            PredictiveMlEngine.TipoMotorDecisao tipoMotor
+            TipoMotorDecisao tipoMotor
     ) {
         public ResultadoCalculoEscore(int escore, ClassificacaoRisco risco, String insights) {
-            this(escore, risco, insights, 75.0, PredictiveMlEngine.MODEL_VERSION, "", PredictiveMlEngine.TipoMotorDecisao.MACHINE_LEARNING_PREDITIVO);
+            this(escore, risco, insights, 75.0, PredictiveMlEngine.MODEL_VERSION, "", TipoMotorDecisao.MACHINE_LEARNING_SUPERVISIONADO);
         }
 
-        public ResultadoCalculoEscore(int escore, ClassificacaoRisco risco, String insights, double probabilidadeHigidez, String modeloVersao, String fatoresXai) {
+        public ResultadoCalculoEscore(int escore, ClassificacaoRisco risco, String insights, Double probabilidadeHigidez, String modeloVersao, String fatoresXai) {
             this(escore, risco, insights, probabilidadeHigidez, modeloVersao, fatoresXai,
                     PredictiveMlEngine.MODEL_VERSION_CANINE.equals(modeloVersao)
-                            ? PredictiveMlEngine.TipoMotorDecisao.MACHINE_LEARNING_PREDITIVO
-                            : PredictiveMlEngine.TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGIA_COMPARADA);
+                            ? TipoMotorDecisao.MACHINE_LEARNING_SUPERVISIONADO
+                            : TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGICO);
         }
     }
 
@@ -197,8 +210,8 @@ public class TriagemService {
         List<CheckinDiario> ultimosCheckins = checkinRepository.findByPetIdOrderByDataCheckinDesc(pet.getId());
         int totalConsultas = triagemRepository.findByPetIdOrderByDataSolicitacaoDesc(pet.getId()).size();
 
-        // 3. Execução da Inferência de Machine Learning (Especializada por Grupo Fisiológico)
-        PredictiveMlEngine.ResultadoInferenciaMl inferenciaMl = mlEngine.executarInferencia(
+        // 3. Execução da Inferência de Decisão Clínica (Especializada por Grupo Fisiológico via Strategy)
+        ResultadoDecisaoClinica inferencia = mlEngine.executarInferencia(
                 pet,
                 pesoAferido,
                 temperatura,
@@ -208,8 +221,8 @@ public class TriagemService {
                 queixaPrincipal
         );
 
-        int escoreFinal = inferenciaMl.escoreLongevidade();
-        ClassificacaoRisco riscoFinal = inferenciaMl.classificacaoRisco();
+        int escoreFinal = inferencia.escoreLongevidade();
+        ClassificacaoRisco riscoFinal = inferencia.classificacaoRisco();
 
         // 4. Mecanismo de Proteção Vital (Fail-Safe Override Específico por Espécie):
         // Se houver emergência fisiológica grave confirmada pelo guardrail daquela espécie:
@@ -251,12 +264,12 @@ public class TriagemService {
 
         // 5. Montagem dos Insights Transparentes (Dual-Layer: ML/Regras + Guardrails + XAI)
         StringBuilder insightsBuilder = new StringBuilder();
-        if (inferenciaMl.tipoMotor() == PredictiveMlEngine.TipoMotorDecisao.MACHINE_LEARNING_PREDITIVO) {
+        if (inferencia.isMachineLearning()) {
             insightsBuilder.append(String.format("[ML Preditivo: P(Higidez)=%.1f%% | Escore=%d/100 (%s) | Mod=%s] ",
-                    inferenciaMl.probabilidadeHigidez(), escoreFinal, riscoFinal.name(), inferenciaMl.versaoModelo()));
+                    inferencia.probabilidadeHigidez(), escoreFinal, riscoFinal.name(), inferencia.versaoModelo()));
         } else {
-            insightsBuilder.append(String.format("[Regras Fisiológicas Comparadas: Escore=%d/100 (%s) | Motor=%s] ",
-                    escoreFinal, riscoFinal.name(), inferenciaMl.versaoModelo()));
+            insightsBuilder.append(String.format("[Conformidade Fisiológica: Escore=%d/100 (%s) | Motor=%s] ",
+                    escoreFinal, riscoFinal.name(), inferencia.versaoModelo()));
         }
 
         // Adiciona Alertas Vitais dos Guardrails se existirem
@@ -265,15 +278,15 @@ public class TriagemService {
         }
 
         // Adiciona Riscos Fenotípicos Específicos
-        for (PredictiveMlEngine.RiscoFenotipico r : inferenciaMl.riscosEspecificos()) {
+        for (RiscoFenotipico r : inferencia.riscosEspecificos()) {
             insightsBuilder.append("[").append(r.categoria()).append(": ").append(r.badge()).append(" - ").append(r.detalhes()).append("] ");
         }
 
         // Adiciona Top Fatores de Explicabilidade (XAI)
         insightsBuilder.append("XAI: ");
-        int maxFatores = Math.min(3, inferenciaMl.fatoresXai().size());
+        int maxFatores = Math.min(3, inferencia.fatoresXai().size());
         for (int i = 0; i < maxFatores; i++) {
-            PredictiveMlEngine.FatorXai f = inferenciaMl.fatoresXai().get(i);
+            FatorExplicabilidade f = inferencia.fatoresXai().get(i);
             insightsBuilder.append(f.impacto()).append(" ").append(f.fator());
             if (i < maxFatores - 1) insightsBuilder.append(", ");
         }
@@ -287,10 +300,10 @@ public class TriagemService {
                 escoreFinal,
                 riscoFinal,
                 insightsTexto,
-                inferenciaMl.probabilidadeHigidez(),
-                inferenciaMl.versaoModelo(),
-                inferenciaMl.resumoFormatadoXai(),
-                inferenciaMl.tipoMotor()
+                inferencia.probabilidadeHigidez(),
+                inferencia.versaoModelo(),
+                inferencia.resumoFormatadoXai(),
+                inferencia.tipoMotor()
         );
     }
 
