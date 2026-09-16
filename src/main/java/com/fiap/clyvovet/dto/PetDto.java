@@ -3,6 +3,7 @@ package com.fiap.clyvovet.dto;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -17,10 +18,11 @@ public class PetDto {
     private Long racaId;
 
     @NotNull(message = "A data de nascimento é obrigatória")
+    @PastOrPresent(message = "A data de nascimento não pode estar no futuro")
     private LocalDate dataNascimento;
 
     @NotNull(message = "O peso é obrigatório")
-    @DecimalMin(value = "0.1", message = "O peso deve ser maior que zero")
+    @DecimalMin(value = "0.01", message = "O peso deve ser maior que zero")
     private BigDecimal peso;
 
     public PetDto() {}

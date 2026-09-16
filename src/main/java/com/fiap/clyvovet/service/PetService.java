@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -104,6 +106,9 @@ public class PetService {
         Raca raca = racaRepository.findById(dto.getRacaId())
                 .orElseThrow(() -> new IllegalArgumentException("Raça inválida com ID: " + dto.getRacaId()));
 
+        // Validação de consistência biológica (impede idades e pesos irreais)
+        validarLimitesBiologicos(dto, raca);
+
         Pet pet;
         boolean novo = false;
         if (dto.getId() != null) {
@@ -182,5 +187,37 @@ public class PetService {
         checkinDiarioRepository.deleteByPetId(petId);
         consultaTriagemRepository.deleteByPetId(petId);
         petRepository.delete(pet);
+    }
+
+    /**
+     * Valida os limites biométricos de idade e peso para impedir inconsistências
+     * biológicas impossíveis no prontuário (ex.: cão de 50 anos ou peso de 500 kg).
+     */
+    public void validarLimitesBiologicos(PetDto dto, Raca raca) {
+        if (dto.getDataNascimento() != null) {
+            if (dto.getDataNascimento().isAfter(LocalDate.now())) {
+                throw new IllegalArgumentException("A data de nascimento não pode estar no futuro.");
+            }
+            int idadeAnos = Period.between(dto.getDataNascimento(), LocalDate.now()).getYears();
+            int maxIdade = raca.getLimiteMaximoIdadeAnos();
+            if (idadeAnos > maxIdade) {
+                throw new IllegalArgumentException(String.format(
+                        "Idade biologicamente incompatível: um animal da espécie %s não atinge %d anos de idade (limite biológico aceitável: até %d anos). Por favor, corrija a data de nascimento.",
+                        raca.getEspecie(), idadeAnos, maxIdade
+                ));
+            }
+        }
+
+        if (dto.getPeso() != null) {
+            double peso = dto.getPeso().doubleValue();
+            double minViavel = raca.getLimiteMinimoPesoKg();
+            double maxViavel = raca.getLimiteMaximoPesoKg();
+            if (peso < minViavel || peso > maxViavel) {
+                throw new IllegalArgumentException(String.format(
+                        "Peso biologicamente impossível: %.2f kg para a espécie %s (faixa viável: %.2f kg a %.2f kg). Verifique o valor digitado.",
+                        peso, raca.getEspecie(), minViavel, maxViavel
+                ));
+            }
+        }
     }
 }

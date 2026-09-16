@@ -7,7 +7,7 @@
         <div id="mainSection">
 
             <div class="row justify-content-center">
-                <div class="col-lg-8">
+                <div class="col-lg-9">
                     <div class="card p-4 p-md-5">
                         <div class="mb-4">
                             <h3 class="mb-1">
@@ -20,57 +20,122 @@
                             </p>
                         </div>
 
-                        <form th:action="@{/pets/salvar}" th:object="${petDto}" method="post">
+                        <!-- Alerta de erro do backend se houver -->
+                        <div class="alert alert-danger d-flex align-items-center gap-2 mb-4" th:if="${errorMessage}">
+                            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                            <span th:text="${errorMessage}">Mensagem de erro</span>
+                        </div>
+
+                        <form th:action="@{/pets/salvar}" th:object="${petDto}" method="post" id="petForm">
                             <input type="hidden" th:field="*{id}">
 
                             <div class="row g-3">
-                                <div class="col-md-8">
-                                    <label for="nome" class="form-label">Nome do Pet *</label>
-                                    <input type="text" class="form-control" id="nome" th:field="*{nome}" placeholder="Ex: Thor, Luna, Bob" required>
-                                    <div class="text-danger small" th:if="${#fields.hasErrors('nome')}" th:errors="*{nome}"></div>
-                                </div>
-
-                                <div class="col-md-4">
-                                    <label for="peso" class="form-label">Peso Atual (kg) *</label>
-                                    <input type="number" step="0.1" class="form-control" id="peso" th:field="*{peso}" placeholder="Ex: 12.5" required>
-                                    <div class="text-danger small" th:if="${#fields.hasErrors('peso')}" th:errors="*{peso}"></div>
-                                </div>
-
+                                <!-- 1. Nome do Pet -->
                                 <div class="col-md-6">
-                                    <label for="racaId" class="form-label">Espécie & Raça *</label>
-                                    <select class="form-select" id="racaId" th:field="*{racaId}" data-placeholder="Selecione ou digite para buscar espécie/raça...">
+                                    <label for="nome" class="form-label fw-semibold">Nome do Pet *</label>
+                                    <input type="text" class="form-control" id="nome" th:field="*{nome}" placeholder="Ex: Thor, Luna, Bob" required>
+                                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('nome')}" th:errors="*{nome}"></div>
+                                </div>
+
+                                <!-- 2. Espécie & Raça (com dados biométricos embutidos) -->
+                                <div class="col-md-6">
+                                    <label for="racaId" class="form-label fw-semibold">Espécie & Raça *</label>
+                                    <select class="form-select" id="racaId" th:field="*{racaId}" data-placeholder="Selecione ou digite para buscar espécie/raça..." required>
                                         <option value=""></option>
                                         <th:block th:if="${racasPorEspecie != null}">
                                             <optgroup th:each="entry : ${racasPorEspecie}" th:label="${entry.value[0].emoji} + ' ' + ${entry.key}">
                                                 <option th:each="raca : ${entry.value}" 
                                                         th:value="${raca.id}" 
+                                                        th:data-nome="${raca.nome}"
+                                                        th:data-especie="${raca.especie}"
+                                                        th:data-emoji="${raca.emoji}"
+                                                        th:data-peso-min="${raca.pesoMedioMin}"
+                                                        th:data-peso-max="${raca.pesoMedioMax}"
+                                                        th:data-peso-medio="${raca.pesoMedioSugerido}"
+                                                        th:data-expectativa="${raca.expectativaVida}"
+                                                        th:data-max-idade="${raca.limiteMaximoIdadeAnos}"
+                                                        th:data-max-peso="${raca.limiteMaximoPesoKg}"
+                                                        th:data-min-peso="${raca.limiteMinimoPesoKg}"
                                                         th:text="${(raca.nome.contains('Geral') or raca.nome.contains('Não Listada') or raca.nome.contains('SRD') ? '★ ' : '') + raca.nome + ' (Expectativa: ' + raca.expectativaVida + ' anos)'}">
                                                 </option>
                                             </optgroup>
                                         </th:block>
                                         <th:block th:if="${racasPorEspecie == null}">
-                                            <option th:each="raca : ${racas}" th:value="${raca.id}" th:text="${raca.emoji} + ' ' + ${raca.especie} + ' - ' + raca.nome + ' (Expectativa: ' + ${raca.expectativaVida} + ' anos)'"></option>
+                                            <option th:each="raca : ${racas}" 
+                                                    th:value="${raca.id}" 
+                                                    th:data-nome="${raca.nome}"
+                                                    th:data-especie="${raca.especie}"
+                                                    th:data-emoji="${raca.emoji}"
+                                                    th:data-peso-min="${raca.pesoMedioMin}"
+                                                    th:data-peso-max="${raca.pesoMedioMax}"
+                                                    th:data-peso-medio="${raca.pesoMedioSugerido}"
+                                                    th:data-expectativa="${raca.expectativaVida}"
+                                                    th:data-max-idade="${raca.limiteMaximoIdadeAnos}"
+                                                    th:data-max-peso="${raca.limiteMaximoPesoKg}"
+                                                    th:data-min-peso="${raca.limiteMinimoPesoKg}"
+                                                    th:text="${raca.emoji} + ' ' + ${raca.especie} + ' - ' + raca.nome + ' (Expectativa: ' + ${raca.expectativaVida} + ' anos)'">
+                                            </option>
                                         </th:block>
                                     </select>
-                                    <div class="text-danger small" th:if="${#fields.hasErrors('racaId')}" th:errors="*{racaId}"></div>
+                                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('racaId')}" th:errors="*{racaId}"></div>
                                 </div>
 
+                                <!-- 3. CARD DINÂMICO DE RECOMENDAÇÃO BIOMÉTRICA (Aparece ao selecionar a raça) -->
+                                <div class="col-12">
+                                    <div id="cardRecomendacaoRaca" class="alert alert-light border p-3 my-1 d-none" style="background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 100%); border-left: 4px solid #0d9488 !important; border-radius: 10px;">
+                                        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+                                            <div>
+                                                <div class="d-flex align-items-center gap-2 mb-1">
+                                                    <span id="recEmoji" class="fs-5">🐶</span>
+                                                    <strong class="text-dark fs-6" id="recRacaNome">Golden Retriever</strong>
+                                                    <span class="badge bg-teal text-white small" id="recBadgeEspecie">CANINA</span>
+                                                </div>
+                                                <div class="small text-secondary" style="line-height: 1.6;">
+                                                    <span>⚖️ <strong>Faixa de peso saudável:</strong> <span class="text-dark fw-bold" id="recFaixaPeso">27.0 a 36.0 kg</span></span>
+                                                    <span class="mx-2 d-none d-sm-inline">•</span>
+                                                    <span>🩺 <strong>Expectativa de vida:</strong> <span class="text-dark fw-bold" id="recExpectativa">12 anos</span></span>
+                                                    <span class="mx-2 d-none d-sm-inline">•</span>
+                                                    <span>⏳ <strong>Limite biológico máximo:</strong> <span class="text-dark fw-bold" id="recMaxIdade">30 anos</span></span>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-clyvo text-nowrap px-3 align-self-stretch align-self-md-center" id="btnUsarPesoMedio">
+                                                <i class="bi bi-magic me-1"></i> Usar peso médio (<span id="recPesoMedioValor">31.5</span> kg)
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 4. Peso Atual -->
                                 <div class="col-md-6">
-                                    <label for="dataNascimento" class="form-label">Data de Nascimento *</label>
+                                    <label for="peso" class="form-label fw-semibold">
+                                        Peso Atual (kg) *
+                                        <span class="text-muted fw-normal small">(aferição recente)</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="number" step="0.01" class="form-control" id="peso" th:field="*{peso}" placeholder="Ex: 12.5" required>
+                                        <span class="input-group-text bg-white text-teal fw-semibold">kg</span>
+                                    </div>
+                                    <div id="pesoFeedback" class="small mt-1"></div>
+                                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('peso')}" th:errors="*{peso}"></div>
+                                </div>
+
+                                <!-- 5. Data de Nascimento -->
+                                <div class="col-md-6">
+                                    <label for="dataNascimento" class="form-label fw-semibold">Data de Nascimento *</label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-white" id="btnCalendar" style="cursor: pointer;" title="Abrir calendário">
                                             <i class="bi bi-calendar-event text-teal"></i>
                                         </span>
                                         <input type="text" class="form-control bg-white flatpickr-custom" id="dataNascimento" th:field="*{dataNascimento}" placeholder="DD/MM/AAAA" required>
                                     </div>
-                                    <div class="form-text small text-muted">Selecione o dia, mês e ano de nascimento</div>
-                                    <div class="text-danger small" th:if="${#fields.hasErrors('dataNascimento')}" th:errors="*{dataNascimento}"></div>
+                                    <div id="dataNascimentoFeedback" class="small mt-1 text-muted">Selecione o dia, mês e ano de nascimento</div>
+                                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('dataNascimento')}" th:errors="*{dataNascimento}"></div>
                                 </div>
                             </div>
 
                             <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
                                 <a th:href="${petDto != null && petDto.id != null ? '/pets/' + petDto.id : '/pets'}" class="btn btn-outline-secondary px-4">Cancelar</a>
-                                <button type="submit" class="btn btn-clyvo px-4">
+                                <button type="submit" class="btn btn-clyvo px-4" id="btnSalvarPet">
                                     <i class="bi bi-check-lg me-1"></i>
                                     <span th:text="${petDto != null && petDto.id != null ? 'Salvar Alterações' : 'Salvar Pet'}">Salvar Pet</span>
                                 </button>
@@ -80,12 +145,19 @@
                 </div>
             </div>
 
-            <!-- Inicialização do Select2 e Flatpickr -->
+            <!-- Scripts: Select2, Flatpickr e Validação Biológica em Tempo Real -->
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
-                    // 1. Select2 para Espécie & Raça
+                    var $racaSelect = $('#racaId');
+                    var $pesoInput = $('#peso');
+                    var $dataInput = $('#dataNascimento');
+                    var $cardRecomendacao = $('#cardRecomendacaoRaca');
+                    var $btnUsarPesoMedio = $('#btnUsarPesoMedio');
+
+                    var racaAtual = null;
+
+                    // 1. Inicializa Select2
                     if (window.jQuery && jQuery().select2) {
-                        var $racaSelect = $('#racaId');
                         $racaSelect.select2({
                             theme: 'bootstrap-5',
                             placeholder: 'Selecione ou digite para buscar espécie/raça...',
@@ -106,25 +178,9 @@
                                 $firstOption.trigger('mouseup');
                             }
                         });
-
-                        // Validação amigável ao submeter o formulário
-                        $racaSelect.closest('form').on('submit', function(e) {
-                            if (!$racaSelect.val()) {
-                                e.preventDefault();
-                                $racaSelect.select2('open');
-                                return false;
-                            }
-                            if (!$('#dataNascimento').val()) {
-                                e.preventDefault();
-                                if (window.petDatePicker) {
-                                    window.petDatePicker.open();
-                                }
-                                return false;
-                            }
-                        });
                     }
 
-                    // 2. Flatpickr para Seletor de Data Personalizado
+                    // 2. Inicializa Flatpickr
                     if (window.flatpickr) {
                         window.petDatePicker = flatpickr('#dataNascimento', {
                             locale: 'pt',
@@ -134,7 +190,10 @@
                             maxDate: 'today',
                             altInputClass: 'form-control bg-white flatpickr-custom',
                             disableMobile: true,
-                            monthSelectorType: 'dropdown'
+                            monthSelectorType: 'dropdown',
+                            onChange: function() {
+                                validarDataNascimento();
+                            }
                         });
 
                         var btnCal = document.getElementById('btnCalendar');
@@ -146,6 +205,213 @@
                             });
                         }
                     }
+
+                    // 3. Atualiza recomendações biométricas quando a raça muda
+                    function atualizarRecomendacoes() {
+                        var selectedOption = $racaSelect.find(':selected');
+                        if (!selectedOption || !selectedOption.val()) {
+                            $cardRecomendacao.addClass('d-none');
+                            racaAtual = null;
+                            validarPeso();
+                            validarDataNascimento();
+                            return;
+                        }
+
+                        racaAtual = {
+                            id: selectedOption.val(),
+                            nome: selectedOption.data('nome') || selectedOption.text(),
+                            especie: selectedOption.data('especie') || 'CANINA',
+                            emoji: selectedOption.data('emoji') || '🐾',
+                            pesoMin: parseFloat(selectedOption.data('peso-min')) || null,
+                            pesoMax: parseFloat(selectedOption.data('peso-max')) || null,
+                            pesoMedio: parseFloat(selectedOption.data('peso-medio')) || null,
+                            expectativa: parseInt(selectedOption.data('expectativa')) || 13,
+                            maxIdade: parseInt(selectedOption.data('max-idade')) || 30,
+                            maxPeso: parseFloat(selectedOption.data('max-peso')) || 160.0,
+                            minPeso: parseFloat(selectedOption.data('min-peso')) || 0.2
+                        };
+
+                        // Popula os elementos do Card
+                        $('#recEmoji').text(racaAtual.emoji);
+                        $('#recRacaNome').text(racaAtual.nome);
+                        $('#recBadgeEspecie').text(racaAtual.especie);
+                        $('#recExpectativa').text(racaAtual.expectativa + ' anos');
+                        $('#recMaxIdade').text(racaAtual.maxIdade + ' anos');
+
+                        if (racaAtual.pesoMin !== null && racaAtual.pesoMax !== null) {
+                            $('#recFaixaPeso').text(racaAtual.pesoMin.toFixed(1) + ' a ' + racaAtual.pesoMax.toFixed(1) + ' kg');
+                            $('#recPesoMedioValor').text(racaAtual.pesoMedio.toFixed(1));
+                            $btnUsarPesoMedio.removeClass('d-none');
+                        } else {
+                            $('#recFaixaPeso').text('Consulte a faixa típica da espécie');
+                            $btnUsarPesoMedio.addClass('d-none');
+                        }
+
+                        $cardRecomendacao.removeClass('d-none');
+
+                        // Ajusta dinamicamente a data mínima permitida no Flatpickr (hoje - maxIdade)
+                        if (window.petDatePicker) {
+                            var hoje = new Date();
+                            var dataMinima = new Date(hoje.getFullYear() - racaAtual.maxIdade, hoje.getMonth(), hoje.getDate());
+                            window.petDatePicker.set('minDate', dataMinima);
+                        }
+
+                        validarPeso();
+                        validarDataNascimento();
+                    }
+
+                    // 4. Clique em "Usar Peso Médio"
+                    $btnUsarPesoMedio.on('click', function(e) {
+                        e.preventDefault();
+                        if (racaAtual && racaAtual.pesoMedio) {
+                            $pesoInput.val(racaAtual.pesoMedio.toFixed(1));
+                            $pesoInput.addClass('is-valid').removeClass('is-invalid');
+                            validarPeso();
+                        }
+                    });
+
+                    // 5. Validação de Peso em Tempo Real
+                    function validarPeso() {
+                        var val = $pesoInput.val();
+                        var $feedback = $('#pesoFeedback');
+
+                        if (!val) {
+                            $feedback.html('').removeClass('text-danger text-warning text-success');
+                            $pesoInput.removeClass('is-invalid is-valid');
+                            return true;
+                        }
+
+                        var peso = parseFloat(val);
+                        if (isNaN(peso) || peso <= 0) {
+                            $feedback.html('<span class="text-danger"><i class="bi bi-x-circle me-1"></i>O peso deve ser maior que zero.</span>');
+                            $pesoInput.addClass('is-invalid').removeClass('is-valid');
+                            return false;
+                        }
+
+                        if (racaAtual) {
+                            // Limite biológico impossível (ex: cão com 300kg)
+                            if (peso > racaAtual.maxPeso) {
+                                $feedback.html('<span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Peso biologicamente impossível para ' + racaAtual.especie + ' (máximo tolerado: ' + racaAtual.maxPeso.toFixed(1) + ' kg).</span>');
+                                $pesoInput.addClass('is-invalid').removeClass('is-valid');
+                                return false;
+                            }
+
+                            if (peso < racaAtual.minPeso) {
+                                $feedback.html('<span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Peso biologicamente impossível para ' + racaAtual.especie + ' (mínimo tolerado: ' + racaAtual.minPeso.toFixed(2) + ' kg).</span>');
+                                $pesoInput.addClass('is-invalid').removeClass('is-valid');
+                                return false;
+                            }
+
+                            // Faixa recomendada saudável
+                            if (racaAtual.pesoMin !== null && racaAtual.pesoMax !== null) {
+                                if (peso > racaAtual.pesoMax) {
+                                    $feedback.html('<span class="text-warning"><i class="bi bi-exclamation-triangle-fill me-1"></i>Atenção: Peso acima da faixa média típica da raça (' + racaAtual.pesoMin.toFixed(1) + ' a ' + racaAtual.pesoMax.toFixed(1) + ' kg).</span>');
+                                    $pesoInput.removeClass('is-invalid is-valid');
+                                    return true;
+                                } else if (peso < racaAtual.pesoMin) {
+                                    $feedback.html('<span class="text-warning"><i class="bi bi-exclamation-triangle-fill me-1"></i>Atenção: Peso abaixo da faixa média típica da raça (' + racaAtual.pesoMin.toFixed(1) + ' a ' + racaAtual.pesoMax.toFixed(1) + ' kg).</span>');
+                                    $pesoInput.removeClass('is-invalid is-valid');
+                                    return true;
+                                } else {
+                                    $feedback.html('<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Peso dentro da faixa saudável recomendada para a raça.</span>');
+                                    $pesoInput.addClass('is-valid').removeClass('is-invalid');
+                                    return true;
+                                }
+                            }
+                        }
+
+                        $feedback.html('');
+                        $pesoInput.removeClass('is-invalid is-valid');
+                        return true;
+                    }
+
+                    // 6. Validação de Data de Nascimento e Idade em Tempo Real
+                    function validarDataNascimento() {
+                        var val = $dataInput.val();
+                        var $feedback = $('#dataNascimentoFeedback');
+
+                        if (!val) {
+                            $feedback.text('Selecione o dia, mês e ano de nascimento').removeClass('text-danger text-warning text-success');
+                            $dataInput.removeClass('is-invalid is-valid');
+                            return true;
+                        }
+
+                        var partes = val.split('-');
+                        if (partes.length !== 3) {
+                            // Tenta formato DD/MM/AAAA
+                            partes = val.split('/');
+                            if (partes.length === 3) {
+                                partes = [partes[2], partes[1], partes[0]];
+                            }
+                        }
+
+                        if (partes.length !== 3) return true;
+
+                        var dataNasc = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]));
+                        var hoje = new Date();
+
+                        if (dataNasc > hoje) {
+                            $feedback.html('<span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Data impossível: A data de nascimento não pode estar no futuro.</span>');
+                            $dataInput.addClass('is-invalid').removeClass('is-valid');
+                            return false;
+                        }
+
+                        var diffAnos = hoje.getFullYear() - dataNasc.getFullYear();
+                        var m = hoje.getMonth() - dataNasc.getMonth();
+                        if (m < 0 || (m === 0 && hoje.getDate() < dataNasc.getDate())) {
+                            diffAnos--;
+                        }
+
+                        var maxPermitido = racaAtual ? racaAtual.maxIdade : 30;
+
+                        if (diffAnos > maxPermitido) {
+                            var esp = racaAtual ? racaAtual.especie : 'esta espécie';
+                            $feedback.html('<span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Idade biologicamente impossível: Um animal da espécie ' + esp + ' não atinge ' + diffAnos + ' anos (limite biológico aceitável: até ' + maxPermitido + ' anos).</span>');
+                            $dataInput.addClass('is-invalid').removeClass('is-valid');
+                            return false;
+                        }
+
+                        // Idade válida
+                        $feedback.html('<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Idade calculada: ' + diffAnos + ' ano(s) (compatível com a espécie).</span>');
+                        $dataInput.addClass('is-valid').removeClass('is-invalid');
+                        return true;
+                    }
+
+                    // Eventos de escuta
+                    $racaSelect.on('change', atualizarRecomendacoes);
+                    $pesoInput.on('input change', validarPeso);
+                    $dataInput.on('change input', validarDataNascimento);
+
+                    // Inicializa recomendações se já houver raça selecionada (ex.: tela de edição ou reload)
+                    if ($racaSelect.val()) {
+                        atualizarRecomendacoes();
+                    }
+
+                    // Validação final de bloqueio no submit do formulário
+                    $('#petForm').on('submit', function(e) {
+                        if (!$racaSelect.val()) {
+                            e.preventDefault();
+                            $racaSelect.select2('open');
+                            return false;
+                        }
+
+                        var pesoValido = validarPeso();
+                        var dataValida = validarDataNascimento();
+
+                        if (!pesoValido) {
+                            e.preventDefault();
+                            $pesoInput.focus();
+                            return false;
+                        }
+
+                        if (!dataValida) {
+                            e.preventDefault();
+                            if (window.petDatePicker) {
+                                window.petDatePicker.open();
+                            }
+                            return false;
+                        }
+                    });
                 });
             </script>
 

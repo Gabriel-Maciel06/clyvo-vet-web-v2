@@ -773,11 +773,14 @@
 
                         <!-- SEÇÃO DO PESO AFERIDO (ÚNICO CAMPO EDITÁVEL) -->
                         <div class="p-3 p-md-4 mb-4 rounded-3 border" style="background: #f0fdfa; border-color: #99f6e4 !important;">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
                                 <span class="badge badge-clyvo text-uppercase">
                                     <i class="bi bi-pencil me-1"></i> Parâmetro Clínico Editável
                                 </span>
-                                <span class="small text-muted">Última aferição registrada: <strong th:text="${pet.peso} + ' kg'">32.5 kg</strong></span>
+                                <div class="small text-muted">
+                                    <span>Última aferição: <strong th:text="${pet.peso} + ' kg'">32.5 kg</strong></span>
+                                    <span class="ms-2" th:if="${pet.raca.pesoMedioMin != null}">• Faixa saudável da raça: <strong class="text-teal" th:text="${pet.raca.pesoMedioFormatado}">27.0 a 36.0 kg</strong></span>
+                                </div>
                             </div>
                             <div class="row align-items-center g-3">
                                 <div class="col-md-6 col-lg-5">
