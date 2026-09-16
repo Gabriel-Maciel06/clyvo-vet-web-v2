@@ -133,4 +133,69 @@ class PetBiometriaValidacaoTest {
         assertDoesNotThrow(() -> petService.validarLimitesBiologicos(dto, racaCanina),
                 "Cão Golden de 4 anos e 32.5 kg deve ser aceito sem exceção");
     }
+
+    @Test
+    @DisplayName("Deve formatar peso de Calopsita em gramas e kg (80 g a 120 g (0.08 a 0.12 kg))")
+    void deveFormatarPesoCalopsitaEmGramasEKg() {
+        Raca calopsita = new Raca(4L, "Calopsita", "AVE", "Clamidiose", 15, "Gaiola ampla",
+                new BigDecimal("0.08"), new BigDecimal("0.12"));
+
+        assertEquals("80 g a 120 g (0.08 a 0.12 kg)", calopsita.getPesoMedioFormatado());
+        assertEquals(25, calopsita.getLimiteMaximoIdadeAnos());
+        assertEquals(new BigDecimal("0.10"), calopsita.getPesoMedioSugerido());
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar peso biologicamente impossível para Calopsita (ex: 5 kg)")
+    void deveRejeitarPesoImpossivelParaCalopsita() {
+        Raca calopsita = new Raca(4L, "Calopsita", "AVE", "Clamidiose", 15, "Gaiola ampla",
+                new BigDecimal("0.08"), new BigDecimal("0.12"));
+
+        PetDto dto = new PetDto();
+        dto.setNome("Piu-Piu");
+        dto.setRacaId(calopsita.getId());
+        dto.setDataNascimento(LocalDate.now().minusYears(2));
+        dto.setPeso(new BigDecimal("5.0")); // 5 kg para uma calopsita!
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                petService.validarLimitesBiologicos(dto, calopsita)
+        );
+
+        assertTrue(ex.getMessage().contains("Peso biologicamente impossível"));
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar calopsita com idade superior ao teto biológico (ex: 40 anos)")
+    void deveRejeitarCalopsitaComIdadeSuperiorAoTeto() {
+        Raca calopsita = new Raca(4L, "Calopsita", "AVE", "Clamidiose", 15, "Gaiola ampla",
+                new BigDecimal("0.08"), new BigDecimal("0.12"));
+
+        PetDto dto = new PetDto();
+        dto.setNome("Lili");
+        dto.setRacaId(calopsita.getId());
+        dto.setDataNascimento(LocalDate.now().minusYears(40)); // 40 anos para calopsita!
+        dto.setPeso(new BigDecimal("0.10"));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                petService.validarLimitesBiologicos(dto, calopsita)
+        );
+
+        assertTrue(ex.getMessage().contains("Idade biologicamente incompatível"));
+        assertTrue(ex.getMessage().contains("25 anos"));
+    }
+
+    @Test
+    @DisplayName("Deve aceitar calopsita saudável com peso de 90g (0.09 kg) e 3 anos")
+    void deveAceitarCalopsitaSaudavel() {
+        Raca calopsita = new Raca(4L, "Calopsita", "AVE", "Clamidiose", 15, "Gaiola ampla",
+                new BigDecimal("0.08"), new BigDecimal("0.12"));
+
+        PetDto dto = new PetDto();
+        dto.setNome("Lili");
+        dto.setRacaId(calopsita.getId());
+        dto.setDataNascimento(LocalDate.now().minusYears(3));
+        dto.setPeso(new BigDecimal("0.09")); // 90 gramas
+
+        assertDoesNotThrow(() -> petService.validarLimitesBiologicos(dto, calopsita));
+    }
 }

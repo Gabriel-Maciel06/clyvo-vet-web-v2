@@ -80,10 +80,21 @@ public class Raca {
         };
     }
 
-    /** Retorna a faixa média formatada (ex: "27.0 a 36.0 kg" ou padrão por espécie). */
+    /**
+     * Retorna a faixa média formatada inteligentemente.
+     * Para animais menores que 1 kg (como aves, roedores e peixes), exibe primariamente
+     * em gramas (g) com o equivalente em kg para garantir clareza médica (ex: "80 a 120 g (0.08 a 0.12 kg)").
+     */
     public String getPesoMedioFormatado() {
         if (pesoMedioMin != null && pesoMedioMax != null) {
-            return pesoMedioMin + " a " + pesoMedioMax + " kg";
+            double min = pesoMedioMin.doubleValue();
+            double max = pesoMedioMax.doubleValue();
+            if (max < 1.0) {
+                long minG = Math.round(min * 1000);
+                long maxG = Math.round(max * 1000);
+                return String.format(java.util.Locale.US, "%d g a %d g (%.2f a %.2f kg)", minG, maxG, min, max);
+            }
+            return String.format(java.util.Locale.US, "%.1f a %.1f kg", min, max);
         }
         return "Consulte faixa típica da espécie";
     }
@@ -91,39 +102,57 @@ public class Raca {
     /** Retorna um valor médio sugerido de 1 clique para pré-preenchimento no formulário. */
     public BigDecimal getPesoMedioSugerido() {
         if (pesoMedioMin != null && pesoMedioMax != null) {
-            return pesoMedioMin.add(pesoMedioMax).divide(BigDecimal.valueOf(2), 1, RoundingMode.HALF_UP);
+            return pesoMedioMin.add(pesoMedioMax).divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
         }
-        if ("CANINA".equalsIgnoreCase(especie)) return new BigDecimal("15.0");
-        if ("FELINA".equalsIgnoreCase(especie)) return new BigDecimal("4.5");
-        return new BigDecimal("5.0");
+        if ("CANINA".equalsIgnoreCase(especie)) return new BigDecimal("15.00");
+        if ("FELINA".equalsIgnoreCase(especie)) return new BigDecimal("4.50");
+        return new BigDecimal("5.00");
     }
 
-    /** Retorna o limite biológico máximo plausível de idade em anos para a espécie. */
+    /** Retorna o limite biológico máximo plausível de idade em anos calibrado por raça/espécie. */
     public int getLimiteMaximoIdadeAnos() {
+        if (nome != null) {
+            String n = nome.toLowerCase();
+            if (n.contains("calopsita")) return 25; // Calopsitas vivem 12-18 anos, máx ~25-30
+            if (n.contains("periquito")) return 18;
+            if (n.contains("papagaio") || n.contains("arara")) return 70;
+            if (n.contains("twister") || n.contains("rato") || n.contains("hamster")) return 5;
+            if (n.contains("furão") || n.contains("ferret")) return 12;
+            if (n.contains("betta")) return 5;
+            if (n.contains("kinguio")) return 20;
+            if (n.contains("cobra") || n.contains("snake")) return 25;
+            if (n.contains("jabuti")) return 100;
+            if (n.contains("tartaruga")) return 50;
+        }
         if (especie == null) return 30;
         return switch (especie.trim().toUpperCase()) {
-            case "CANINA" -> 30;     // Recorde histórico mundial: ~31 anos
-            case "FELINA" -> 30;     // Recorde histórico mundial: ~38 anos
-            case "ROEDOR" -> 6;      // Ratos/hamsters raramente passam de 3 a 5 anos
-            case "MUSTELIDEO" -> 14; // Furões vivem até 8-12 anos
-            case "AVE" -> 80;        // Grandes psitacídeos vivem até 60-80 anos
-            case "REPTIL" -> 120;    // Jabutis e tartarugas gigantes
-            case "PEIXE" -> 25;      // Kinguios vivem até 15-20 anos
-            case "ARACNIDEO" -> 30;  // Fêmeas de tarântulas até 25-30 anos
-            case "EQUINA" -> 45;     // Cavalos vivem até 30-40 anos
-            default -> 35;
+            case "CANINA" -> 30;     // Recorde mundial canino: ~31 anos
+            case "FELINA" -> 30;     // Recorde mundial felino: ~38 anos
+            case "ROEDOR" -> 6;      // Pequenos roedores
+            case "MUSTELIDEO" -> 14; // Furões
+            case "AVE" -> 35;        // Média geral para aves
+            case "REPTIL" -> 80;     // Répteis
+            case "PEIXE" -> 20;      // Peixes ornamentais
+            case "ARACNIDEO" -> 25;  // Tarântulas
+            case "EQUINA" -> 45;     // Cavalos
+            default -> 30;
         };
     }
 
-    /** Retorna o peso biológico máximo plausível em kg para a espécie. */
+    /** Retorna o peso biológico máximo plausível em kg para a espécie/raça. */
     public double getLimiteMaximoPesoKg() {
+        if (pesoMedioMax != null && pesoMedioMax.doubleValue() < 1.0) {
+            // Para animais de pequeno porte (< 1 kg: aves como calopsita, roedores, peixes),
+            // tolerar até 3.5x o peso máximo da raça, garantindo bloqueio de absurdos (ex: 5 kg para calopsita)
+            return Math.max(0.35, Math.round(pesoMedioMax.doubleValue() * 3.5 * 100.0) / 100.0);
+        }
         if (especie == null) return 160.0;
         return switch (especie.trim().toUpperCase()) {
             case "CANINA" -> 160.0;   // Maior mastiff registrado pesava ~155 kg
             case "FELINA" -> 25.0;    // Obesidade extrema felina atinge ~20-22 kg
-            case "ROEDOR" -> 5.0;     // Capivara doméstica ou rato grande
+            case "ROEDOR" -> 5.0;     // Capivara doméstica ou roedor grande
             case "MUSTELIDEO" -> 10.0;
-            case "AVE" -> 15.0;
+            case "AVE" -> 15.0;       // Aves de grande porte
             case "REPTIL" -> 300.0;   // Tartarugas gigantes
             case "PEIXE" -> 50.0;
             case "ARACNIDEO" -> 1.0;
@@ -134,6 +163,9 @@ public class Raca {
 
     /** Retorna o peso biológico mínimo viável em kg para a espécie. */
     public double getLimiteMinimoPesoKg() {
+        if (pesoMedioMin != null && pesoMedioMin.doubleValue() < 1.0) {
+            return Math.max(0.001, Math.round(pesoMedioMin.doubleValue() * 0.20 * 1000.0) / 1000.0);
+        }
         if (especie == null) return 0.2;
         return switch (especie.trim().toUpperCase()) {
             case "CANINA" -> 0.20;   // Filhote/miniatura (ex: Chihuahua)

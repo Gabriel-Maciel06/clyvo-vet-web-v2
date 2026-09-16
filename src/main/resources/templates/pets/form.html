@@ -52,6 +52,7 @@
                                                         th:data-peso-min="${raca.pesoMedioMin}"
                                                         th:data-peso-max="${raca.pesoMedioMax}"
                                                         th:data-peso-medio="${raca.pesoMedioSugerido}"
+                                                        th:data-peso-formatado="${raca.pesoMedioFormatado}"
                                                         th:data-expectativa="${raca.expectativaVida}"
                                                         th:data-max-idade="${raca.limiteMaximoIdadeAnos}"
                                                         th:data-max-peso="${raca.limiteMaximoPesoKg}"
@@ -69,6 +70,7 @@
                                                     th:data-peso-min="${raca.pesoMedioMin}"
                                                     th:data-peso-max="${raca.pesoMedioMax}"
                                                     th:data-peso-medio="${raca.pesoMedioSugerido}"
+                                                    th:data-peso-formatado="${raca.pesoMedioFormatado}"
                                                     th:data-expectativa="${raca.expectativaVida}"
                                                     th:data-max-idade="${raca.limiteMaximoIdadeAnos}"
                                                     th:data-max-peso="${raca.limiteMaximoPesoKg}"
@@ -99,7 +101,7 @@
                                                 </div>
                                             </div>
                                             <button type="button" class="btn btn-sm btn-clyvo text-nowrap px-3 align-self-stretch align-self-md-center" id="btnUsarPesoMedio">
-                                                <i class="bi bi-magic me-1"></i> Usar peso médio (<span id="recPesoMedioValor">31.5</span> kg)
+                                                <i class="bi bi-magic me-1"></i> <span id="recBtnTexto">Usar peso médio (<span id="recPesoMedioValor">31.5</span> kg)</span>
                                             </button>
                                         </div>
                                     </div>
@@ -112,9 +114,10 @@
                                         <span class="text-muted fw-normal small">(aferição recente)</span>
                                     </label>
                                     <div class="input-group">
-                                        <input type="number" step="0.01" class="form-control" id="peso" th:field="*{peso}" placeholder="Ex: 12.5" required>
+                                        <input type="number" step="0.01" class="form-control" id="peso" th:field="*{peso}" placeholder="Ex: 12.5 (cão/gato) ou 0.10 (ave/roedor)" required>
                                         <span class="input-group-text bg-white text-teal fw-semibold">kg</span>
                                     </div>
+                                    <div class="form-text text-muted" style="font-size: 0.75rem;">Para pets &lt; 1 kg, informe a fração em kg (ex: 90 g = 0.09 kg).</div>
                                     <div id="pesoFeedback" class="small mt-1"></div>
                                     <div class="text-danger small mt-1" th:if="${#fields.hasErrors('peso')}" th:errors="*{peso}"></div>
                                 </div>
@@ -206,6 +209,23 @@
                         }
                     }
 
+                    // Funções utilitárias de formatação biométrica
+                    function formatarExibicaoPeso(kg) {
+                        if (kg === null || kg === undefined || isNaN(kg)) return '';
+                        if (kg < 1.0) {
+                            var g = Math.round(kg * 1000);
+                            return g + ' g (' + kg.toFixed(2) + ' kg)';
+                        }
+                        return kg.toFixed(1) + ' kg';
+                    }
+
+                    function formatarFaixaPeso(min, max) {
+                        if (max < 1.0) {
+                            return Math.round(min * 1000) + ' g a ' + Math.round(max * 1000) + ' g (' + min.toFixed(2) + ' a ' + max.toFixed(2) + ' kg)';
+                        }
+                        return min.toFixed(1) + ' a ' + max.toFixed(1) + ' kg';
+                    }
+
                     // 3. Atualiza recomendações biométricas quando a raça muda
                     function atualizarRecomendacoes() {
                         var selectedOption = $racaSelect.find(':selected');
@@ -225,10 +245,11 @@
                             pesoMin: parseFloat(selectedOption.data('peso-min')) || null,
                             pesoMax: parseFloat(selectedOption.data('peso-max')) || null,
                             pesoMedio: parseFloat(selectedOption.data('peso-medio')) || null,
+                            pesoFormatado: selectedOption.data('peso-formatado') || null,
                             expectativa: parseInt(selectedOption.data('expectativa')) || 13,
                             maxIdade: parseInt(selectedOption.data('max-idade')) || 30,
                             maxPeso: parseFloat(selectedOption.data('max-peso')) || 160.0,
-                            minPeso: parseFloat(selectedOption.data('min-peso')) || 0.2
+                            minPeso: selectedOption.data('min-peso') !== undefined ? parseFloat(selectedOption.data('min-peso')) : 0.01
                         };
 
                         // Popula os elementos do Card
@@ -239,9 +260,20 @@
                         $('#recMaxIdade').text(racaAtual.maxIdade + ' anos');
 
                         if (racaAtual.pesoMin !== null && racaAtual.pesoMax !== null) {
-                            $('#recFaixaPeso').text(racaAtual.pesoMin.toFixed(1) + ' a ' + racaAtual.pesoMax.toFixed(1) + ' kg');
-                            $('#recPesoMedioValor').text(racaAtual.pesoMedio.toFixed(1));
-                            $btnUsarPesoMedio.removeClass('d-none');
+                            var faixaStr = racaAtual.pesoFormatado || formatarFaixaPeso(racaAtual.pesoMin, racaAtual.pesoMax);
+                            $('#recFaixaPeso').text(faixaStr);
+
+                            if (racaAtual.pesoMedio !== null && !isNaN(racaAtual.pesoMedio)) {
+                                if (racaAtual.pesoMedio < 1.0) {
+                                    var g = Math.round(racaAtual.pesoMedio * 1000);
+                                    $('#recBtnTexto').html('Usar peso médio (' + g + ' g / ' + racaAtual.pesoMedio.toFixed(2) + ' kg)');
+                                } else {
+                                    $('#recBtnTexto').html('Usar peso médio (' + racaAtual.pesoMedio.toFixed(1) + ' kg)');
+                                }
+                                $btnUsarPesoMedio.removeClass('d-none');
+                            } else {
+                                $btnUsarPesoMedio.addClass('d-none');
+                            }
                         } else {
                             $('#recFaixaPeso').text('Consulte a faixa típica da espécie');
                             $btnUsarPesoMedio.addClass('d-none');
@@ -264,7 +296,11 @@
                     $btnUsarPesoMedio.on('click', function(e) {
                         e.preventDefault();
                         if (racaAtual && racaAtual.pesoMedio) {
-                            $pesoInput.val(racaAtual.pesoMedio.toFixed(1));
+                            if (racaAtual.pesoMedio < 1.0) {
+                                $pesoInput.val(racaAtual.pesoMedio.toFixed(2));
+                            } else {
+                                $pesoInput.val(racaAtual.pesoMedio.toFixed(1));
+                            }
                             $pesoInput.addClass('is-valid').removeClass('is-invalid');
                             validarPeso();
                         }
@@ -289,31 +325,35 @@
                         }
 
                         if (racaAtual) {
-                            // Limite biológico impossível (ex: cão com 300kg)
+                            var pesoDigitadoTexto = formatarExibicaoPeso(peso);
+
+                            // Limite biológico impossível (ex: ave com 10kg ou cão com 300kg)
                             if (peso > racaAtual.maxPeso) {
-                                $feedback.html('<span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Peso biologicamente impossível para ' + racaAtual.especie + ' (máximo tolerado: ' + racaAtual.maxPeso.toFixed(1) + ' kg).</span>');
+                                $feedback.html('<span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Peso biologicamente impossível para ' + racaAtual.especie + ' (máximo tolerado: ' + formatarExibicaoPeso(racaAtual.maxPeso) + ').</span>');
                                 $pesoInput.addClass('is-invalid').removeClass('is-valid');
                                 return false;
                             }
 
                             if (peso < racaAtual.minPeso) {
-                                $feedback.html('<span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Peso biologicamente impossível para ' + racaAtual.especie + ' (mínimo tolerado: ' + racaAtual.minPeso.toFixed(2) + ' kg).</span>');
+                                $feedback.html('<span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Peso biologicamente impossível para ' + racaAtual.especie + ' (mínimo tolerado: ' + formatarExibicaoPeso(racaAtual.minPeso) + ').</span>');
                                 $pesoInput.addClass('is-invalid').removeClass('is-valid');
                                 return false;
                             }
 
                             // Faixa recomendada saudável
                             if (racaAtual.pesoMin !== null && racaAtual.pesoMax !== null) {
+                                var faixaStr = racaAtual.pesoFormatado || formatarFaixaPeso(racaAtual.pesoMin, racaAtual.pesoMax);
+
                                 if (peso > racaAtual.pesoMax) {
-                                    $feedback.html('<span class="text-warning"><i class="bi bi-exclamation-triangle-fill me-1"></i>Atenção: Peso acima da faixa média típica da raça (' + racaAtual.pesoMin.toFixed(1) + ' a ' + racaAtual.pesoMax.toFixed(1) + ' kg).</span>');
+                                    $feedback.html('<span class="text-warning"><i class="bi bi-exclamation-triangle-fill me-1"></i>Atenção: Peso digitado (' + pesoDigitadoTexto + ') está acima da faixa média típica da raça (' + faixaStr + ').</span>');
                                     $pesoInput.removeClass('is-invalid is-valid');
                                     return true;
                                 } else if (peso < racaAtual.pesoMin) {
-                                    $feedback.html('<span class="text-warning"><i class="bi bi-exclamation-triangle-fill me-1"></i>Atenção: Peso abaixo da faixa média típica da raça (' + racaAtual.pesoMin.toFixed(1) + ' a ' + racaAtual.pesoMax.toFixed(1) + ' kg).</span>');
+                                    $feedback.html('<span class="text-warning"><i class="bi bi-exclamation-triangle-fill me-1"></i>Atenção: Peso digitado (' + pesoDigitadoTexto + ') está abaixo da faixa média típica da raça (' + faixaStr + ').</span>');
                                     $pesoInput.removeClass('is-invalid is-valid');
                                     return true;
                                 } else {
-                                    $feedback.html('<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Peso dentro da faixa saudável recomendada para a raça.</span>');
+                                    $feedback.html('<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Peso (' + pesoDigitadoTexto + ') dentro da faixa saudável recomendada para a raça (' + faixaStr + ').</span>');
                                     $pesoInput.addClass('is-valid').removeClass('is-invalid');
                                     return true;
                                 }
