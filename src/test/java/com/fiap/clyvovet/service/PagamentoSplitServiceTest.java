@@ -47,7 +47,7 @@ class PagamentoSplitServiceTest {
     }
 
     @Test
-    @DisplayName("Cálculo de split financeiro com take-rate de 15% e desconto de fidelidade")
+    @DisplayName("Cálculo de split com co-financiamento paritário: 50% subsídio Clyvo e piso garantido")
     void calcularResumoComSplit() {
         // Garante que o tutor tem 15% de desconto (OURO)
         RecompensaTutor recompensa = recompensaTutorRepository.findByTutorCpf(tutor.getCpf()).orElseGet(() -> {
@@ -67,15 +67,67 @@ class PagamentoSplitServiceTest {
         // CONSULTA_PREVENTIVA custa R$ 150.00 base
         assertEquals(new BigDecimal("150.00"), split.valorOriginal());
         assertEquals(15, split.descontoPercentual());
-        // 15% de 150 = 22.50
+        // 15% de 150 = R$ 22.50
         assertEquals(new BigDecimal("22.50"), split.valorDesconto());
-        // Valor final = 127.50
+        // Valor final pago pelo tutor = 150 - 22.50 = R$ 127.50
         assertEquals(new BigDecimal("127.50"), split.valorFinal());
 
-        // Take-rate do Clyvo = 15% de 127.50 = 19.13 (ou 19.12 arredondado)
-        // Repasse clínica = 127.50 - 19.13 = 108.37 (ou 108.38)
+        // Co-financiamento paritário:
+        // Subsídio Clyvo (50% do desconto) = R$ 11.25
+        assertEquals(new BigDecimal("11.25"), split.valorSubsidioClyvo());
+        // Desconto absorvido pela clínica (50% do desconto) = R$ 11.25
+        assertEquals(new BigDecimal("11.25"), split.valorDescontoClinica());
+
+        // Comissão base da Clyvo (15% sobre 150) = R$ 22.50
+        // Comissão líquida Clyvo = 22.50 - 11.25 = R$ 11.25
+        assertEquals(new BigDecimal("11.25"), split.valorComissaoClyvo());
+        // Taxa efetiva retida pela Clyvo: 11.25 / 150 * 100 = 7.50%
+        assertEquals(new BigDecimal("7.50"), split.taxaEfetivaPercentual());
+
+        // Repasse líquido da clínica = 127.50 - 11.25 = R$ 116.25 (77.50% da tabela, acima do piso de 75%)
+        assertEquals(new BigDecimal("116.25"), split.valorRepasseClinica());
+        assertFalse(split.pisoProtegidoAplicado());
+
         BigDecimal somaSplit = split.valorComissaoClyvo().add(split.valorRepasseClinica());
-        assertEquals(split.valorFinal(), somaSplit, "A soma do split da clínica + comissão Clyvo deve ser exatamente o valor final pago");
+        assertEquals(split.valorFinal(), somaSplit, "A soma da clínica + comissão Clyvo deve fechar exatamente o valor final pago");
+    }
+
+    @Test
+    @DisplayName("Cálculo de split tutor DIAMANTE (20%): prova taxa efetiva de 5% da Clyvo e piso de 75% da clínica")
+    void calcularResumoTutorDiamanteComPiso75PorCento() {
+        RecompensaTutor recompensa = recompensaTutorRepository.findByTutorCpf(tutor.getCpf()).orElseGet(() -> {
+            RecompensaTutor r = new RecompensaTutor();
+            r.setTutorCpf(tutor.getCpf());
+            return r;
+        });
+        recompensa.setDescontoPercentual(20);
+        recompensa.setNivelFidelidade("DIAMANTE");
+        recompensaTutorRepository.save(recompensa);
+
+        PagamentoSplitService.ResumoSplit split = pagamentoSplitService.calcularResumo(
+                tutor.getCpf(),
+                TipoServicoPreventivo.CONSULTA_PREVENTIVA
+        );
+
+        // Preço base R$ 150.00
+        // 20% desconto tutor = R$ 30.00
+        // Valor pago tutor = R$ 120.00
+        // Subsídio Clyvo (50%) = R$ 15.00
+        // Comissão base Clyvo (15% de 150) = R$ 22.50
+        // Comissão líquida Clyvo = 22.50 - 15.00 = R$ 7.50 (Taxa efetiva: 7.50 / 150 * 100 = 5.00%!)
+        // Repasse clínica = 120.00 - 7.50 = R$ 112.50 (Piso exato de 75% de 150!)
+        assertEquals(new BigDecimal("150.00"), split.valorOriginal());
+        assertEquals(20, split.descontoPercentual());
+        assertEquals(new BigDecimal("30.00"), split.valorDesconto());
+        assertEquals(new BigDecimal("120.00"), split.valorFinal());
+
+        assertEquals(new BigDecimal("15.00"), split.valorSubsidioClyvo());
+        assertEquals(new BigDecimal("7.50"), split.valorComissaoClyvo());
+        assertEquals(new BigDecimal("5.00"), split.taxaEfetivaPercentual());
+        assertEquals(new BigDecimal("112.50"), split.valorRepasseClinica());
+
+        BigDecimal soma = split.valorComissaoClyvo().add(split.valorRepasseClinica());
+        assertEquals(split.valorFinal(), soma);
     }
 
     @Test

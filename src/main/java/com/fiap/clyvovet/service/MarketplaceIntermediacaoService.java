@@ -85,16 +85,43 @@ public class MarketplaceIntermediacaoService {
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal valorLiquidoPago = valorBruto.subtract(valorDesconto);
 
-        // 2. Cálculo do Split Contábil (Take-Rate retido na fonte)
-        BigDecimal taxaTakeRate = clinica.getTaxaComissaoCustomizada() != null 
+        // 2. Modelo Tripartite: Co-Financiamento Paritário do Desconto (50% Clyvo / 50% Clínica)
+        BigDecimal valorSubsidioClyvo = valorDesconto.multiply(new BigDecimal("0.50"))
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal valorDescontoClinica = valorDesconto.subtract(valorSubsidioClyvo);
+
+        // 3. Taxa Contratual Padrão (15%) e Comissão Base sobre o valor de tabela
+        BigDecimal taxaContratual = clinica.getTaxaComissaoCustomizada() != null 
                 ? clinica.getTaxaComissaoCustomizada() 
                 : new BigDecimal("15.00");
 
-        BigDecimal valorComissaoClyvo = valorLiquidoPago.multiply(taxaTakeRate)
+        BigDecimal comissaoBase = valorBruto.multiply(taxaContratual)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+        // 4. Aplicação do Subsídio no Take-Rate da Clyvo
+        BigDecimal valorComissaoClyvo = comissaoBase.subtract(valorSubsidioClyvo);
+
+        // 5. Repasse Líquido à Clínica: Tutor paga valorLiquidoPago; Clyvo retém valorComissaoClyvo
         BigDecimal valorRepasseClinica = valorLiquidoPago.subtract(valorComissaoClyvo);
 
-        // 3. Criação e Persistência do Agendamento
+        // 6. Floor Protection: Garantia de repasse mínimo de 75% da tabela
+        BigDecimal pisoMinimo = valorBruto.multiply(new BigDecimal("75.00"))
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        boolean pisoAplicado = false;
+        if (valorRepasseClinica.compareTo(pisoMinimo) < 0) {
+            BigDecimal diferencaPiso = pisoMinimo.subtract(valorRepasseClinica);
+            valorRepasseClinica = pisoMinimo;
+            valorComissaoClyvo = valorComissaoClyvo.subtract(diferencaPiso).max(BigDecimal.ZERO);
+            valorSubsidioClyvo = valorSubsidioClyvo.add(diferencaPiso);
+            pisoAplicado = true;
+        }
+
+        // 7. Taxa Efetiva Retida pela Clyvo (comissão retida / valor bruto de tabela)
+        BigDecimal taxaEfetiva = valorBruto.compareTo(BigDecimal.ZERO) > 0
+                ? valorComissaoClyvo.multiply(BigDecimal.valueOf(100)).divide(valorBruto, 2, RoundingMode.HALF_UP)
+                : taxaContratual;
+
+        // 8. Criação e Persistência do Agendamento
         Agendamento agendamento = new Agendamento();
         agendamento.setPet(pet);
         agendamento.setTutor(tutor);
@@ -106,7 +133,7 @@ public class MarketplaceIntermediacaoService {
         agendamento.setDataCriacao(LocalDateTime.now());
         agendamento = agendamentoRepository.save(agendamento);
 
-        // 4. Criação da Transação Financeira In-App (Captura do Gateway)
+        // 9. Criação da Transação Financeira In-App (Captura do Gateway)
         String codigoVoucher = "VCH-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         String qrCodeHash = "QR-MKT-" + agendamento.getId() + "-" + System.currentTimeMillis();
         String codigoGateway = "GW-TRANS-" + UUID.randomUUID();
@@ -126,13 +153,16 @@ public class MarketplaceIntermediacaoService {
         transacao.setDataPagamento(LocalDateTime.now());
         transacao = transacaoRepository.save(transacao);
 
-        // 5. Criação da Comissão / Split em Custódia (Escrow)
+        // 10. Criação da Comissão / Split em Custódia (Escrow)
         Comissao comissao = new Comissao();
         comissao.setTransacao(transacao);
         comissao.setClinica(clinica);
-        comissao.setPercentualTakeRate(taxaTakeRate);
+        comissao.setPercentualTakeRate(taxaContratual);
+        comissao.setValorSubsidioPlataforma(valorSubsidioClyvo);
+        comissao.setTaxaEfetivaPercentual(taxaEfetiva);
         comissao.setValorComissaoPlataforma(valorComissaoClyvo);
         comissao.setValorRepasseClinica(valorRepasseClinica);
+        comissao.setPisoProtegidoAplicado(pisoAplicado);
         comissao.setStatusRepasse(StatusRepasseComissao.RETIDO_ESCROW);
         comissao.setDataPrevisaoRepasse(LocalDate.now().plusDays(3));
         comissao = comissaoRepository.save(comissao);

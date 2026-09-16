@@ -25,11 +25,20 @@ public class Comissao {
     @Column(name = "PERCENTUAL_TAKE_RATE", nullable = false, precision = 5, scale = 2)
     private BigDecimal percentualTakeRate = new BigDecimal("15.00");
 
+    @Column(name = "VALOR_SUBSIDIO_PLATAFORMA", precision = 10, scale = 2)
+    private BigDecimal valorSubsidioPlataforma = BigDecimal.ZERO;
+
+    @Column(name = "TAXA_EFETIVA_PERCENTUAL", precision = 5, scale = 2)
+    private BigDecimal taxaEfetivaPercentual = new BigDecimal("15.00");
+
     @Column(name = "VALOR_COMISSAO_PLATAFORMA", nullable = false, precision = 10, scale = 2)
     private BigDecimal valorComissaoPlataforma;
 
     @Column(name = "VALOR_REPASSE_CLINICA", nullable = false, precision = 10, scale = 2)
     private BigDecimal valorRepasseClinica;
+
+    @Column(name = "PISO_PROTEGIDO_APLICADO")
+    private Boolean pisoProtegidoAplicado = false;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "STATUS_REPASSE", nullable = false, length = 35)
@@ -67,11 +76,20 @@ public class Comissao {
     public BigDecimal getPercentualTakeRate() { return percentualTakeRate; }
     public void setPercentualTakeRate(BigDecimal percentualTakeRate) { this.percentualTakeRate = percentualTakeRate; }
 
+    public BigDecimal getValorSubsidioPlataforma() { return valorSubsidioPlataforma; }
+    public void setValorSubsidioPlataforma(BigDecimal valorSubsidioPlataforma) { this.valorSubsidioPlataforma = valorSubsidioPlataforma; }
+
+    public BigDecimal getTaxaEfetivaPercentual() { return taxaEfetivaPercentual; }
+    public void setTaxaEfetivaPercentual(BigDecimal taxaEfetivaPercentual) { this.taxaEfetivaPercentual = taxaEfetivaPercentual; }
+
     public BigDecimal getValorComissaoPlataforma() { return valorComissaoPlataforma; }
     public void setValorComissaoPlataforma(BigDecimal valorComissaoPlataforma) { this.valorComissaoPlataforma = valorComissaoPlataforma; }
 
     public BigDecimal getValorRepasseClinica() { return valorRepasseClinica; }
     public void setValorRepasseClinica(BigDecimal valorRepasseClinica) { this.valorRepasseClinica = valorRepasseClinica; }
+
+    public Boolean getPisoProtegidoAplicado() { return pisoProtegidoAplicado; }
+    public void setPisoProtegidoAplicado(Boolean pisoProtegidoAplicado) { this.pisoProtegidoAplicado = pisoProtegidoAplicado; }
 
     public StatusRepasseComissao getStatusRepasse() { return statusRepasse; }
     public void setStatusRepasse(StatusRepasseComissao statusRepasse) { this.statusRepasse = statusRepasse; }

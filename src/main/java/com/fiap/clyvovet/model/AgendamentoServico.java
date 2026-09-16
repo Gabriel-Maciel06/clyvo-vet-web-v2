@@ -43,6 +43,15 @@ public class AgendamentoServico {
     @Column(name = "VALOR_COMISSAO_CLYVO", nullable = false, precision = 10, scale = 2)
     private BigDecimal valorComissaoClyvo;
 
+    @Column(name = "VALOR_SUBSIDIO_CLYVO", precision = 10, scale = 2)
+    private BigDecimal valorSubsidioClyvo = BigDecimal.ZERO;
+
+    @Column(name = "VALOR_DESCONTO_CLINICA", precision = 10, scale = 2)
+    private BigDecimal valorDescontoClinica = BigDecimal.ZERO;
+
+    @Column(name = "TAXA_EFETIVA_PERCENTUAL", precision = 5, scale = 2)
+    private BigDecimal taxaEfetivaPercentual = new BigDecimal("15.00");
+
     @Column(name = "VALOR_REPASSE_CLINICA", nullable = false, precision = 10, scale = 2)
     private BigDecimal valorRepasseClinica;
 
@@ -234,5 +243,29 @@ public class AgendamentoServico {
 
     public void setObservacoes(String observacoes) {
         this.observacoes = observacoes;
+    }
+
+    public BigDecimal getValorSubsidioClyvo() {
+        return valorSubsidioClyvo;
+    }
+
+    public void setValorSubsidioClyvo(BigDecimal valorSubsidioClyvo) {
+        this.valorSubsidioClyvo = valorSubsidioClyvo;
+    }
+
+    public BigDecimal getValorDescontoClinica() {
+        return valorDescontoClinica;
+    }
+
+    public void setValorDescontoClinica(BigDecimal valorDescontoClinica) {
+        this.valorDescontoClinica = valorDescontoClinica;
+    }
+
+    public BigDecimal getTaxaEfetivaPercentual() {
+        return taxaEfetivaPercentual;
+    }
+
+    public void setTaxaEfetivaPercentual(BigDecimal taxaEfetivaPercentual) {
+        this.taxaEfetivaPercentual = taxaEfetivaPercentual;
     }
 }

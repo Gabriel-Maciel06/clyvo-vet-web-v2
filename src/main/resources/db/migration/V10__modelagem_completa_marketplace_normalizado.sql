@@ -134,6 +134,6 @@ INSERT INTO T_AGENDAMENTO (pet_id, tutor_cpf, clinica_id, servico_id, data_hora_
 INSERT INTO T_TRANSACAO (agendamento_id, codigo_transacao_gateway, metodo_pagamento, status_transacao, valor_bruto, valor_desconto_fidelidade, valor_liquido_pago, codigo_voucher, qr_code_hash, voucher_utilizado, data_criacao, data_pagamento) VALUES
 (1, 'PAY-GW-SEED-2026-001', 'PIX', 'PAGO', 180.00, 18.00, 162.00, 'CLYVO-MKT-THOR92', 'QR-CLYVO-SEED-PET1-HASH92', FALSE, CURRENT_TIMESTAMP - INTERVAL '1' HOUR, CURRENT_TIMESTAMP - INTERVAL '55' MINUTE);
 
--- Comissão e Split Contábil (15% de take-rate sobre R$ 162,00 = R$ 24,30 Clyvo; R$ 137,70 Clínica em Escrow)
+-- Comissão e Split Contábil Co-financiado (10% desconto: R$ 9 subsídio Clyvo; Comissão líquida Clyvo: R$ 18,00; Repasse Clínica: R$ 144,00 em Escrow)
 INSERT INTO T_COMISSAO (transacao_id, clinica_id, percentual_take_rate, valor_comissao_plataforma, valor_repasse_clinica, status_repasse, data_previsao_repasse) VALUES
-(1, 1, 15.00, 24.30, 137.70, 'RETIDO_ESCROW', CURRENT_DATE + 3);
+(1, 1, 15.00, 18.00, 144.00, 'RETIDO_ESCROW', CURRENT_DATE + 3);

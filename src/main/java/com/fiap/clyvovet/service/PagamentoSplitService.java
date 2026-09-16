@@ -16,6 +16,8 @@ import java.util.UUID;
 public class PagamentoSplitService {
 
     public static final BigDecimal TAXA_TAKE_RATE_PADRAO = new BigDecimal("15.00");
+    public static final BigDecimal PISO_REPASSE_CLINICA_PERCENTUAL = new BigDecimal("75.00");
+    public static final BigDecimal PARIDADE_SUBSIDIO_PLATAFORMA = new BigDecimal("0.50");
 
     private final AgendamentoServicoRepository agendamentoRepository;
     private final PetRepository petRepository;
@@ -44,8 +46,12 @@ public class PagamentoSplitService {
             BigDecimal valorDesconto,
             BigDecimal valorFinal,
             BigDecimal taxaClyvoPercentual,
+            BigDecimal taxaEfetivaPercentual,
+            BigDecimal valorSubsidioClyvo,
+            BigDecimal valorDescontoClinica,
             BigDecimal valorComissaoClyvo,
             BigDecimal valorRepasseClinica,
+            boolean pisoProtegidoAplicado,
             String nivelFidelidade
     ) {}
 
@@ -61,9 +67,37 @@ public class PagamentoSplitService {
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal valorFinal = valorOriginal.subtract(valorDesconto);
 
-        BigDecimal valorComissaoClyvo = valorFinal.multiply(TAXA_TAKE_RATE_PADRAO)
+        // 1. Modelo Tripartite: Co-Financiamento Paritário do Desconto (50% Clyvo / 50% Clínica)
+        BigDecimal valorSubsidioClyvo = valorDesconto.multiply(PARIDADE_SUBSIDIO_PLATAFORMA)
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal valorDescontoClinica = valorDesconto.subtract(valorSubsidioClyvo);
+
+        // 2. Comissão Contratual Base da Clyvo (15% sobre o valor de tabela)
+        BigDecimal comissaoBase = valorOriginal.multiply(TAXA_TAKE_RATE_PADRAO)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+        // 3. Aplicação do Subsídio no Take-Rate da Clyvo
+        BigDecimal valorComissaoClyvo = comissaoBase.subtract(valorSubsidioClyvo);
+
+        // 4. Repasse Líquido à Clínica: Tutor paga valorFinal; Clyvo retém valorComissaoClyvo
         BigDecimal valorRepasseClinica = valorFinal.subtract(valorComissaoClyvo);
+
+        // 5. Floor Protection: Garantia de repasse mínimo de 75% da tabela
+        BigDecimal pisoMinimo = valorOriginal.multiply(PISO_REPASSE_CLINICA_PERCENTUAL)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        boolean pisoAplicado = false;
+        if (valorRepasseClinica.compareTo(pisoMinimo) < 0) {
+            BigDecimal diferencaPiso = pisoMinimo.subtract(valorRepasseClinica);
+            valorRepasseClinica = pisoMinimo;
+            valorComissaoClyvo = valorComissaoClyvo.subtract(diferencaPiso).max(BigDecimal.ZERO);
+            valorSubsidioClyvo = valorSubsidioClyvo.add(diferencaPiso);
+            pisoAplicado = true;
+        }
+
+        // 6. Taxa Efetiva Retida pela Clyvo (comissao retida / valor original)
+        BigDecimal taxaEfetiva = valorOriginal.compareTo(BigDecimal.ZERO) > 0
+                ? valorComissaoClyvo.multiply(BigDecimal.valueOf(100)).divide(valorOriginal, 2, RoundingMode.HALF_UP)
+                : TAXA_TAKE_RATE_PADRAO;
 
         return new ResumoSplit(
                 valorOriginal,
@@ -71,8 +105,12 @@ public class PagamentoSplitService {
                 valorDesconto,
                 valorFinal,
                 TAXA_TAKE_RATE_PADRAO,
+                taxaEfetiva,
+                valorSubsidioClyvo,
+                valorDescontoClinica,
                 valorComissaoClyvo,
                 valorRepasseClinica,
+                pisoAplicado,
                 nivel
         );
     }
@@ -102,6 +140,9 @@ public class PagamentoSplitService {
         agendamento.setValorFinal(split.valorFinal());
         agendamento.setTaxaClyvoPercentual(split.taxaClyvoPercentual());
         agendamento.setValorComissaoClyvo(split.valorComissaoClyvo());
+        agendamento.setValorSubsidioClyvo(split.valorSubsidioClyvo());
+        agendamento.setValorDescontoClinica(split.valorDescontoClinica());
+        agendamento.setTaxaEfetivaPercentual(split.taxaEfetivaPercentual());
         agendamento.setValorRepasseClinica(split.valorRepasseClinica());
         agendamento.setStatusPagamento(StatusPagamento.PAGO_CONFIRMADO);
         agendamento.setMetodoPagamento(dto.getMetodoPagamento());

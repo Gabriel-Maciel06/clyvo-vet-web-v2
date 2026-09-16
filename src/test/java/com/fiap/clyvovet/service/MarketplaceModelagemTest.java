@@ -38,6 +38,9 @@ class MarketplaceModelagemTest {
     @Autowired
     private ComissaoRepository comissaoRepository;
 
+    @Autowired
+    private RecompensaTutorRepository recompensaTutorRepository;
+
     @Test
     @DisplayName("Deve verificar que o seed Flyway V10 carregou clínicas, catálogo de serviços e agendamento transacionado")
     void deveVerificarSeedFlywayMarketplace() {
@@ -83,22 +86,75 @@ class MarketplaceModelagemTest {
         assertNotNull(contrato.transacao().getId());
         assertNotNull(contrato.comissao().getId());
 
-        // Verificação dos valores:
-        // Preço base = R$ 180.00
+        // Verificação dos valores com Co-Financiamento Paritário e Floor Protection:
+        // Preço base de tabela = R$ 180.00
         // Desconto tutor Gabriel (Nível PRATA = 10%) = R$ 18.00
-        // Valor líquido pago = R$ 162.00
-        // Take-rate Clyvo Vet (15%) = R$ 24.30
-        // Repasse líquido clínica = R$ 137.70
+        // Valor líquido pago in-app = R$ 162.00
         assertEquals(new BigDecimal("180.00"), contrato.transacao().getValorBruto());
         assertEquals(new BigDecimal("18.00"), contrato.transacao().getValorDescontoFidelidade());
         assertEquals(new BigDecimal("162.00"), contrato.transacao().getValorLiquidoPago());
 
-        assertEquals(new BigDecimal("15.00"), contrato.comissao().getPercentualTakeRate());
-        assertEquals(new BigDecimal("24.30"), contrato.comissao().getValorComissaoPlataforma());
-        assertEquals(new BigDecimal("137.70"), contrato.comissao().getValorRepasseClinica());
+        // Modelo Tripartite:
+        // Subsídio da Clyvo (50% do desconto) = R$ 9.00
+        assertEquals(new BigDecimal("9.00"), contrato.comissao().getValorSubsidioPlataforma());
+        // Comissão base (15% de 180) = R$ 27.00
+        // Comissão líquida da Clyvo (27 - 9) = R$ 18.00
+        assertEquals(new BigDecimal("18.00"), contrato.comissao().getValorComissaoPlataforma());
+        // Taxa efetiva retida pela Clyvo: 18 / 180 * 100 = 10.00%
+        assertEquals(new BigDecimal("10.00"), contrato.comissao().getTaxaEfetivaPercentual());
+
+        // Repasse líquido clínica = 162.00 - 18.00 = R$ 144.00 (80.00% da tabela, acima do piso de 75%)
+        assertEquals(new BigDecimal("144.00"), contrato.comissao().getValorRepasseClinica());
+        assertFalse(contrato.comissao().getPisoProtegidoAplicado());
+
+        // Fechamento contábil perfeito centavo a centavo: R$ 144 + R$ 18 = R$ 162
+        assertEquals(contrato.transacao().getValorLiquidoPago(),
+                contrato.comissao().getValorComissaoPlataforma().add(contrato.comissao().getValorRepasseClinica()));
+
         assertEquals(StatusRepasseComissao.RETIDO_ESCROW, contrato.comissao().getStatusRepasse());
         assertEquals(StatusAgendamento.CONFIRMADO, contrato.agendamento().getStatusAgendamento());
         assertEquals(StatusTransacao.PAGO, contrato.transacao().getStatusTransacao());
+    }
+
+    @Test
+    @DisplayName("Cenário Crítico do Dossiê: Tutor DIAMANTE (20% de desconto) prova no código a taxa efetiva de 5% e o repasse de R$ 135 (piso 75%)")
+    void deveContratarServicoComDesconto20PorCentoEProvarTaxa5PorCentoEPiso75PorCento() {
+        // Eleva o tutor para DIAMANTE (20% de desconto)
+        RecompensaTutor recompensa = recompensaTutorRepository.findByTutorCpf("123.456.789-00").orElseThrow();
+        recompensa.setDescontoPercentual(20);
+        recompensa.setNivelFidelidade("DIAMANTE");
+        recompensaTutorRepository.save(recompensa);
+
+        MarketplaceIntermediacaoService.ContratoIntermediacaoDto contrato = marketplaceService.contratarServicoNoMarketplace(
+                1L, // Thor
+                1L, // Consulta Preventiva (R$ 180,00 de tabela)
+                LocalDateTime.now().plusDays(4),
+                "PIX",
+                "Consulta anual Diamante",
+                "tutor"
+        );
+
+        // 1. Tutor paga R$ 180 - 20% (R$ 36) = R$ 144.00
+        assertEquals(new BigDecimal("180.00"), contrato.transacao().getValorBruto());
+        assertEquals(new BigDecimal("36.00"), contrato.transacao().getValorDescontoFidelidade());
+        assertEquals(new BigDecimal("144.00"), contrato.transacao().getValorLiquidoPago());
+
+        // 2. Co-financiamento do desconto:
+        // A Clyvo subsidia 50% do desconto = R$ 18.00 abatidos do take-rate
+        assertEquals(new BigDecimal("18.00"), contrato.comissao().getValorSubsidioPlataforma());
+
+        // 3. Take-rate da Clyvo cai de 15% (R$ 27,00) para 5% (R$ 9,00):
+        // Comissão Líquida Clyvo: 27.00 - 18.00 = R$ 9.00
+        assertEquals(new BigDecimal("9.00"), contrato.comissao().getValorComissaoPlataforma());
+        // Taxa Efetiva Retida pela Clyvo: 9.00 / 180.00 * 100 = 5.00%
+        assertEquals(new BigDecimal("5.00"), contrato.comissao().getTaxaEfetivaPercentual());
+
+        // 4. Repasse Líquido à Clínica: 144.00 - 9.00 = R$ 135.00 (Exatamente 75% da tabela!)
+        assertEquals(new BigDecimal("135.00"), contrato.comissao().getValorRepasseClinica());
+
+        // 5. Verificação da soma contábil do split: R$ 9,00 + R$ 135,00 = R$ 144,00
+        BigDecimal somaSplit = contrato.comissao().getValorComissaoPlataforma().add(contrato.comissao().getValorRepasseClinica());
+        assertEquals(new BigDecimal("144.00"), somaSplit);
     }
 
     @Test
