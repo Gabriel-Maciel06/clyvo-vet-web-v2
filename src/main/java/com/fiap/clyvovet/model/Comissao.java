@@ -50,6 +50,17 @@ public class Comissao {
     @Column(name = "DATA_LIQUIDACAO_REPASSE")
     private LocalDateTime dataLiquidacaoRepasse;
 
+    // --- Snapshots imutaveis (V13) da taxa e do piso vigentes no ato do split. ---
+    @Column(name = "SNAPSHOT_TAXA_COMISSAO_VIGENTE", precision = 5, scale = 2)
+    private BigDecimal snapshotTaxaComissaoVigente;
+
+    @Column(name = "SNAPSHOT_PISO_REPASSE_PCT", precision = 5, scale = 2)
+    private BigDecimal snapshotPisoRepassePct;
+
+    /** Valor que a plataforma pagou do proprio caixa para honrar o piso da clinica. */
+    @Column(name = "VALOR_PREJUIZO_PLATAFORMA", nullable = false, precision = 10, scale = 2)
+    private BigDecimal valorPrejuizoPlataforma = BigDecimal.ZERO;
+
     public Comissao() {}
 
     public Comissao(Long id, Transacao transacao, Clinica clinica, BigDecimal percentualTakeRate, BigDecimal valorComissaoPlataforma, BigDecimal valorRepasseClinica, StatusRepasseComissao statusRepasse, LocalDate dataPrevisaoRepasse, LocalDateTime dataLiquidacaoRepasse) {
@@ -99,4 +110,13 @@ public class Comissao {
 
     public LocalDateTime getDataLiquidacaoRepasse() { return dataLiquidacaoRepasse; }
     public void setDataLiquidacaoRepasse(LocalDateTime dataLiquidacaoRepasse) { this.dataLiquidacaoRepasse = dataLiquidacaoRepasse; }
+
+    public BigDecimal getSnapshotTaxaComissaoVigente() { return snapshotTaxaComissaoVigente; }
+    public void setSnapshotTaxaComissaoVigente(BigDecimal snapshotTaxaComissaoVigente) { this.snapshotTaxaComissaoVigente = snapshotTaxaComissaoVigente; }
+
+    public BigDecimal getSnapshotPisoRepassePct() { return snapshotPisoRepassePct; }
+    public void setSnapshotPisoRepassePct(BigDecimal snapshotPisoRepassePct) { this.snapshotPisoRepassePct = snapshotPisoRepassePct; }
+
+    public BigDecimal getValorPrejuizoPlataforma() { return valorPrejuizoPlataforma; }
+    public void setValorPrejuizoPlataforma(BigDecimal valorPrejuizoPlataforma) { this.valorPrejuizoPlataforma = valorPrejuizoPlataforma; }
 }

@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -22,6 +21,7 @@ public class MarketplaceIntermediacaoService {
     private final TutorRepository tutorRepository;
     private final RecompensaTutorRepository recompensaTutorRepository;
     private final PetService petService;
+    private final SplitFinanceiroCalculator splitCalculator;
 
     public MarketplaceIntermediacaoService(ServicoRepository servicoRepository,
                                            AgendamentoRepository agendamentoRepository,
@@ -30,7 +30,8 @@ public class MarketplaceIntermediacaoService {
                                            PetRepository petRepository,
                                            TutorRepository tutorRepository,
                                            RecompensaTutorRepository recompensaTutorRepository,
-                                           PetService petService) {
+                                           PetService petService,
+                                           SplitFinanceiroCalculator splitCalculator) {
         this.servicoRepository = servicoRepository;
         this.agendamentoRepository = agendamentoRepository;
         this.transacaoRepository = transacaoRepository;
@@ -39,6 +40,7 @@ public class MarketplaceIntermediacaoService {
         this.tutorRepository = tutorRepository;
         this.recompensaTutorRepository = recompensaTutorRepository;
         this.petService = petService;
+        this.splitCalculator = splitCalculator;
     }
 
     public record ContratoIntermediacaoDto(
@@ -71,55 +73,39 @@ public class MarketplaceIntermediacaoService {
             throw new IllegalStateException("Clínica indisponível para contratação no marketplace.");
         }
 
-        // 1. Cálculo de Desconto de Fidelidade e Valores
+        // 1. Desconto de fidelidade aplicavel a este servico
         int percentualDesconto = 0;
+        String nivelFidelidade = "BRONZE";
         if (Boolean.TRUE.equals(servico.getPermiteDescontoFidelidade())) {
             RecompensaTutor recompensa = recompensaTutorRepository.findByTutorCpf(tutor.getCpf()).orElse(null);
-            if (recompensa != null && recompensa.getDescontoPercentual() != null) {
-                percentualDesconto = recompensa.getDescontoPercentual();
+            if (recompensa != null) {
+                if (recompensa.getDescontoPercentual() != null) {
+                    percentualDesconto = recompensa.getDescontoPercentual();
+                }
+                if (recompensa.getNivelFidelidade() != null) {
+                    nivelFidelidade = recompensa.getNivelFidelidade();
+                }
             }
         }
 
-        BigDecimal valorBruto = servico.getPrecoBase();
-        BigDecimal valorDesconto = valorBruto.multiply(BigDecimal.valueOf(percentualDesconto))
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal valorLiquidoPago = valorBruto.subtract(valorDesconto);
+        // 2. Split: a economia vive num unico lugar (SplitFinanceiroCalculator),
+        //    compartilhado com o checkout in-app. Antes esta conta estava duplicada
+        //    aqui e em PagamentoSplitService, com risco de divergirem em silencio.
+        BigDecimal taxaContratual = clinica.getTaxaComissaoCustomizada() != null
+                ? clinica.getTaxaComissaoCustomizada()
+                : SplitFinanceiroCalculator.TAXA_TAKE_RATE_PADRAO;
 
-        // 2. Modelo Tripartite: Co-Financiamento Paritário do Desconto (50% Clyvo / 50% Clínica)
-        BigDecimal valorSubsidioClyvo = valorDesconto.multiply(new BigDecimal("0.50"))
-                .setScale(2, RoundingMode.HALF_UP);
-        BigDecimal valorDescontoClinica = valorDesconto.subtract(valorSubsidioClyvo);
+        SplitFinanceiroCalculator.Resultado split =
+                splitCalculator.calcular(servico.getPrecoBase(), percentualDesconto, taxaContratual);
 
-        // 3. Taxa Contratual Padrão (15%) e Comissão Base sobre o valor de tabela
-        BigDecimal taxaContratual = clinica.getTaxaComissaoCustomizada() != null 
-                ? clinica.getTaxaComissaoCustomizada() 
-                : new BigDecimal("15.00");
-
-        BigDecimal comissaoBase = valorBruto.multiply(taxaContratual)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-
-        // 4. Aplicação do Subsídio no Take-Rate da Clyvo
-        BigDecimal valorComissaoClyvo = comissaoBase.subtract(valorSubsidioClyvo);
-
-        // 5. Repasse Líquido à Clínica: Tutor paga valorLiquidoPago; Clyvo retém valorComissaoClyvo
-        BigDecimal valorRepasseClinica = valorLiquidoPago.subtract(valorComissaoClyvo);
-
-        // 6. Floor Protection: Garantia de repasse mínimo de 75% da tabela
-        BigDecimal pisoMinimo = valorBruto.multiply(new BigDecimal("75.00"))
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        boolean pisoAplicado = false;
-        if (valorRepasseClinica.compareTo(pisoMinimo) < 0) {
-            BigDecimal diferencaPiso = pisoMinimo.subtract(valorRepasseClinica);
-            valorRepasseClinica = pisoMinimo;
-            valorComissaoClyvo = valorComissaoClyvo.subtract(diferencaPiso).max(BigDecimal.ZERO);
-            valorSubsidioClyvo = valorSubsidioClyvo.add(diferencaPiso);
-            pisoAplicado = true;
-        }
-
-        // 7. Taxa Efetiva Retida pela Clyvo (comissão retida / valor bruto de tabela)
-        BigDecimal taxaEfetiva = valorBruto.compareTo(BigDecimal.ZERO) > 0
-                ? valorComissaoClyvo.multiply(BigDecimal.valueOf(100)).divide(valorBruto, 2, RoundingMode.HALF_UP)
-                : taxaContratual;
+        BigDecimal valorBruto = split.valorOriginal();
+        BigDecimal valorDesconto = split.valorDesconto();
+        BigDecimal valorLiquidoPago = split.valorFinal();
+        BigDecimal valorSubsidioClyvo = split.valorSubsidioClyvo();
+        BigDecimal valorComissaoClyvo = split.valorComissaoClyvo();
+        BigDecimal valorRepasseClinica = split.valorRepasseClinica();
+        BigDecimal taxaEfetiva = split.taxaEfetivaPercentual();
+        boolean pisoAplicado = split.pisoProtegidoAplicado();
 
         // 8. Criação e Persistência do Agendamento
         Agendamento agendamento = new Agendamento();
@@ -151,6 +137,9 @@ public class MarketplaceIntermediacaoService {
         transacao.setVoucherUtilizado(false);
         transacao.setDataCriacao(LocalDateTime.now());
         transacao.setDataPagamento(LocalDateTime.now());
+        transacao.setSnapshotPrecoCatalogo(servico.getPrecoBase());
+        transacao.setSnapshotTaxaDescontoPct(BigDecimal.valueOf(percentualDesconto).setScale(2));
+        transacao.setSnapshotNivelFidelidade(nivelFidelidade);
         transacao = transacaoRepository.save(transacao);
 
         // 10. Criação da Comissão / Split em Custódia (Escrow)
@@ -165,6 +154,9 @@ public class MarketplaceIntermediacaoService {
         comissao.setPisoProtegidoAplicado(pisoAplicado);
         comissao.setStatusRepasse(StatusRepasseComissao.RETIDO_ESCROW);
         comissao.setDataPrevisaoRepasse(LocalDate.now().plusDays(3));
+        comissao.setValorPrejuizoPlataforma(split.valorPrejuizoPlataforma());
+        comissao.setSnapshotTaxaComissaoVigente(taxaContratual);
+        comissao.setSnapshotPisoRepassePct(SplitFinanceiroCalculator.PISO_REPASSE_CLINICA_PERCENTUAL);
         comissao = comissaoRepository.save(comissao);
 
         return new ContratoIntermediacaoDto(agendamento, transacao, comissao);

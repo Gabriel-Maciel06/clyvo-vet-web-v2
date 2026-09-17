@@ -7,7 +7,6 @@ import com.fiap.clyvovet.model.Pet;
 import com.fiap.clyvovet.service.engine.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -36,11 +35,7 @@ import java.util.List;
  * <p><strong>Fallback Universal:</strong> {@link DefaultPhysiologyEngine} garante que nenhuma
  * espécie — mesmo não mapeada nas estratégias especializadas — cause {@code NoSuchElementException}
  * ou HTTP 500. A aplicação opera com resiliência total.</p>
- *
- * <p><em>Nota:</em> A classe legada {@link PredictiveMlEngine} foi preservada como wrapper
- * {@code @Deprecated} retrocompatível e delega todas as chamadas para este orquestrador.</p>
  */
-@Primary
 @Service
 public class ClinicalDecisionOrchestrator {
 

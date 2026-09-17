@@ -25,7 +25,7 @@ class TriagemServiceTest {
     private HistoricoClinicoRepository historicoClinicoRepository;
     private UsuarioRepository usuarioRepository;
     private PetService petService;
-    private PredictiveMlEngine mlEngine;
+    private ClinicalDecisionOrchestrator mlEngine;
     private TriagemService triagemService;
 
     @BeforeEach
@@ -50,7 +50,7 @@ class TriagemServiceTest {
                 new EquinePhysiologyEngine(),
                 fallback
         );
-        mlEngine = new PredictiveMlEngine(strategies, fallback);
+        mlEngine = new ClinicalDecisionOrchestrator(strategies, fallback);
 
         triagemService = new TriagemService(
                 triagemRepository,

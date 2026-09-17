@@ -37,6 +37,10 @@ public class Servico {
     @Column(name = "ATIVO", nullable = false)
     private Boolean ativo = true;
 
+    /** Chave que liga esta linha de catalogo ao enum TipoServicoPreventivo exibido no app. */
+    @Column(name = "CODIGO_SERVICO_APP", length = 50)
+    private String codigoServicoApp;
+
     public Servico() {}
 
     public Servico(Long id, Clinica clinica, String nome, String descricao, String categoria, BigDecimal precoBase, Integer duracaoMinutos, Boolean permiteDescontoFidelidade, Boolean ativo) {
@@ -77,4 +81,7 @@ public class Servico {
 
     public Boolean getAtivo() { return ativo; }
     public void setAtivo(Boolean ativo) { this.ativo = ativo; }
+
+    public String getCodigoServicoApp() { return codigoServicoApp; }
+    public void setCodigoServicoApp(String codigoServicoApp) { this.codigoServicoApp = codigoServicoApp; }
 }

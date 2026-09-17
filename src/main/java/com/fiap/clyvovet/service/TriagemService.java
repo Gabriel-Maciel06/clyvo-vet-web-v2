@@ -196,7 +196,7 @@ public class TriagemService {
     /**
      * Avaliação clínica híbrida:
      * 1) Avalia Guardrails Clínicos Determinísticos (Diretrizes AAHA/WSAVA) para segurança vital.
-     * 2) Executa Inferência Estatística de Machine Learning (PredictiveMlEngine).
+     * 2) Executa Inferência Estatística de Machine Learning (ClinicalDecisionOrchestrator).
      * 3) Aplica Fail-Safe e consolida explicabilidade (XAI) e síntese SOAP.
      */
     public ResultadoCalculoEscore calcularEscoreLongevidadeEInsights(Pet pet,

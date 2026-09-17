@@ -54,6 +54,19 @@ public class Transacao {
     @Column(name = "DATA_UTILIZACAO_VOUCHER")
     private LocalDateTime dataUtilizacaoVoucher;
 
+    // --- Snapshots imutaveis (V13): valores VIGENTES no ato da captura. ---
+    // Gravados uma unica vez no checkout e nunca recalculados, para que alteracoes
+    // posteriores em T_SERVICO.preco_base nao reescrevam o historico ja liquidado.
+
+    @Column(name = "SNAPSHOT_PRECO_CATALOGO", precision = 10, scale = 2)
+    private BigDecimal snapshotPrecoCatalogo;
+
+    @Column(name = "SNAPSHOT_TAXA_DESCONTO_PCT", precision = 5, scale = 2)
+    private BigDecimal snapshotTaxaDescontoPct;
+
+    @Column(name = "SNAPSHOT_NIVEL_FIDELIDADE", length = 20)
+    private String snapshotNivelFidelidade;
+
     public Transacao() {}
 
     public Transacao(Long id, Agendamento agendamento, String codigoTransacaoGateway, String metodoPagamento, StatusTransacao statusTransacao, BigDecimal valorBruto, BigDecimal valorDescontoFidelidade, BigDecimal valorLiquidoPago, String codigoVoucher, String qrCodeHash, Boolean voucherUtilizado, LocalDateTime dataCriacao, LocalDateTime dataPagamento, LocalDateTime dataUtilizacaoVoucher) {
@@ -114,4 +127,13 @@ public class Transacao {
 
     public LocalDateTime getDataUtilizacaoVoucher() { return dataUtilizacaoVoucher; }
     public void setDataUtilizacaoVoucher(LocalDateTime dataUtilizacaoVoucher) { this.dataUtilizacaoVoucher = dataUtilizacaoVoucher; }
+
+    public BigDecimal getSnapshotPrecoCatalogo() { return snapshotPrecoCatalogo; }
+    public void setSnapshotPrecoCatalogo(BigDecimal snapshotPrecoCatalogo) { this.snapshotPrecoCatalogo = snapshotPrecoCatalogo; }
+
+    public BigDecimal getSnapshotTaxaDescontoPct() { return snapshotTaxaDescontoPct; }
+    public void setSnapshotTaxaDescontoPct(BigDecimal snapshotTaxaDescontoPct) { this.snapshotTaxaDescontoPct = snapshotTaxaDescontoPct; }
+
+    public String getSnapshotNivelFidelidade() { return snapshotNivelFidelidade; }
+    public void setSnapshotNivelFidelidade(String snapshotNivelFidelidade) { this.snapshotNivelFidelidade = snapshotNivelFidelidade; }
 }

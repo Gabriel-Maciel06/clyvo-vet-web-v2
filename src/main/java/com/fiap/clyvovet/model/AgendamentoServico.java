@@ -83,6 +83,19 @@ public class AgendamentoServico {
     @Column(name = "OBSERVACOES", length = 500)
     private String observacoes;
 
+    /**
+     * Transacao correspondente no ledger normalizado (T_TRANSACAO). Nulo apenas
+     * nos vouchers legados emitidos antes da V14, quando o checkout ainda nao
+     * alimentava o livro-razao do marketplace.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "TRANSACAO_ID")
+    private Transacao transacao;
+
+    /** Valor que a Clyvo pagou do proprio caixa para honrar o piso da clinica. */
+    @Column(name = "VALOR_PREJUIZO_PLATAFORMA", nullable = false, precision = 10, scale = 2)
+    private BigDecimal valorPrejuizoPlataforma = BigDecimal.ZERO;
+
     public AgendamentoServico() {}
 
     public Long getId() {
@@ -268,4 +281,10 @@ public class AgendamentoServico {
     public void setTaxaEfetivaPercentual(BigDecimal taxaEfetivaPercentual) {
         this.taxaEfetivaPercentual = taxaEfetivaPercentual;
     }
+
+    public Transacao getTransacao() { return transacao; }
+    public void setTransacao(Transacao transacao) { this.transacao = transacao; }
+
+    public BigDecimal getValorPrejuizoPlataforma() { return valorPrejuizoPlataforma; }
+    public void setValorPrejuizoPlataforma(BigDecimal valorPrejuizoPlataforma) { this.valorPrejuizoPlataforma = valorPrejuizoPlataforma; }
 }
