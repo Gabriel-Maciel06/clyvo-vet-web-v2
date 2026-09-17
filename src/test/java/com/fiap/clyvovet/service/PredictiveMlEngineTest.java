@@ -79,6 +79,56 @@ class PredictiveMlEngineTest {
     }
 
     @Test
+    @DisplayName("Regressão: temperatura corporal não pode alterar P(Higidez) do motor canino")
+    void temperaturaCorporalNaoEntraNoLogitCanino() {
+        // O dataset de origem media temperatura AMBIENTE (média de 18°C). O código
+        // alimentava esse coeficiente com a temperatura RETAL do paciente (~38,5°C),
+        // um erro de categoria que injetava um desvio artificial de ~2.5 sigma.
+        // A temperatura corporal é responsabilidade dos guardrails vitais do
+        // TriagemService, não do modelo estatístico.
+        Pet thor = criarPetMock("Thor", "Golden Retriever", "CANINA", 3, 30.0, "Displasia Coxofemoral");
+
+        List<CheckinDiario> checkins = new ArrayList<>();
+        checkins.add(new CheckinDiario(1L, thor, LocalDate.now(), AlimentacaoStatus.RECOMENDADA, true, 45, HumorPet.ENERGICO, null, 10, false));
+
+        ResultadoDecisaoClinica eutermico = mlEngine.executarInferencia(
+                thor, new BigDecimal("30.0"), new BigDecimal("38.4"), 95, checkins, 3, "Rotina");
+        ResultadoDecisaoClinica febril = mlEngine.executarInferencia(
+                thor, new BigDecimal("30.0"), new BigDecimal("40.5"), 95, checkins, 3, "Rotina");
+        ResultadoDecisaoClinica semMedida = mlEngine.executarInferencia(
+                thor, new BigDecimal("30.0"), null, 95, checkins, 3, "Rotina");
+
+        assertEquals(eutermico.probabilidadeHigidez(), febril.probabilidadeHigidez(),
+                "A probabilidade do modelo não pode variar com a temperatura corporal");
+        assertEquals(eutermico.probabilidadeHigidez(), semMedida.probabilidadeHigidez(),
+                "Ausência de medida não pode injetar um valor ambiente disfarçado de temperatura corporal");
+    }
+
+    @Test
+    @DisplayName("Regressão: visitas ao veterinário pesam uma única vez no escore")
+    void visitasAoVeterinarioNaoSaoContadasDuasVezes() {
+        // O escore somava um bônus aditivo por consulta ALÉM do coeficiente já
+        // treinado no logit, inflando o escore de quem mais consome consultas na
+        // própria plataforma que vende as consultas.
+        Pet thor = criarPetMock("Thor", "Golden Retriever", "CANINA", 3, 30.0, "Displasia Coxofemoral");
+
+        List<CheckinDiario> checkins = new ArrayList<>();
+        checkins.add(new CheckinDiario(1L, thor, LocalDate.now(), AlimentacaoStatus.RECOMENDADA, true, 45, HumorPet.ENERGICO, null, 10, false));
+
+        ResultadoDecisaoClinica poucasConsultas = mlEngine.executarInferencia(
+                thor, new BigDecimal("30.0"), new BigDecimal("38.4"), 95, checkins, 1, "Rotina");
+        ResultadoDecisaoClinica muitasConsultas = mlEngine.executarInferencia(
+                thor, new BigDecimal("30.0"), new BigDecimal("38.4"), 95, checkins, 8, "Rotina");
+
+        int deltaEscore = muitasConsultas.escoreLongevidade() - poucasConsultas.escoreLongevidade();
+        double deltaProb = muitasConsultas.probabilidadeHigidez() - poucasConsultas.probabilidadeHigidez();
+
+        assertTrue(deltaProb > 0, "O coeficiente treinado permanece: mais acompanhamento eleva P(Higidez)");
+        assertTrue(deltaEscore <= Math.ceil(deltaProb * 0.85) + 1,
+                "O escore só pode variar pelo que a probabilidade variou, sem bônus aditivo por consulta");
+    }
+
+    @Test
     @DisplayName("Cão Sênior com Tremores deve ter Risco Elevado e Fatores Negativos")
     void devePredizerRiscoElevadoParaCaoSeniorComSintomas() {
         Pet bob = criarPetMock("Bob", "Beagle", "CANINA", 11, 16.0, "Obesidade");

@@ -33,11 +33,15 @@ import java.util.List;
  * </ul>
  * </p>
  *
- * <p><strong>Regra de Threshold de Decisão:</strong></p>
+ * <p><strong>Regra de Threshold de Decisão (conforme implementada):</strong></p>
+ * <p>O escore NÃO é a probabilidade. Ele é derivado dela e depois ajustado:
+ * {@code escore = 0.85 * P * 100 + bonus de atividade}, limitado a [10, 99] e
+ * sujeito a tetos clínicos por idade e histórico neurológico. A classificação
+ * de risco lê o escore, não a probabilidade:</p>
  * <ul>
- *   <li>{@code P(Higidez | X) >= 0.60} → {@link ClassificacaoRisco#BAIXO} (Escore >= 80)</li>
- *   <li>{@code 0.40 <= P < 0.60} → {@link ClassificacaoRisco#MODERADO} (Escore 50–79)</li>
- *   <li>{@code P < 0.40} → {@link ClassificacaoRisco#ALTO} (Escore < 50)</li>
+ *   <li>{@code escore >= 80} → {@link ClassificacaoRisco#BAIXO} (exige, na prática, P em torno de 0.87)</li>
+ *   <li>{@code 50 <= escore < 80} → {@link ClassificacaoRisco#MODERADO}</li>
+ *   <li>{@code escore < 50} → {@link ClassificacaoRisco#ALTO}</li>
  * </ul>
  *
  * <p><strong>Dataset:</strong> Canine Wellness Classification Dataset — 10.000 amostras sintéticas
@@ -46,13 +50,39 @@ import java.util.List;
  * 45% em risco. Sem data leakage entre conjuntos.</p>
  *
  * <p><strong>ROC-AUC = 0.9485</strong> — medido exclusivamente sobre o conjunto de teste holdout
- * (2.000 amostras). Interpretação: o modelo discrimina corretamente pacientes hígidos de pacientes
- * em risco em 94,85% dos pares possíveis, independentemente do threshold de decisão escolhido.</p>
+ * (2.000 amostras). Essa métrica qualifica a <em>probabilidade</em> {@code P(Higidez | X)},
+ * e não o escore de longevidade exibido ao tutor, que passa pelos ajustes descritos acima.</p>
  *
  * <p><strong>Algoritmo:</strong> Regressão Logística Multivariada com normalização Z-score.
- * 21 variáveis preditoras: 7 numéricas (idade, peso, atividade, sono, jogo, visitas vet,
- * temperatura) + 14 categóricas one-hot (nível de atividade, tipo de dieta, uso de medicação
- * contínua, histórico de convulsões). Coeficientes derivados do dataset de treino via MLE.</p>
+ * 16 variáveis preditoras efetivamente usadas: 6 numéricas (idade, peso, caminhada, sono,
+ * brincadeira, visitas ao veterinário) + 10 categóricas one-hot (4 níveis de atividade,
+ * 2 de dieta, 2 de medicação contínua, 2 de histórico de convulsão).
+ * Coeficientes derivados do dataset de treino via MLE.</p>
+ *
+ * <h3>Limitações declaradas (leia antes de interpretar o escore)</h3>
+ * <ol>
+ *   <li><strong>Entradas derivadas, não medidas.</strong> O Clyvo Vet não coleta horas de sono
+ *       nem de brincadeira. Esses valores são inferidos por regra a partir dos check-ins
+ *       (idade, apetite e minutos de atividade). A distância caminhada é convertida dos
+ *       minutos de atividade. Apenas idade, peso, visitas ao veterinário e os campos
+ *       categóricos vêm de dado real do tutor.</li>
+ *   <li><strong>Viés de indicação nas visitas ao veterinário.</strong> {@code COEF_VET_VISITS}
+ *       é positivo e é o segundo maior coeficiente numérico: mais consultas elevam a
+ *       probabilidade de higidez. No dado de origem isso é provável causalidade reversa
+ *       (animais acompanhados adoecem menos), mas numa plataforma que intermedia a venda
+ *       de consultas o efeito também é um conflito de interesse. Por isso o bônus aditivo
+ *       de consultas que existia no cálculo do escore foi removido: a variável agora pesa
+ *       uma única vez, dentro do logit treinado.</li>
+ *   <li><strong>Temperatura corporal não entra no modelo.</strong> Ver nota abaixo.</li>
+ * </ol>
+ *
+ * <p><em>Nota sobre temperatura:</em> o dataset de origem media temperatura <strong>ambiente</strong>
+ * (média de 64.57 °F, cerca de 18 °C). O código convertia a temperatura <strong>retal</strong> do
+ * paciente, em torno de 101 °F, e a normalizava contra essa distribuição, gerando um desvio-padrão
+ * artificial de aproximadamente +2.5 numa variável que media outra coisa. Era um erro de categoria.
+ * O termo foi removido do logit. A temperatura corporal continua avaliada, e com muito mais rigor,
+ * pela camada de guardrails clínicos vitais (AAHA/WSAVA) em {@code TriagemService}, que sobrescreve
+ * o risco em caso de hipertermia ou hipotermia.</p>
  *
  * <p><em>Nota:</em> {@code probabilidadeHigidez} é reportada no intervalo [5%, 98%] (clamped)
  * para evitar extrapolação de confiança além da densidade do dataset de treino.</p>
@@ -84,8 +114,9 @@ public class CaninePredictiveMlEngine implements MotorDecisaoClinicaStrategy {
     private static final double VET_VISITS_MEAN = 1.47;
     private static final double VET_VISITS_STD = 1.15;
 
-    private static final double TEMP_MEAN = 64.57; // Fahrenheit
-    private static final double TEMP_STD = 14.85;
+    // As constantes TEMP_MEAN/TEMP_STD/COEF_TEMP do dataset original foram removidas:
+    // mediam temperatura AMBIENTE e estavam sendo alimentadas com temperatura
+    // CORPORAL do paciente. Ver nota sobre temperatura no javadoc da classe.
 
     // Coeficientes Lineares das Variáveis Numéricas Padronizadas
     private static final double COEF_AGE = -0.7297;
@@ -94,7 +125,6 @@ public class CaninePredictiveMlEngine implements MotorDecisaoClinicaStrategy {
     private static final double COEF_SLEEP = 0.0427;
     private static final double COEF_PLAY = -0.0039;
     private static final double COEF_VET_VISITS = 0.8321;
-    private static final double COEF_TEMP = -0.0521;
 
     // Coeficientes Categóricos One-Hot
     private static final double COEF_ACT_VERY_ACTIVE = 1.3268;
@@ -170,9 +200,6 @@ public class CaninePredictiveMlEngine implements MotorDecisaoClinicaStrategy {
         double sleepHours = (apetiteReduzido || idadeAnos >= 8) ? 13.0 : 11.0;
         double playHours = (minutosAtividadeMedia >= 45) ? 2.0 : 1.0;
         double vetVisits = Math.max(1.0, (double) totalConsultasHistorico);
-        double tempF = (temperatura != null)
-                ? (temperatura.doubleValue() * 9.0 / 5.0) + 32.0
-                : 77.0;
 
         // Normalização Z-Score
         double zAge = (idadeAnos - AGE_MEAN) / AGE_STD;
@@ -181,7 +208,6 @@ public class CaninePredictiveMlEngine implements MotorDecisaoClinicaStrategy {
         double zSleep = (sleepHours - SLEEP_MEAN) / SLEEP_STD;
         double zPlay = (playHours - PLAY_MEAN) / PLAY_STD;
         double zVet = (vetVisits - VET_VISITS_MEAN) / VET_VISITS_STD;
-        double zTemp = (tempF - TEMP_MEAN) / TEMP_STD;
 
         // Cálculo do Logit
         double logit = INTERCEPT
@@ -190,8 +216,7 @@ public class CaninePredictiveMlEngine implements MotorDecisaoClinicaStrategy {
                 + (COEF_WALK * zWalk)
                 + (COEF_SLEEP * zSleep)
                 + (COEF_PLAY * zPlay)
-                + (COEF_VET_VISITS * zVet)
-                + (COEF_TEMP * zTemp);
+                + (COEF_VET_VISITS * zVet);
 
         if (minutosAtividadeMedia >= 60) logit += COEF_ACT_VERY_ACTIVE;
         else if (minutosAtividadeMedia >= 30) logit += COEF_ACT_ACTIVE;
@@ -212,10 +237,12 @@ public class CaninePredictiveMlEngine implements MotorDecisaoClinicaStrategy {
         probHigidez = Math.max(0.05, Math.min(0.98, probHigidez));
 
         // Escore de Longevidade (0 a 100)
+        // As visitas ao veterinario ja pesam dentro do logit (COEF_VET_VISITS).
+        // O bonus aditivo que existia aqui as contava uma segunda vez, inflando o
+        // escore de quem mais consome consultas na propria plataforma.
         double baseScore = probHigidez * 100.0;
-        double vetFactor = Math.min(vetVisits * 2.5, 7.5);
         double activityBonus = Math.min(walkMiles * 1.5, 6.0);
-        int escoreLongevidade = (int) Math.round(Math.max(10, Math.min(99, (baseScore * 0.85) + vetFactor + activityBonus)));
+        int escoreLongevidade = (int) Math.round(Math.max(10, Math.min(99, (baseScore * 0.85) + activityBonus)));
 
         if (idadeAnos >= 12 && escoreLongevidade > 75) escoreLongevidade = 75;
         if (temHistoricoConvulsao && escoreLongevidade > 65) escoreLongevidade = 65;
