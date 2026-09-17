@@ -55,6 +55,29 @@ public class PagamentoSplitService {
             String nivelFidelidade
     ) {}
 
+    /**
+     * Calcula o split financeiro bipartite entre Clyvo (plataforma) e Clínica (receiver).
+     *
+     * <p><strong>Modelo: Split Bipartite com Co-financiamento de Subsídio</strong><br>
+     * O tutor é o <em>payer</em> (pagador). Os <em>receivers</em> são dois: Clyvo e Clínica.
+     * O subsídio é um lançamento contábil interno da Clyvo (abate no seu take-rate contratual),
+     * não configura um terceiro recebedor — o split permanece estritamente bipartite.</p>
+     *
+     * <p><strong>Regra de Precedência do Piso (Priority Rule — piso limita a Clyvo, nunca o tutor):</strong></p>
+     * <ol>
+     *   <li>Calcular repasse preliminar = valorPagoTutor - (comissaoBase - subsidioClyvo).</li>
+     *   <li>Verificar o piso contratual: repasse >= 75% * valorOriginal?</li>
+     *   <li><em>Se sim:</em> modelo co-financiado 50/50 é aplicado na íntegra.</li>
+     *   <li><em>Se não (colisão):</em> a Clyvo absorve 100% do excedente restante,
+     *       reduzindo seu take-rate retido até zero. O desconto integral do tutor é preservado.
+     *       A clínica recebe exatamente o piso de 75% do valor de tabela.
+     *       O piso limita a margem da <strong>Clyvo</strong>, nunca o desconto do tutor.</li>
+     * </ol>
+     *
+     * @param tutorCpf CPF do tutor para busca do nível de fidelidade e desconto aplicável.
+     * @param servico  Enum do serviço preventivo com o valor de tabela (valorBase).
+     * @return {@link ResumoSplit} imutável com todos os valores nominais calculados.
+     */
     public ResumoSplit calcularResumo(String tutorCpf, TipoServicoPreventivo servico) {
         RecompensaTutor recompensa = recompensaTutorRepository.findByTutorCpf(tutorCpf).orElse(null);
         int descontoPercentual = (recompensa != null && recompensa.getDescontoPercentual() != null)
@@ -67,34 +90,38 @@ public class PagamentoSplitService {
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal valorFinal = valorOriginal.subtract(valorDesconto);
 
-        // 1. Modelo Tripartite: Co-Financiamento Paritário do Desconto (50% Clyvo / 50% Clínica)
+        // PASSO 1 — Co-financiamento de Subsídio: Clyvo banca 50% do desconto (lançamento interno de abate de take-rate)
+        // A clínica absorve os outros 50%, restrito ao Yield Management de capacidade ociosa.
         BigDecimal valorSubsidioClyvo = valorDesconto.multiply(PARIDADE_SUBSIDIO_PLATAFORMA)
                 .setScale(2, RoundingMode.HALF_UP);
         BigDecimal valorDescontoClinica = valorDesconto.subtract(valorSubsidioClyvo);
 
-        // 2. Comissão Contratual Base da Clyvo (15% sobre o valor de tabela)
+        // PASSO 2 — Comissão Contratual Base da Clyvo: 15% sobre o valor de tabela (snapshot imutável)
         BigDecimal comissaoBase = valorOriginal.multiply(TAXA_TAKE_RATE_PADRAO)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
 
-        // 3. Aplicação do Subsídio no Take-Rate da Clyvo
+        // PASSO 3 — Take-rate Líquido: comissão base menos o subsídio interno já concedido
         BigDecimal valorComissaoClyvo = comissaoBase.subtract(valorSubsidioClyvo);
 
-        // 4. Repasse Líquido à Clínica: Tutor paga valorFinal; Clyvo retém valorComissaoClyvo
+        // PASSO 4 — Repasse Bipartite Preliminar: o payer (tutor) paga valorFinal;
+        //           a Clyvo retém valorComissaoClyvo; o restante vai para a Clínica.
         BigDecimal valorRepasseClinica = valorFinal.subtract(valorComissaoClyvo);
 
-        // 5. Floor Protection: Garantia de repasse mínimo de 75% da tabela
+        // PASSO 5 — Priority Rule (Piso de 75%): Se o repasse preliminar viola o piso contratual,
+        //           a Clyvo absorve 100% do excedente (reduz seu take-rate até zero).
+        //           O desconto do tutor é SEMPRE preservado integralmente.
         BigDecimal pisoMinimo = valorOriginal.multiply(PISO_REPASSE_CLINICA_PERCENTUAL)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         boolean pisoAplicado = false;
         if (valorRepasseClinica.compareTo(pisoMinimo) < 0) {
-            BigDecimal diferencaPiso = pisoMinimo.subtract(valorRepasseClinica);
+            BigDecimal excedente = pisoMinimo.subtract(valorRepasseClinica);
             valorRepasseClinica = pisoMinimo;
-            valorComissaoClyvo = valorComissaoClyvo.subtract(diferencaPiso).max(BigDecimal.ZERO);
-            valorSubsidioClyvo = valorSubsidioClyvo.add(diferencaPiso);
+            valorComissaoClyvo = valorComissaoClyvo.subtract(excedente).max(BigDecimal.ZERO);
+            valorSubsidioClyvo = valorSubsidioClyvo.add(excedente); // Clyvo absorve a diferença integralmente
             pisoAplicado = true;
         }
 
-        // 6. Taxa Efetiva Retida pela Clyvo (comissao retida / valor original)
+        // PASSO 6 — Taxa Efetiva: percentual real retido pela Clyvo após subsidio e priority rule
         BigDecimal taxaEfetiva = valorOriginal.compareTo(BigDecimal.ZERO) > 0
                 ? valorComissaoClyvo.multiply(BigDecimal.valueOf(100)).divide(valorOriginal, 2, RoundingMode.HALF_UP)
                 : TAXA_TAKE_RATE_PADRAO;

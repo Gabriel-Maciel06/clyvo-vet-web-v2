@@ -29,21 +29,23 @@ O **Clyvo Vet** é uma plataforma que integra **Medicina Veterinária Preventiva
 ### Stack Tecnológica:
 - **Backend:** Java 21 (LTS) · Spring Boot 3.3.4
 - **Segurança:** Spring Security 6 · BCrypt · CSRF Token Ativo · OAuth2 Client (Google)
-- **Persistência & Migrações:** Spring Data JPA · Hibernate 6 · Flyway Migration (10 scripts versionados `V1` a `V10`)
+- **Persistência & Migrações:** Spring Data JPA · Hibernate 6 · Flyway Migration (13 scripts versionados `V1` a `V13`)
 - **Bancos de Dados:** H2 Database em memória configurado em modo de compatibilidade Oracle (`MODE=Oracle`) para desenvolvimento/testes rápidos; driver oficial Oracle JDBC (`ojdbc11`) pré-configurado no `pom.xml` para ambientes de produção.
 - **Frontend MVC:** Thymeleaf com layouts modulares e `thymeleaf-extras-springsecurity6` · Bootstrap 5.3 · Bootstrap Icons · Select2 4.1.
-- **Inteligência Clínica & Decisão Híbrida:** Sistema Híbrido em Camadas: Machine Learning Preditivo Supervisionado para Caninos (`CanineWellness-ML-v1.0`, 21 features, ROC-AUC 0.9485) + Sistema Especialista de Fisiologia Comparada para Não-Mamíferos (`Ectothermic-Physiology-Rules-v1.0`, `Aquatic-Physiology-Rules-v1.0`, `Avian-Physiology-Rules-v1.0`) + Guardrails Clínicos Vitais (AAHA/WSAVA) + Explicabilidade Algorítmica (XAI) e Síntese SOAP.
-- **Testes Automatizados:** JUnit 5 · MockMvc · AssertJ · Spring Security Test (79 testes automatizados aprovados).
+- **Inteligência Clínica & Decisão Híbrida:** Padrão Strategy com dois paradigmas de inferência — Machine Learning Preditivo Supervisionado para Caninos (`CanineWellness-ML-v1.0`, 21 features, target binário de Higidez em 12 meses, ROC-AUC holdout 0.9485) + Sistemas Especialistas Baseados em Conhecimento para 8 demais espécies (AAFP, AAV, ABRAVAS, BSAVA, AAEP) + Guardrails Clínicos Vitais (AAHA/WSAVA) + Explicabilidade Algorítmica (XAI) e Síntese SOAP.
+- **Testes Automatizados:** JUnit 5 · MockMvc · AssertJ · Spring Security Test (80 testes automatizados aprovados).
 
 ---
 
-## 2. Resolução da Crítica 1: Incoerência na Modelagem de Dados do Marketplace (14 Entidades em 3FN)
+## 2. Resolução da Crítica 1: Incoerência na Modelagem de Dados do Marketplace (14 Entidades + Snapshots Financeiros Imutáveis)
 
 ### A Crítica Apontada:
 > *"O documento menciona 9 entidades relacionais normalizadas. Se a proposta central é ser um marketplace com clínicas, tutores, múltiplos pets, espécies, prontuários, check-ins, triagens, gamificação e transações, 9 entidades mal cobrem o prontuário básico e segurança. Faltam Clinica, Agendamento, Servico, Transacao e Comissao. Sem elas, o backend é um prontuário digital isolado, não uma plataforma de intermediação."*
 
 ### A Resolução Arquitetural:
-O sistema foi formalmente migrado para **14 entidades relacionais normalizadas em 3FN** através da migração Flyway `V10__modelagem_completa_marketplace_normalizado.sql`.
+O sistema foi formalmente migrado para **14 entidades relacionais em 3FN com Desnormalização Intencional de Snapshots Financeiros**, através das migrações Flyway `V10`, `V11` e `V13`.
+
+> **Nota sobre "3FN com Desnormalização Intencional de Snapshots":** Sistemas financeiros de liquidação de marketplace exigem que os valores nominais (preço do serviço, taxa de comissão vigente, percentual de desconto aplicado) sejam **gravados como snapshots imutáveis** no momento da transação. Afirmar "3FN estrita" seria tecnicamente incorreto: qualquer alteração posterior no catálogo (`T_SERVICO.preco_base`) ou na taxa customizada da clínica recalcularia retroativamente comissões históricas, violando princípios de auditoria fiscal. Por isso, `T_TRANSACAO` e `T_COMISSAO` armazenam colunas `snapshot_*` que são gravadas uma única vez e jamais recalculadas em runtime.
 
 ```mermaid
 erDiagram
@@ -91,21 +93,30 @@ erDiagram
 ### A Crítica Apontada:
 > *"No Módulo 4, promete-se que o tutor Ouro/Diamante ganha de 5% a 20% de desconto nas consultas. Se a clínica já opera com margem veterinária apertada e ainda teria que repassar uma comissão de take-rate ao Clyvo, esse desconto corrói a lucratividade da clínica. De onde sai essa margem?"*
 
-### A Resolução Econômica (Modelo Híbrido Tripartite):
+### A Resolução Econômica — Split Bipartite com Co-financiamento de Subsídio:
 A margem **não é canibalizada** porque o Clyvo Vet opera sob 4 mecanismos de sustentabilidade financeira inspirados nos maiores marketplaces mundiais (Gympass/Wellhub, ClassPass e Booking.com):
 
-1. **Co-financiamento / Subsídio Paritário de Take-rate:**
+> **Correção de Terminologia Contábil:** O modelo econômico envolve 3 *agentes de negócio* (tutor, plataforma, clínica), mas o *split financeiro de liquidação* é estritamente **bipartite** — o tutor é o **payer** (pagador) e há dois **receivers** (recebedores): Clyvo e Clínica. O subsídio é um lançamento contábil interno da Clyvo (abate no seu take-rate), não configura um terceiro receiver. Implementado em `PagamentoSplitService.calcularResumo()`.
+
+1. **Co-financiamento de Subsídio com Precedência de Piso (Priority Rule):**
    - O desconto de fidelidade **não é absorvido 100% pela clínica**.
-   - A Clyvo **subsidia até 50% do desconto** sacrificando parte do seu take-rate contratual (a taxa da plataforma é reduzida de 15% para até 5% na transação de usuários fiéis). Como o tutor engajado já foi adquirido organicamente com **CAC = zero**, a Clyvo preserva margem de contribuição líquida positiva.
+   - A Clyvo **subsidia até 50% do desconto** abatendo parte do seu take-rate contratual.
+   - **Regra de Precedência explícita (`PagamentoSplitService.java`, Passos 1–6):**
+     - **Step 1–4 (co-financiamento 50/50):** aplica o subsídio paritário calculando o repasse preliminar.
+     - **Step 5 (Priority Rule):** se o repasse viola o piso de 75%, a Clyvo absorve **100% do excedente** (reduzindo seu take-rate até zero). O piso protege a clínica; **o desconto do tutor é sempre preservado**.
+   - **Exemplo de caso-limite (Desconto 20% sobre R\$ 100,00 com repasse-base de 80%):**
+     - Repasse 50/50 resultaria em R\$ 70,00 (< piso de R\$ 75,00).
+     - Priority Rule: Clyvo absorve o excedente de R\$ 5,00, zerando parte do take-rate.
+     - Resultado: clínica recebe exatamente R\$ 75,00 (piso garantido); tutor mantém 20% de desconto.
 2. **Yield Management de Capacidade Ociosa:**
    - Clínicas veterinárias operam com média de **35% a 45% de horas ociosas** em seus consultórios (segunda a quinta-feira diurno).
    - O custo operacional do consultório (aluguel, recepcionista, energia e veterinário plantonista) já está 100% pago. O **custo marginal de atender uma consulta adicional em horário vago é nulo**.
-   - Os maiores descontos são restritos a horários de baixa demanda. Faturar R$ 135,00 líquidos em uma hora ociosa é incomparavelmente superior a faturar R$ 0,00 com a sala vazia.
+   - Os maiores descontos são restritos a horários de baixa demanda. Faturar R\$ 135,00 líquidos em uma hora ociosa é incomparavelmente superior a faturar R\$ 0,00 com a sala vazia.
 3. **Estratégia de "Traffic Builder" (Upsell de Alta Margem):**
    - Em medicina veterinária, a consulta preventiva de 45 minutos é o **serviço de entrada (*Front-End*)**.
    - Mais de **65% das consultas preventivas** de longevidade identificam a necessidade de exames complementares: painel renal/hepático, profilaxia dentária ultrassônica, ultrassom abdominal e vacinação polivalente.
    - **Nesses procedimentos subsequentes, a clínica fatura com margem de lucro cheia (de 40% a 60%)**, multiplicando o LTV do paciente.
-4. **Floor Protection Contratual:**
+4. **Floor Protection Contratual (piso de 75% inegociável):**
    - O contrato garante que o repasse líquido da clínica **nunca será inferior a 75% do valor de tabela**.
    - Procedimentos de alto custo de insumos (cirurgias, anestesias complexas) têm `permite_desconto_fidelidade = FALSE`, blindando a margem da clínica.
 
@@ -113,15 +124,15 @@ A margem **não é canibalizada** porque o Clyvo Vet opera sob 4 mecanismos de s
 
 | Linha Contábil | Cenário Ingênuo (Criticado) | **Modelo Econômico Clyvo Vet** |
 | :--- | :---: | :---: |
-| Preço de Tabela | R$ 180,00 | **R$ 180,00** |
-| Desconto do Tutor (20% - Diamante) | - R$ 36,00 (100% da clínica) | **- R$ 36,00** |
-| ↳ *Subsídio Clyvo (abate da taxa)* | *R$ 0,00* | **+ R$ 18,00 (Clyvo banca 10%)** |
-| ↳ *Absorção da Clínica (Yield)* | *- R$ 36,00* | **- R$ 18,00 (Clínica absorve 10%)** |
-| **Valor Pago pelo Tutor In-App** | R$ 144,00 | **R$ 144,00** |
-| **Take-rate Líquido Clyvo** | R$ 21,60 (15%) | **R$ 9,00 (5% líquido retido)** |
-| **Repasse Líquido à Clínica** | **R$ 122,40** *(Corrosão de 32%)* | **R$ 135,00** *(Piso de 75% garantido)* |
-| **Receita Adicional em Exames (Upsell)** | R$ 0,00 | **+ R$ 380,00 (Margem cheia)** |
-| **Faturamento Total Gerado para a Clínica** | R$ 122,40 | **R$ 515,00** |
+| Preço de Tabela | R\$ 180,00 | **R\$ 180,00** |
+| Desconto do Tutor (20% - Diamante) | - R\$ 36,00 (100% da clínica) | **- R\$ 36,00** |
+| ↳ *Subsídio Clyvo (abate da taxa)* | *R\$ 0,00* | **+ R\$ 18,00 (Clyvo banca 10%)** |
+| ↳ *Absorção da Clínica (Yield)* | *- R\$ 36,00* | **- R\$ 18,00 (Clínica absorve 10%)** |
+| **Valor Pago pelo Tutor (payer) In-App** | R\$ 144,00 | **R\$ 144,00** |
+| **Take-rate Líquido Clyvo (receiver 1)** | R\$ 21,60 (15%) | **R\$ 9,00 (5% líquido retido)** |
+| **Repasse Líquido à Clínica (receiver 2)** | **R\$ 122,40** *(Corrosão de 32%)* | **R\$ 135,00** *(Piso de 75% garantido)* |
+| **Receita Adicional em Exames (Upsell)** | R\$ 0,00 | **+ R\$ 380,00 (Margem cheia)** |
+| **Faturamento Total Gerado para a Clínica** | R\$ 122,40 | **R\$ 515,00** |
 
 ---
 
@@ -138,26 +149,33 @@ A margem **não é canibalizada** porque o Clyvo Vet opera sob 4 mecanismos de s
 
 ---
 
-## 5. Arquitetura de Decisão Clínica: Sistema Híbrido Determinístico e Preditivo (Padrão Strategy)
+## 5. Arquitetura de Decisão Clínica: Dois Paradigmas de Inferência sob Padrão Strategy
 
-Para assegurar acurácia médica sem incorrer em decisões opacas de caixas-pretas estatísticas e eliminar qualquer indício de AI-washing, o motor clínico adota o **Padrão de Projeto Strategy**, orquestrado pelo serviço Spring `@Service` [`PredictiveMlEngine`](file:///Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2/src/main/java/com/fiap/clyvovet/service/PredictiveMlEngine.java). A arquitetura opera em 3 camadas rigorosamente delimitadas:
+Para assegurar acurácia médica sem incorrer em decisões opacas de caixas-pretas estatísticas e eliminar qualquer indício de AI-washing, o motor clínico adota o **Padrão de Projeto Strategy**, orquestrado pelo serviço Spring `@Service` [`ClinicalDecisionOrchestrator`](file:///Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2/src/main/java/com/fiap/clyvovet/service/ClinicalDecisionOrchestrator.java). A classe legada [`PredictiveMlEngine`](file:///Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2/src/main/java/com/fiap/clyvovet/service/PredictiveMlEngine.java) é mantida como wrapper `@Deprecated` retrocompatível e estende o orquestrador sem adicionar lógica.
+
+> **Correção da Nomenclatura do Orquestrador:** O nome anterior `PredictiveMlEngine` violava o Princípio do Menor Espanto (Principle of Least Astonishment): um *Context* que orquestra 9 Strategies determinísticas e apenas 1 de ML não pode herdar o nome de uma técnica específica. O nome correto — `ClinicalDecisionOrchestrator` — descreve exatamente o seu papel de despachante taxonômico sem impor conotações estatísticas indevidas.
 
 ```mermaid
 classDiagram
     direction TB
 
     class TriagemService {
-        -PredictiveMlEngine mlEngine
-        +concluirTriagemComIa(...) ConsultaTriagem
+        -ClinicalDecisionOrchestrator orchestrator
+        +avaliarTriagem(...) ConsultaTriagem
         +avaliarGuardrailsClinicos(...) List~String~
     }
 
-    class PredictiveMlEngine {
-        <<@Service - Context Orquestrador>>
+    class ClinicalDecisionOrchestrator {
+        <<@Service - Context Strategy>>
         -List~MotorDecisaoClinicaStrategy~ strategies
         -DefaultPhysiologyEngine fallbackEngine
-        +executarDecisao(Pet pet, ParametrosClinicosEntrada entrada) ResultadoDecisaoClinica
+        +executarDecisao(Pet pet, ParametrosClinicosEntrada) ResultadoDecisaoClinica
         +executarInferencia(Pet pet, ...) ResultadoDecisaoClinica
+    }
+
+    class PredictiveMlEngine {
+        <<@Deprecated - Wrapper Retrocompativel>>
+        extends ClinicalDecisionOrchestrator
     }
 
     class MotorDecisaoClinicaStrategy {
@@ -167,55 +185,55 @@ classDiagram
     }
 
     class CaninePredictiveMlEngine {
-        <<@Component>>
+        <<@Component - Paradigma ML>>
         +suporta("CANINA") boolean
         +avaliar(...) ResultadoDecisaoClinica
     }
 
     class FelinePhysiologyEngine {
-        <<@Component>>
+        <<@Component - Paradigma Regras>>
         +suporta("FELINA") boolean
         +avaliar(...) ResultadoDecisaoClinica
     }
 
     class AvianPhysiologyEngine {
-        <<@Component>>
+        <<@Component - Paradigma Regras>>
         +suporta("AVE") boolean
         +avaliar(...) ResultadoDecisaoClinica
     }
 
     class EctothermicPhysiologyEngine {
-        <<@Component>>
+        <<@Component - Paradigma Regras>>
         +suporta("REPTIL") boolean
         +avaliar(...) ResultadoDecisaoClinica
     }
 
     class AquaticPhysiologyEngine {
-        <<@Component>>
+        <<@Component - Paradigma Regras>>
         +suporta("PEIXE") boolean
         +avaliar(...) ResultadoDecisaoClinica
     }
 
     class SmallMammalPhysiologyEngine {
-        <<@Component>>
+        <<@Component - Paradigma Regras>>
         +suporta("ROEDOR") boolean
         +avaliar(...) ResultadoDecisaoClinica
     }
 
     class MustelidPhysiologyEngine {
-        <<@Component>>
+        <<@Component - Paradigma Regras>>
         +suporta("MUSTELIDEO") boolean
         +avaliar(...) ResultadoDecisaoClinica
     }
 
     class InvertebratePhysiologyEngine {
-        <<@Component>>
+        <<@Component - Paradigma Regras>>
         +suporta("ARACNIDEO") boolean
         +avaliar(...) ResultadoDecisaoClinica
     }
 
     class EquinePhysiologyEngine {
-        <<@Component>>
+        <<@Component - Paradigma Regras>>
         +suporta("EQUINA") boolean
         +avaliar(...) ResultadoDecisaoClinica
     }
@@ -226,8 +244,9 @@ classDiagram
         +avaliar(...) ResultadoDecisaoClinica
     }
 
-    TriagemService --> PredictiveMlEngine : orquestra
-    PredictiveMlEngine --> MotorDecisaoClinicaStrategy : despacha via Strategy
+    TriagemService --> ClinicalDecisionOrchestrator : orquestra
+    PredictiveMlEngine --|> ClinicalDecisionOrchestrator : extends deprecated
+    ClinicalDecisionOrchestrator --> MotorDecisaoClinicaStrategy : despacha via Strategy
     MotorDecisaoClinicaStrategy <|.. CaninePredictiveMlEngine
     MotorDecisaoClinicaStrategy <|.. FelinePhysiologyEngine
     MotorDecisaoClinicaStrategy <|.. AvianPhysiologyEngine
@@ -245,26 +264,27 @@ classDiagram
 1. **Camada 1 — Guardrails Determinísticos de Emergência (Diretrizes AAHA / WSAVA):**
    - Parâmetros vitais que indiquem risco iminente de choque térmico, colapso respiratório ou bradicardia severa disparam bloqueio imediato (*fail-safe override*), forçando a classificação para **ALTO RISCO** e limitando o escore clínico a 45 pontos, independentemente de comportamentos prévios.
 
-2. **Camada 2 — Roteamento Taxonômico Especializado (Padrão Strategy):**
-   - O orquestrador `PredictiveMlEngine` recebe o paciente e o DTO agnóstico e neutro [`ParametrosClinicosEntrada`](file:///Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2/src/main/java/com/fiap/clyvovet/dto/ParametrosClinicosEntrada.java) (`pesoAferido`, `temperaturaAferida`, `frequenciaMensurada`, etc.), identificando dinamicamente a estratégia especializada correspondente à espécie.
-   - **Caninos (`CaninePredictiveMlEngine`):** **Machine Learning Supervisionado** treinado sobre o *Canine Wellness Dataset* (10.000 amostras, 21 variáveis clínicas, ROC-AUC 0.9485, Recall 94.92%). Calcula probabilidade real $P(\text{Higidez} \mid \vec{x}) \in [0.0, 100.0\%]$ via sigmóide calibrada e Z-score.
-   - **Sistemas Especialistas Determinísticos (Base 100):** Elimina qualquer falsificação estocástica ou pseudo-sigmóide em não-caninos. Aplica **Conformidade Fisiológica Base 100** com $P(\text{Higidez}) = \text{null}$:
-     - **Felinos (`FelinePhysiologyEngine`):** Diretrizes AAFP/ISFM. Eutermia 38.0–39.2°C, FC 140–220 bpm, triagem ativa de Doença Renal Crônica (DRC), FLUTD e lipidose hepática em jejum.
-     - **Répteis (`EctothermicPhysiologyEngine`):** Diretrizes ABRAVAS/ARAV. Monitoramento da Zona Térmica Ótima do Recinto / POTZ (22–34°C), FC por Doppler (15–85 bpm) e prevenção de Doença Osteometabólica (MBD).
-     - **Peixes (`AquaticPhysiologyEngine`):** Biótopo aquático e frequência opercular branquial (20–85 mov/min). Sem estetoscópio.
-     - **Aves (`AvianPhysiologyEngine`):** Diretrizes AAV. Eutermia cloacal (39.5–42.5°C), taquicardia fisiológica (150–400 bpm) e alerta contra vapores de teflon (PTFE) e aerossóis.
-     - **Roedores (`SmallMammalPhysiologyEngine`):** Diretrizes BSAVA Rodents. Dentição elodonte contínua, trânsito cecal e risco de estase gastrointestinal.
-     - **Mustelídeos (`MustelidPhysiologyEngine`):** Diretrizes BSAVA Ferrets. Trânsito rápido (3-4h), prevenção de insulinoma e manejo de fotoperíodo para doença adrenal.
-     - **Invertebrados (`InvertebratePhysiologyEngine`):** Diretrizes de Medicina de Invertebrados. Temperatura de terrário (22–28°C), integridade de ecdise e circulação de hemolinfa (ausculta inaplicável).
-     - **Equinos (`EquinePhysiologyEngine`):** Diretrizes AAEP Grandes Animais. Temp 37.2–38.3°C, FC repouso 28–44 bpm, prevenção de Síndrome Cólica, laminite e odontologia hipsodonte.
-     - **Fallback Universal (`DefaultPhysiologyEngine`):** Garante resiliência operacional total contra espécies não catalogadas, prevenindo `NoSuchElementException` ou HTTP 500.
+2. **Camada 2 — Dois Paradigmas de Inferência sob Padrão Strategy:**
+   - O `ClinicalDecisionOrchestrator` recebe o paciente e o DTO agnóstico [`ParametrosClinicosEntrada`](file:///Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2/src/main/java/com/fiap/clyvovet/dto/ParametrosClinicosEntrada.java) e despacha para a estratégia taxonômica correspondente.
+   - **Paradigma 1 — Machine Learning Supervisionado (`CaninePredictiveMlEngine` · exclusivo para CANINA):**
+     - **Variável-Alvo (`target y`):** Classificação binária de *Higidez Clínica Projetada em 12 meses* — `y=1` (Hígido: sem internação/urgência) / `y=0` (Risco Clínico: investigação imediata).
+     - **Algoritmo:** Regressão Logística Multivariada com normalização Z-score. 21 variáveis preditoras (7 numéricas + 14 categóricas one-hot).
+     - **Dataset:** 10.000 amostras sintéticas calibradas. Split estratificado 80/20 (8.000 treino / 2.000 teste holdout). Balanceamento 55%/45%.
+     - **ROC-AUC = 0.9485** — medido exclusivamente sobre as 2.000 amostras de teste holdout. Discrimina pacientes hígidos de pacientes em risco em 94,85% dos pares possíveis.
+     - **Threshold de Decisão:** `P ≥ 0.60` → Baixo Risco | `0.40 ≤ P < 0.60` → Moderado | `P < 0.40` → Alto Risco.
+     - Retorna `probabilidadeHigidez ∈ [5%, 98%]` (clamped) e `TipoMotorDecisao.MACHINE_LEARNING_SUPERVISIONADO`.
+   - **Paradigma 2 — Sistema Especialista Baseado em Conhecimento (8 demais espécies + fallback):** Regras clínicas determinísticas baseadas em diretrizes veterinárias internacionais (AAFP, AAV, ABRAVAS, BSAVA, AAEP). Retorna `probabilidadeHigidez = null` e `TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGICO`. Sem pseudo-probabilidades estocásticas.
 
 3. **Camada 3 — Explicabilidade (XAI) e Síntese Clínica SOAP:**
    - Retorna o record unificado [`ResultadoDecisaoClinica`](file:///Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2/src/main/java/com/fiap/clyvovet/dto/ResultadoDecisaoClinica.java), consolidando fatores de explicabilidade clínica, riscos fenotípicos específicos, versão do motor, badge semântico e síntese completa no padrão **SOAP** (Subjetivo, Objetivo, Avaliação, Plano).
 
 ---
 
+
+
+
 ## 6. Fisiologia Veterinária Comparada Multi-Espécie: Matriz de Paradigmas Clínicos
+
 
 | Espécie no Banco (`V5`) | Motor de Decisão Ativo | Paradigma Computacional | Faixa Térmica / Frequência Normal | Riscos Críticos e Foco Profilático |
 | :--- | :--- | :--- | :--- | :--- |

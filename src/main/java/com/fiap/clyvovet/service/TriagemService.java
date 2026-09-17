@@ -18,18 +18,19 @@ import java.util.List;
 /**
  * Serviço de Triagem Clínica Preventiva e Avaliação de Longevidade (Clyvo Vet).
  *
- * Arquitetura de Decisão Híbrida (Dual-Engine Architecture):
- * -----------------------------------------------------------
- * 1. CAMADA DE GUARDRAILS CLÍNICOS DETERMINÍSTICOS (Diretrizes AAHA / WSAVA):
+ * Arquitetura de Decisão Clínica — Dois Paradigmas de Inferência sob Padrão Strategy:
+ * ------------------------------------------------------------------------------------
+ * 1. CAMADA DE GUARDRAILS CLÍNICOS DETERMINÍSTICOS (Diretrizes AAHA / WSAVA / ABRAVAS):
  *    Regras de proteção vital inegociáveis para detecção de emergências fisiológicas agudas
- *    (hipertermia, hipotermia, choque, arritmias).
+ *    (hipertermia, hipotermia, choque, arritmias) adaptadas por espécie.
  *
- * 2. CAMADA DE MACHINE LEARNING PROBABILÍSTICO MULTIVARIADO (PredictiveMlEngine):
- *    Modelo supervisionado calibrado em 10.000 amostras clínicas do "Canine Wellness Dataset"
- *    (ROC-AUC: 0.9485, Acurácia: 87.24%), calculando P(Higidez | X), projeção de longevidade,
- *    e fatores de explicabilidade algorítmica (XAI / Feature Attribution).
+ * 2. CAMADA DE INFERÊNCIA ESPECIALIZADA (ClinicalDecisionOrchestrator + Padrão Strategy):
+ *    - MACHINE LEARNING SUPERVISIONADO (caninos): Regressão logística multivariada treinada
+ *      sobre 10.000 amostras. Retorna P(Higidez | X) real e escore probabilístico (ROC-AUC 0.9485).
+ *    - SISTEMA ESPECIALISTA BASEADO EM CONHECIMENTO (demais espécies): Regras clínicas
+ *      determinísticas (AAFP, AAV, ABRAVAS, BSAVA, AAEP). Retorna Base 100 com probabilidade nula.
  *
- * 3. CAMADA DE SÍNTESE CLÍNICA E APOIO À DECISÃO (NLP / SOAP):
+ * 3. CAMADA DE SÍNTESE CLÍNICA E APOIO À DECISÃO (XAI / SOAP):
  *    Estruturação de anamnese completa no padrão médico veterinário (Subjetivo, Objetivo,
  *    Avaliação, Plano) para enriquecimento do prontuário eletrônico.
  */
@@ -42,7 +43,7 @@ public class TriagemService {
     private final HistoricoClinicoRepository historicoClinicoRepository;
     private final UsuarioRepository usuarioRepository;
     private final PetService petService;
-    private final PredictiveMlEngine mlEngine;
+    private final ClinicalDecisionOrchestrator mlEngine;
 
     public TriagemService(ConsultaTriagemRepository triagemRepository,
                           PetRepository petRepository,
@@ -50,7 +51,7 @@ public class TriagemService {
                           HistoricoClinicoRepository historicoClinicoRepository,
                           UsuarioRepository usuarioRepository,
                           PetService petService,
-                          PredictiveMlEngine mlEngine) {
+                          ClinicalDecisionOrchestrator mlEngine) {
         this.triagemRepository = triagemRepository;
         this.petRepository = petRepository;
         this.checkinRepository = checkinRepository;
@@ -174,12 +175,12 @@ public class TriagemService {
             TipoMotorDecisao tipoMotor
     ) {
         public ResultadoCalculoEscore(int escore, ClassificacaoRisco risco, String insights) {
-            this(escore, risco, insights, 75.0, PredictiveMlEngine.MODEL_VERSION, "", TipoMotorDecisao.MACHINE_LEARNING_SUPERVISIONADO);
+            this(escore, risco, insights, 75.0, ClinicalDecisionOrchestrator.MODEL_VERSION_CANINE, "", TipoMotorDecisao.MACHINE_LEARNING_SUPERVISIONADO);
         }
 
         public ResultadoCalculoEscore(int escore, ClassificacaoRisco risco, String insights, Double probabilidadeHigidez, String modeloVersao, String fatoresXai) {
             this(escore, risco, insights, probabilidadeHigidez, modeloVersao, fatoresXai,
-                    PredictiveMlEngine.MODEL_VERSION_CANINE.equals(modeloVersao)
+                    ClinicalDecisionOrchestrator.MODEL_VERSION_CANINE.equals(modeloVersao)
                             ? TipoMotorDecisao.MACHINE_LEARNING_SUPERVISIONADO
                             : TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGICO);
         }
@@ -262,7 +263,7 @@ public class TriagemService {
             }
         }
 
-        // 5. Montagem dos Insights Transparentes (Dual-Layer: ML/Regras + Guardrails + XAI)
+        // 5. Montagem dos Insights Transparentes (Dois Paradigmas: ML Canino + Sistemas Especialistas + Guardrails + XAI)
         StringBuilder insightsBuilder = new StringBuilder();
         if (inferencia.isMachineLearning()) {
             insightsBuilder.append(String.format("[ML Preditivo: P(Higidez)=%.1f%% | Escore=%d/100 (%s) | Mod=%s] ",

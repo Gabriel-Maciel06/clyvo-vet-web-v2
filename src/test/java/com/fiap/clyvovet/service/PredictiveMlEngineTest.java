@@ -14,10 +14,10 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@DisplayName("Testes do Motor Orquestrador de Decisão Clínica (PredictiveMlEngine com Padrão Strategy)")
+@DisplayName("Testes do ClinicalDecisionOrchestrator — Dois Paradigmas de Inferência sob Padrão Strategy")
 class PredictiveMlEngineTest {
 
-    private PredictiveMlEngine mlEngine;
+    private ClinicalDecisionOrchestrator mlEngine;
 
     @BeforeEach
     void setUp() {
@@ -34,7 +34,7 @@ class PredictiveMlEngineTest {
                 new EquinePhysiologyEngine(),
                 fallback
         );
-        mlEngine = new PredictiveMlEngine(strategies, fallback);
+        mlEngine = new ClinicalDecisionOrchestrator(strategies, fallback);
     }
 
     private Pet criarPetMock(String nome, String racaNome, String especie, int idadeAnos, double pesoKg, String propensao) {
