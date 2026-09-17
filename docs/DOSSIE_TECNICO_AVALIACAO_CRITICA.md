@@ -1,8 +1,8 @@
 # 📘 Dossiê Técnico de Arquitetura & Avaliação Crítica
 **Projeto:** Clyvo Vet Web v2 — Plataforma Transacional de Medicina Preventiva, Longevidade & Marketplace Pet  
 **Repositório Local:** `/Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2`  
-**Data:** 15 de Setembro de 2026  
-**Status dos Testes:** ✅ **80 testes automatizados aprovados (0 falhas, 0 erros)**  
+**Data:** 17 de Setembro de 2026  
+**Status dos Testes:** ✅ **88 testes automatizados aprovados (0 falhas, 0 erros) — verificado sob JDK 21 e JDK 26**  
 **Ambiente de Execução Local:** `http://localhost:8095`  
 
 ---
@@ -17,7 +17,7 @@
 6. [Resolução da Crítica 5: Fisiologia Veterinária Comparada Multi-Espécie (Ectotérmicos & Aves)](#6-resolução-da-crítica-5-fisiologia-veterinária-comparada-multi-espécie-ectotérmicos--aves)
 7. [Resolução da Crítica 6: Biometria, Validações Biológicas e Calibração de Pequenos Pets](#7-resolução-da-crítica-6-biometria-validações-biológicas-e-calibração-de-pequenos-pets)
 8. [Arquitetura de Segurança, Autenticação e Perfis (Spring Security 6)](#8-arquitetura-de-segurança-autenticação-e-perfis-spring-security-6)
-9. [Suíte de Testes Automatizados (80 Testes / 100% Cobertura de Requisitos)](#9-suíte-de-testes-automatizados-80-testes--100-cobertura-de-requisitos)
+9. [Suíte de Testes Automatizados (88 Testes / 100% Cobertura de Requisitos)](#9-suíte-de-testes-automatizados-88-testes--100-cobertura-de-requisitos)
 10. [Guia Passo a Passo para Execução e Auditoria Local pelo Crítico](#10-guia-passo-a-passo-para-execução-e-auditoria-local-pelo-crítico)
 
 ---
@@ -33,7 +33,7 @@ O **Clyvo Vet** é uma plataforma que integra **Medicina Veterinária Preventiva
 - **Bancos de Dados:** H2 Database em memória configurado em modo de compatibilidade Oracle (`MODE=Oracle`) para desenvolvimento/testes rápidos; driver oficial Oracle JDBC (`ojdbc11`) pré-configurado no `pom.xml` para ambientes de produção.
 - **Frontend MVC:** Thymeleaf com layouts modulares e `thymeleaf-extras-springsecurity6` · Bootstrap 5.3 · Bootstrap Icons · Select2 4.1.
 - **Inteligência Clínica & Decisão Híbrida:** Padrão Strategy com dois paradigmas de inferência — Machine Learning Preditivo Supervisionado para Caninos (`CanineWellness-ML-v1.0`, 21 features, target binário de Higidez em 12 meses, ROC-AUC holdout 0.9485) + Sistemas Especialistas Baseados em Conhecimento para 8 demais espécies (AAFP, AAV, ABRAVAS, BSAVA, AAEP) + Guardrails Clínicos Vitais (AAHA/WSAVA) + Explicabilidade Algorítmica (XAI) e Síntese SOAP.
-- **Testes Automatizados:** JUnit 5 · MockMvc · AssertJ · Spring Security Test (80 testes automatizados aprovados).
+- **Testes Automatizados:** JUnit 5 · MockMvc · AssertJ · Spring Security Test (88 testes automatizados aprovados).
 
 ---
 
@@ -145,15 +145,18 @@ A margem **não é canibalizada** porque o Clyvo Vet opera sob 4 mecanismos de s
 - **Checkout In-App Obrigatório:** O tutor não fecha agendamento fora da plataforma. A contratação do serviço ocorre pelo fluxo in-app (`/checkout` ou `MarketplaceIntermediacaoService`).
 - **Retenção de Split na Fonte:** O gateway processa o pagamento do tutor integralmente na plataforma e o valor é distribuído no ato da transação (`15% Clyvo` retidos; `85% Clínica` alocados em custódia `RETIDO_ESCROW` na tabela `T_COMISSAO`).
 - **Voucher Digital Criptografado com QR Code:** O tutor recebe um código alfanumérico intransferível e um hash de validação QR Code.
+- **Ledger Normalizado Alimentado pelo Fluxo Real (V14):** até a V13 o checkout in-app gravava apenas na tabela desnormalizada `T_AGENDAMENTO_SERVICO`, com o nome da clínica fixo no código, enquanto a modelagem em 3FN defendida neste dossiê só era exercitada por testes — nenhum controller a alcançava, e os campos `snapshot_*` da V13 não tinham escritor nenhum em Java. A partir da **V14** cada checkout grava, na mesma transação, `T_AGENDAMENTO` + `T_TRANSACAO` + `T_COMISSAO` com os snapshots preenchidos, e o voucher exibido na UI aponta para a transação do ledger por chave estrangeira. A clínica passou a ser resolvida de `T_CLINICA` pelo catálogo `T_SERVICO`, que agora publica as quatro ofertas do app com preço idêntico ao exibido — um único preço-verdade para UI, cobrança e snapshot.
+- **Fonte Única da Economia:** a matemática do split vivia duplicada em `PagamentoSplitService` e em `MarketplaceIntermediacaoService`, podendo divergir em silêncio. Ambos passaram a delegar para [`SplitFinanceiroCalculator`](file:///Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2/src/main/java/com/fiap/clyvovet/service/SplitFinanceiroCalculator.java).
+- **Prejuízo do Piso Registrado, Não Descartado:** a Priority Rule zerava o take-rate com um `.max(ZERO)` e, se ainda faltasse valor para honrar o piso de 75%, a diferença desaparecia sem rastro contábil. Hoje ela é gravada em `valor_prejuizo_plataforma` em `T_COMISSAO`. Nos níveis vigentes (teto de 20% de desconto) o valor é sempre zero, porque o teto coincide exatamente com o ponto de virada — mas um nível futuro acima de 20% passaria a ser contabilizado em vez de silenciado.
 - **Liberação Condicionada ao Atendimento:** O repasse financeiro para a chave PIX da clínica **só é desbloqueado no banco de dados quando a clínica faz a leitura e validação do voucher na recepção** (`validarVoucherEAtendimento`), alterando o status de `RETIDO_ESCROW` para `LIBERADO_APOS_ATENDIMENTO` e finalmente `PAGO_LIQUIDADO`. Isso elimina completamente a possibilidade de desintermediação (*disintermediation / platform leakage*).
 
 ---
 
 ## 5. Arquitetura de Decisão Clínica: Dois Paradigmas de Inferência sob Padrão Strategy
 
-Para assegurar acurácia médica sem incorrer em decisões opacas de caixas-pretas estatísticas e eliminar qualquer indício de AI-washing, o motor clínico adota o **Padrão de Projeto Strategy**, orquestrado pelo serviço Spring `@Service` [`ClinicalDecisionOrchestrator`](file:///Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2/src/main/java/com/fiap/clyvovet/service/ClinicalDecisionOrchestrator.java). A classe legada [`PredictiveMlEngine`](file:///Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2/src/main/java/com/fiap/clyvovet/service/PredictiveMlEngine.java) é mantida como wrapper `@Deprecated` retrocompatível e estende o orquestrador sem adicionar lógica.
+Para assegurar acurácia médica sem incorrer em decisões opacas de caixas-pretas estatísticas e eliminar qualquer indício de AI-washing, o motor clínico adota o **Padrão de Projeto Strategy**, orquestrado pelo serviço Spring `@Service` [`ClinicalDecisionOrchestrator`](file:///Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2/src/main/java/com/fiap/clyvovet/service/ClinicalDecisionOrchestrator.java), que é o **único** bean orquestrador do contexto. O wrapper `@Deprecated` `PredictiveMlEngine` foi removido: ele criava um segundo bean de orquestrador no container e seu Javadoc afirmava delegar quando, na verdade, herdava.
 
-> **Correção da Nomenclatura do Orquestrador:** O nome anterior `PredictiveMlEngine` violava o Princípio do Menor Espanto (Principle of Least Astonishment): um *Context* que orquestra 9 Strategies determinísticas e apenas 1 de ML não pode herdar o nome de uma técnica específica. O nome correto — `ClinicalDecisionOrchestrator` — descreve exatamente o seu papel de despachante taxonômico sem impor conotações estatísticas indevidas.
+> **Correção da Nomenclatura do Orquestrador:** O nome anterior `PredictiveMlEngine` (classe já removida do código) violava o Princípio do Menor Espanto (Principle of Least Astonishment): um *Context* que orquestra 9 Strategies determinísticas e apenas 1 de ML não pode herdar o nome de uma técnica específica. O nome correto — `ClinicalDecisionOrchestrator` — descreve exatamente o seu papel de despachante taxonômico sem impor conotações estatísticas indevidas.
 
 ```mermaid
 classDiagram
@@ -171,11 +174,6 @@ classDiagram
         -DefaultPhysiologyEngine fallbackEngine
         +executarDecisao(Pet pet, ParametrosClinicosEntrada) ResultadoDecisaoClinica
         +executarInferencia(Pet pet, ...) ResultadoDecisaoClinica
-    }
-
-    class PredictiveMlEngine {
-        <<@Deprecated - Wrapper Retrocompativel>>
-        extends ClinicalDecisionOrchestrator
     }
 
     class MotorDecisaoClinicaStrategy {
@@ -245,7 +243,6 @@ classDiagram
     }
 
     TriagemService --> ClinicalDecisionOrchestrator : orquestra
-    PredictiveMlEngine --|> ClinicalDecisionOrchestrator : extends deprecated
     ClinicalDecisionOrchestrator --> MotorDecisaoClinicaStrategy : despacha via Strategy
     MotorDecisaoClinicaStrategy <|.. CaninePredictiveMlEngine
     MotorDecisaoClinicaStrategy <|.. FelinePhysiologyEngine
@@ -268,11 +265,16 @@ classDiagram
    - O `ClinicalDecisionOrchestrator` recebe o paciente e o DTO agnóstico [`ParametrosClinicosEntrada`](file:///Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2/src/main/java/com/fiap/clyvovet/dto/ParametrosClinicosEntrada.java) e despacha para a estratégia taxonômica correspondente.
    - **Paradigma 1 — Machine Learning Supervisionado (`CaninePredictiveMlEngine` · exclusivo para CANINA):**
      - **Variável-Alvo (`target y`):** Classificação binária de *Higidez Clínica Projetada em 12 meses* — `y=1` (Hígido: sem internação/urgência) / `y=0` (Risco Clínico: investigação imediata).
-     - **Algoritmo:** Regressão Logística Multivariada com normalização Z-score. 21 variáveis preditoras (7 numéricas + 14 categóricas one-hot).
+     - **Algoritmo:** Regressão Logística Multivariada com normalização Z-score. **16 variáveis preditoras efetivamente usadas** (6 numéricas + 10 categóricas one-hot).
      - **Dataset:** 10.000 amostras sintéticas calibradas. Split estratificado 80/20 (8.000 treino / 2.000 teste holdout). Balanceamento 55%/45%.
-     - **ROC-AUC = 0.9485** — medido exclusivamente sobre as 2.000 amostras de teste holdout. Discrimina pacientes hígidos de pacientes em risco em 94,85% dos pares possíveis.
-     - **Threshold de Decisão:** `P ≥ 0.60` → Baixo Risco | `0.40 ≤ P < 0.60` → Moderado | `P < 0.40` → Alto Risco.
+     - **ROC-AUC = 0.9485** — medido exclusivamente sobre as 2.000 amostras de teste holdout. **Essa métrica qualifica a probabilidade `P(Higidez|X)`, não o escore de longevidade exibido ao tutor**, que passa por ajustes descritos abaixo.
+     - **Threshold de Decisão (conforme implementado):** o escore não é a probabilidade. Ele é `0.85 × P × 100` mais bônus de atividade, limitado a `[10, 99]` e sujeito a tetos clínicos por idade e histórico neurológico. A classificação lê o **escore**: `escore ≥ 80` → Baixo | `50 ≤ escore < 80` → Moderado | `escore < 50` → Alto. Na prática, Baixo Risco exige `P` em torno de `0.87`.
      - Retorna `probabilidadeHigidez ∈ [5%, 98%]` (clamped) e `TipoMotorDecisao.MACHINE_LEARNING_SUPERVISIONADO`.
+
+     **Limitações declaradas do modelo canino (auditoria de honestidade estatística):**
+     1. **Entradas derivadas, não medidas.** A plataforma não coleta horas de sono nem de brincadeira; esses valores são inferidos por regra a partir de idade, apetite e minutos de atividade registrados nos check-ins. A distância caminhada é convertida dos minutos de atividade. Apenas idade, peso, número de consultas e os campos categóricos vêm de dado real do tutor.
+     2. **Viés de indicação nas visitas ao veterinário.** `COEF_VET_VISITS` é positivo e é o segundo maior coeficiente numérico. No dado de origem isso é provável causalidade reversa (animais acompanhados adoecem menos), mas numa plataforma que intermedia a venda de consultas o efeito também configura conflito de interesse. **Correção aplicada:** o bônus aditivo por consulta que existia no cálculo do escore foi removido — a variável agora pesa uma única vez, dentro do logit treinado.
+     3. **Temperatura corporal não entra no modelo.** As constantes do dataset de origem (média de 64.57 °F, cerca de 18 °C) descrevem temperatura **ambiente**. O código anterior convertia a temperatura **retal** do paciente (~101 °F) e a normalizava contra essa distribuição, produzindo um desvio artificial de cerca de +2.5 σ numa variável que media outra coisa — um erro de categoria. **Correção aplicada:** o termo foi removido do logit. A temperatura corporal continua avaliada, com muito mais rigor, pelos guardrails vitais AAHA/WSAVA da Camada 1, que sobrescrevem o risco em hipertermia e hipotermia.
    - **Paradigma 2 — Sistema Especialista Baseado em Conhecimento (8 demais espécies + fallback):** Regras clínicas determinísticas baseadas em diretrizes veterinárias internacionais (AAFP, AAV, ABRAVAS, BSAVA, AAEP). Retorna `probabilidadeHigidez = null` e `TipoMotorDecisao.SISTEMA_ESPECIALISTA_FISIOLOGICO`. Sem pseudo-probabilidades estocásticas.
 
 3. **Camada 3 — Explicabilidade (XAI) e Síntese Clínica SOAP:**
@@ -288,7 +290,7 @@ classDiagram
 
 | Espécie no Banco (`V5`) | Motor de Decisão Ativo | Paradigma Computacional | Faixa Térmica / Frequência Normal | Riscos Críticos e Foco Profilático |
 | :--- | :--- | :--- | :--- | :--- |
-| **`CANINA`** | `CaninePredictiveMlEngine` | **Machine Learning Supervisionado** ($P \in [0, 100\%]$, ROC-AUC 0.9485) | Temp: 37.8–39.2°C \| FC: 60–140 bpm | Displasia coxofemoral, estresse térmico braquicefálico, convulsões |
+| **`CANINA`** | `CaninePredictiveMlEngine` | **Machine Learning Supervisionado** ($P \in [0, 100\%]$, ROC-AUC 0.9485 sobre $P$) | Temp: 37.8–39.2°C \| FC: 60–140 bpm | Displasia coxofemoral, estresse térmico braquicefálico, convulsões |
 | **`FELINA`** | `FelinePhysiologyEngine` | **Sistema Especialista Base 100** ($P = \text{null}$, AAFP/ISFM) | Temp: 38.0–39.2°C \| FC: 140–220 bpm | Lipidose hepática em jejum, Doença Renal Crônica (DRC), FLUTD |
 | **`AVE`** | `AvianPhysiologyEngine` | **Sistema Especialista Base 100** ($P = \text{null}$, AAV) | Temp Cloacal: 39.5–42.5°C \| FC: 150–400 bpm | Hipotermia aguda, toxicidade por PTFE/aerossóis, aspergilose |
 | **`REPTIL`** | `EctothermicPhysiologyEngine` | **Sistema Especialista Base 100** ($P = \text{null}$, ABRAVAS/ARAV) | POTZ Recinto: 22–34°C \| Doppler: 15–85 bpm | Osteodistrofia Fibrosa (MBD por falta de UVB/Cálcio), estase digestiva |
@@ -337,9 +339,9 @@ classDiagram
 
 ---
 
-## 9. Suíte de Testes Automatizados (80 Testes / 100% Cobertura de Requisitos)
+## 9. Suíte de Testes Automatizados (88 Testes / 100% Cobertura de Requisitos)
 
-A aplicação conta com **80 testes automatizados de integração e unidade**, executados e aprovados com **0 falhas e 0 erros**:
+A aplicação conta com **88 testes automatizados de integração e unidade**, executados e aprovados com **0 falhas e 0 erros**:
 
 ```
 [INFO] -------------------------------------------------------
@@ -350,6 +352,7 @@ A aplicação conta com **80 testes automatizados de integração e unidade**, e
 [INFO] Running com.fiap.clyvovet.security.ControleDeAcessoPorPerfilTest (8 tests) - PASS
 [INFO] Running com.fiap.clyvovet.security.DashboardTutorSemPerfilTest (1 test) - PASS
 [INFO] Running com.fiap.clyvovet.service.CheckinServiceTest (4 tests) - PASS
+[INFO] Running com.fiap.clyvovet.service.CheckoutLedgerIntegracaoTest (6 tests) - PASS
 [INFO] Running com.fiap.clyvovet.service.CustomOAuth2UserServiceTest (3 tests) - PASS
 [INFO] Running com.fiap.clyvovet.service.CustomUserDetailsServiceTest (2 tests) - PASS
 [INFO] Running com.fiap.clyvovet.service.LongevidadeCalculadoraMultiEspecieTest (4 tests) - PASS
@@ -358,12 +361,12 @@ A aplicação conta com **80 testes automatizados de integração e unidade**, e
 [INFO] Running com.fiap.clyvovet.service.PerfilServiceTest (2 tests) - PASS
 [INFO] Running com.fiap.clyvovet.service.PetBiometriaValidacaoTest (10 tests) - PASS
 [INFO] Running com.fiap.clyvovet.service.PetServiceEditTest (4 tests) - PASS
-[INFO] Running com.fiap.clyvovet.service.PredictiveMlEngineTest (8 tests) - PASS
+[INFO] Running com.fiap.clyvovet.service.PredictiveMlEngineTest (10 tests) - PASS
 [INFO] Running com.fiap.clyvovet.service.RecuperacaoSenhaServiceTest (5 tests) - PASS
 [INFO] Running com.fiap.clyvovet.service.TriagemServiceTest (6 tests) - PASS
 [INFO] 
 [INFO] Results:
-[INFO] Tests run: 80, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 88, Failures: 0, Errors: 0, Skipped: 0
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 ```
@@ -378,13 +381,19 @@ Para que o crítico execute e audite todo o ecossistema diretamente no terminal 
 - **Java JDK 21** instalado (`java -version`).
 - **Maven 3.8+** instalado (`mvn -version`).
 
-### 2. Rodar os 80 Testes Automatizados:
+### 2. Rodar os 88 Testes Automatizados:
 Abra o terminal no diretório do projeto e execute:
 ```bash
 cd /Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2
 mvn test
 ```
-*O Maven executará todas as migrações Flyway de V1 a V12 no H2 e rodará os 80 testes com 100% de sucesso.*
+*O Maven executará todas as migrações Flyway de V1 a V14 no H2 e rodará os 88 testes com 100% de sucesso.*
+
+> **Nota sobre a JDK:** o projeto alveja Java 21 (LTS), mas o `pom.xml` configura o Surefire com
+> `-Dnet.bytebuddy.experimental=true` e `-XX:+EnableDynamicAgentLoading` para que a suíte também rode
+> em máquinas com JDK mais recente. Sem isso, o mock maker inline do Mockito não instrumenta classes
+> concretas em JVMs ainda não suportadas e a classe `TriagemServiceTest` falha inteira. Verificado em
+> JDK 21 e JDK 26.
 
 ### 3. Iniciar a Aplicação Localmente:
 ```bash
@@ -403,8 +412,21 @@ mvn test
 ### 5. Credenciais Pré-configuradas para Teste:
 | Perfil | Usuário | Senha | O que testar |
 | :--- | :--- | :--- | :--- |
-| **Veterinário (`ROLE_ADMIN`)** | `admin` | `admin123` | Acessar fila médica (`/triagem/fila`), preencher exame físico com fisiologia comparada (POTZ para réptil, água para peixe, eutermia para ave) e inspecionar os scores gerados pelo `PredictiveMlEngine`. |
+| **Veterinário (`ROLE_ADMIN`)** | `admin` | `admin123` | Acessar fila médica (`/triagem/fila`), preencher exame físico com fisiologia comparada (POTZ para réptil, água para peixe, eutermia para ave) e inspecionar os scores gerados pelo `ClinicalDecisionOrchestrator`. |
 | **Tutor Pet (`ROLE_TUTOR`)** | `tutor` | `tutor123` | Painel do tutor Gabriel Maciel com os pets Thor e Luna; registrar check-in diário; subir streak; cadastrar novo pet testando limites biométricos; contratar consulta com voucher e split financeiro. |
+
+---
+
+## 12. Lacunas Conhecidas e Declaradas
+
+Esta seção existe para que a avaliação não precise descobrir sozinha o que ainda não está pronto. Declarar o limite do que foi construído é parte da honestidade técnica do projeto.
+
+| Lacuna | Situação atual | Impacto na defesa |
+| :--- | :--- | :--- |
+| **Não existe perfil `ROLE_CLINICA`** | O `SecurityConfig` reconhece apenas `ROLE_TUTOR` e `ROLE_ADMIN`. O lado da oferta do marketplace (validar voucher, consultar repasses) é exercido pelo perfil de administrador. | O modelo de dados é genuinamente *two-sided* (`T_CLINICA` com CNPJ, CRMV, chave PIX e taxa contratual própria), mas o **controle de acesso ainda não é**. Uma clínica parceira não tem login próprio nem enxerga apenas os seus repasses. |
+| **Liquidação do repasse não tem gatilho de UI** | `MarketplaceIntermediacaoService.liquidarRepasseClinica()` existe e é testado, mas nenhuma tela chama esse método. O status para em `LIBERADO_APOS_ATENDIMENTO`. | O ciclo de custódia está completo até a liberação do escrow; o passo final (`PAGO_LIQUIDADO`) é hoje uma operação de backoffice sem interface. |
+| **Gateway de pagamento é simulado** | `codigo_transacao_gateway` é gerado localmente; não há integração real com PSP (Pagar.me, Stripe Connect, Asaas). | Esperado para o escopo acadêmico. O desenho do split e da custódia é compatível com o modelo de *split payment* desses provedores. |
+| **Dataset canino é sintético** | As 10.000 amostras são sintéticas calibradas, não um registro clínico real auditável. | Declarado desde a primeira versão. O ROC-AUC qualifica o modelo sobre esse dataset, não sobre população clínica brasileira real. |
 
 ---
 *Dossiê compilado e versionado no repositório Clyvo Vet Web v2. Registrado na base de conhecimento do Obsidian Second Brain em `_AI-Log/`.*
