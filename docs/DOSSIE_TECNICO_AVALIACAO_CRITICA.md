@@ -29,11 +29,12 @@ O **Clyvo Vet** é uma plataforma que integra **Medicina Veterinária Preventiva
 ### Stack Tecnológica:
 - **Backend:** Java 21 (LTS) · Spring Boot 3.3.4
 - **Segurança:** Spring Security 6 · BCrypt · CSRF Token Ativo · OAuth2 Client (Google)
-- **Persistência & Migrações:** Spring Data JPA · Hibernate 6 · Flyway Migration (13 scripts versionados `V1` a `V13`)
+- **Persistência & Migrações:** Spring Data JPA · Hibernate 6 · Flyway Migration (15 scripts versionados `V1` a `V15`)
 - **Bancos de Dados:** H2 Database em memória configurado em modo de compatibilidade Oracle (`MODE=Oracle`) para desenvolvimento/testes rápidos; driver oficial Oracle JDBC (`ojdbc11`) pré-configurado no `pom.xml` para ambientes de produção.
 - **Frontend MVC:** Thymeleaf com layouts modulares e `thymeleaf-extras-springsecurity6` · Bootstrap 5.3 · Bootstrap Icons · Select2 4.1.
+- **Gateway de Pagamento & PIX Dinâmico:** Arquitetura Adapter Pattern com `GatewayPagamentoService` — integração REST real com a API oficial do Mercado Pago (`MercadoPagoGatewayService`) via `RestClient` + Provedor `SimuladoGatewayService` de fallback autônomo offline + Polling JS a cada 3s + Webhook assíncrono (`/api/webhooks/mercadopago`).
 - **Inteligência Clínica & Decisão Híbrida:** Padrão Strategy com dois paradigmas de inferência — Machine Learning Preditivo Supervisionado para Caninos (`CanineWellness-ML-v1.0`, 21 features, target binário de Higidez em 12 meses, ROC-AUC holdout 0.9485) + Sistemas Especialistas Baseados em Conhecimento para 8 demais espécies (AAFP, AAV, ABRAVAS, BSAVA, AAEP) + Guardrails Clínicos Vitais (AAHA/WSAVA) + Explicabilidade Algorítmica (XAI) e Síntese SOAP.
-- **Testes Automatizados:** JUnit 5 · MockMvc · AssertJ · Spring Security Test (88 testes automatizados aprovados).
+- **Testes Automatizados:** JUnit 5 · MockMvc · AssertJ · Spring Security Test (96 testes automatizados aprovados com 100% de sucesso).
 
 ---
 
@@ -387,7 +388,7 @@ Abra o terminal no diretório do projeto e execute:
 cd /Users/gabrieloliveira/Desktop/Agentes-cloud/clyvo-vet-web-v2
 mvn test
 ```
-*O Maven executará todas as migrações Flyway de V1 a V14 no H2 e rodará os 88 testes com 100% de sucesso.*
+*O Maven executará todas as migrações Flyway de V1 a V15 no H2 e rodará os 96 testes com 100% de sucesso.*
 
 > **Nota sobre a JDK:** o projeto alveja Java 21 (LTS), mas o `pom.xml` configura o Surefire com
 > `-Dnet.bytebuddy.experimental=true` e `-XX:+EnableDynamicAgentLoading` para que a suíte também rode
@@ -425,7 +426,7 @@ Esta seção existe para que a avaliação não precise descobrir sozinha o que 
 | :--- | :--- | :--- |
 | **Não existe perfil `ROLE_CLINICA`** | O `SecurityConfig` reconhece apenas `ROLE_TUTOR` e `ROLE_ADMIN`. O lado da oferta do marketplace (validar voucher, consultar repasses) é exercido pelo perfil de administrador. | O modelo de dados é genuinamente *two-sided* (`T_CLINICA` com CNPJ, CRMV, chave PIX e taxa contratual própria), mas o **controle de acesso ainda não é**. Uma clínica parceira não tem login próprio nem enxerga apenas os seus repasses. |
 | **Liquidação do repasse não tem gatilho de UI** | `MarketplaceIntermediacaoService.liquidarRepasseClinica()` existe e é testado, mas nenhuma tela chama esse método. O status para em `LIBERADO_APOS_ATENDIMENTO`. | O ciclo de custódia está completo até a liberação do escrow; o passo final (`PAGO_LIQUIDADO`) é hoje uma operação de backoffice sem interface. |
-| **Gateway de pagamento é simulado** | `codigo_transacao_gateway` é gerado localmente; não há integração real com PSP (Pagar.me, Stripe Connect, Asaas). | Esperado para o escopo acadêmico. O desenho do split e da custódia é compatível com o modelo de *split payment* desses provedores. |
+| **Gateway de pagamento: Mercado Pago & Fallback Simulado** | Integração real implementada via `GatewayPagamentoService`: conecta à API REST do **Mercado Pago** (`MercadoPagoGatewayService`) quando o token de acesso estiver configurado, e opera com o **`SimuladoGatewayService`** por padrão em ambientes de teste/avaliação sem internet. | O sistema gera PIX dinâmico com QR Code em Base64, código Copia e Cola no padrão EMV do Bacen, polling de liquidação em tempo real e endpoint de webhook (`/api/webhooks/mercadopago`). |
 | **Dataset canino é sintético** | As 10.000 amostras são sintéticas calibradas, não um registro clínico real auditável. | Declarado desde a primeira versão. O ROC-AUC qualifica o modelo sobre esse dataset, não sobre população clínica brasileira real. |
 
 ---

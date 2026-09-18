@@ -74,7 +74,7 @@ class CheckoutControllerTest {
 
     @Test
     @WithMockUser(username = "tutor", roles = "TUTOR")
-    @DisplayName("Submissão do checkout in-app processa split e redireciona para o voucher emitido")
+    @DisplayName("Submissão do checkout in-app gera cobrança no gateway e redireciona para a tela de pagamento Pix")
     void submissaoCheckoutInApp() throws Exception {
         mockMvc.perform(post("/servicos/checkout").with(csrf())
                         .param("petId", pet.getId().toString())
@@ -82,7 +82,27 @@ class CheckoutControllerTest {
                         .param("metodoPagamento", "PIX")
                         .param("observacoes", "Teste de split in-app"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("/servicos/voucher/*"));
+                .andExpect(redirectedUrlPattern("/servicos/pagamento/*"));
+    }
+
+    @Test
+    @WithMockUser(username = "tutor", roles = "TUTOR")
+    @DisplayName("Simulação de confirmação de pagamento Pix redireciona para o voucher ativado")
+    void confirmacaoPagamentoSandboxRedirecionaParaVoucher() throws Exception {
+        var mvcResult = mockMvc.perform(post("/servicos/checkout").with(csrf())
+                        .param("petId", pet.getId().toString())
+                        .param("tipoServico", TipoServicoPreventivo.CONSULTA_PREVENTIVA.name())
+                        .param("metodoPagamento", "PIX"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        String redirectedUrl = mvcResult.getResponse().getRedirectedUrl();
+        assert redirectedUrl != null;
+        String agendamentoId = redirectedUrl.substring(redirectedUrl.lastIndexOf('/') + 1);
+
+        mockMvc.perform(post("/servicos/pagamento/" + agendamentoId + "/simular").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/servicos/voucher/" + agendamentoId));
     }
 
     @Test

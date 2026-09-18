@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Pagamento Pix Seguro | Clyvo Vet')}"></head>
+<body>
+
+    <div th:replace="~{fragments/layout :: appShell('pagamento', ~{::#mainSection})}">
+        <div id="mainSection">
+
+            <div class="row justify-content-center">
+                <div class="col-lg-9">
+
+                    <!-- Cabeçalho -->
+                    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+                        <div>
+                            <span class="badge badge-clyvo mb-2">PAGAMENTO INSTANTÂNEO VIA PIX</span>
+                            <h2 class="mb-1" style="font-size: 2rem;">Aguardando Transferência Pix</h2>
+                            <p class="text-muted mb-0">Escaneie o QR Code no app do seu banco ou use a chave Copia e Cola para concluir a contratação.</p>
+                        </div>
+                        <a th:href="@{/servicos}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-1"></i> Cancelar
+                        </a>
+                    </div>
+
+                    <div class="row g-4">
+                        <!-- Coluna da Esquerda: QR Code Pix e Copia e Cola -->
+                        <div class="col-lg-7">
+                            <div class="card p-4 p-md-5 mb-4 text-center border-0 shadow-sm" style="border-radius: 16px;">
+
+                                <!-- Timer regressivo -->
+                                <div class="alert alert-warning py-2 px-3 d-inline-flex align-items-center justify-content-center gap-2 mb-4 mx-auto" style="border-radius: 30px; font-size: 0.85rem;">
+                                    <i class="bi bi-clock-history text-warning fs-6"></i>
+                                    <span>Vencimento do Pix em: <strong id="pixTimer" class="font-monospace">14:59</strong></span>
+                                </div>
+
+                                <!-- Box do QR Code -->
+                                <div class="p-3 bg-white rounded-3 shadow-sm d-inline-block border mx-auto mb-3" style="max-width: 250px;">
+                                    <img th:if="${agendamento.qrCodePixBase64 != null}"
+                                         th:src="${agendamento.qrCodePixBase64}"
+                                         alt="QR Code Pix"
+                                         class="img-fluid rounded"
+                                         style="width: 200px; height: 200px; object-fit: contain;" />
+                                    
+                                    <div th:if="${agendamento.qrCodePixBase64 == null}" class="p-4 text-muted">
+                                        <i class="bi bi-qr-code fs-1 d-block mb-2 text-primary"></i>
+                                        <span class="small">QR Code Disponível no Copia e Cola</span>
+                                    </div>
+                                </div>
+
+                                <p class="small text-muted mb-4">
+                                    Abra o aplicativo do seu banco, escolha <strong>Pix &gt; Pagar com QR Code</strong> e aponte a câmera para a imagem acima.
+                                </p>
+
+                                <!-- Copia e Cola -->
+                                <div class="text-start mb-4">
+                                    <label class="form-label small fw-bold text-uppercase text-muted">Ou use o Código Pix Copia e Cola:</label>
+                                    <div class="input-group">
+                                        <input type="text"
+                                               id="pixCopiaCola"
+                                               class="form-control font-monospace small"
+                                               th:value="${agendamento.qrCodePixCopiaCola}"
+                                               readonly
+                                               style="background: #f8fafc; font-size: 0.8rem;" />
+                                        <button class="btn btn-primary px-3" type="button" id="btnCopiarPix" onclick="copiarCodigoPix()">
+                                            <i class="bi bi-clipboard me-1"></i> <span id="btnCopiarTexto">Copiar</span>
+                                        </button>
+                                    </div>
+                                    <div id="feedbackCopia" class="small text-success mt-1 d-none">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Código Pix copiado com sucesso! Cole no app do seu banco.
+                                    </div>
+                                </div>
+
+                                <!-- Indicador de Polling / Aguardo -->
+                                <div class="p-3 rounded-3 d-flex align-items-center justify-content-center gap-3" style="background: #f1f5f9;">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Aguardando...</span>
+                                    </div>
+                                    <span class="small text-secondary fw-semibold" id="pollingStatusTexto">
+                                        Aguardando confirmação do pagamento pelo gateway...
+                                    </span>
+                                </div>
+
+                                <!-- Sandbox / Simulação imediata -->
+                                <div class="mt-4 pt-3 border-top text-start">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                        <small class="text-muted">
+                                            <i class="bi bi-bug me-1"></i> <strong>Modo Avaliação / Testes:</strong> Simule a liquidação sem app bancário.
+                                        </small>
+                                        <form th:action="@{'/servicos/pagamento/' + ${agendamento.id} + '/simular'}" method="post" class="m-0">
+                                            <button type="submit" class="btn btn-outline-success btn-sm d-flex align-items-center gap-1">
+                                                <i class="bi bi-check-circle"></i> Simular Confirmação Instantânea
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- Coluna da Direita: Resumo do Pedido & Split -->
+                        <div class="col-lg-5">
+                            <div class="card p-4 mb-4 sticky-top border-0 shadow-sm" style="top: 2rem; border-radius: 16px;">
+                                <h5 class="mb-3 fw-bold"><i class="bi bi-receipt text-primary me-2"></i>Resumo da Contratação</h5>
+
+                                <div class="mb-3 pb-3 border-bottom">
+                                    <div class="small text-muted text-uppercase fw-bold">Procedimento</div>
+                                    <div class="fw-bold text-dark fs-5" th:text="${agendamento.descricaoServico}">Consulta Preventiva</div>
+                                    <div class="small text-muted mt-1">
+                                        Paciente: <strong th:text="${agendamento.pet.nome} + ' (' + ${agendamento.pet.raca.nome} + ')'">Thor</strong>
+                                    </div>
+                                    <div class="small text-muted" th:if="${agendamento.clinicaParceira != null}">
+                                        Local: <strong th:text="${agendamento.clinicaParceira}">Hospital Central</strong>
+                                    </div>
+                                </div>
+
+                                <div class="clyvo-vitals mb-3">
+                                    <div class="d-flex justify-content-between py-2 border-bottom">
+                                        <span class="text-muted">Valor Tabela:</span>
+                                        <span class="fw-semibold text-dark" th:text="'R$ ' + ${#numbers.formatDecimal(agendamento.valorOriginal, 1, 2, 'POINT')}">R$ 150.00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between py-2 border-bottom text-success" th:if="${agendamento.descontoFidelidade > 0}">
+                                        <span>
+                                            <i class="bi bi-stars me-1"></i> Desconto Fidelidade:
+                                        </span>
+                                        <span class="fw-bold" th:text="'- R$ ' + ${#numbers.formatDecimal(agendamento.descontoFidelidade, 1, 2, 'POINT')}">- R$ 22.50</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center py-3">
+                                        <span class="fs-5 fw-bold text-dark">Total no Pix:</span>
+                                        <span class="fs-3 fw-bold text-primary" th:text="'R$ ' + ${#numbers.formatDecimal(agendamento.valorFinal, 1, 2, 'POINT')}">R$ 127.50</span>
+                                    </div>
+                                </div>
+
+                                <!-- Box de Split Bipartite -->
+                                <div class="p-3 rounded-3 border" style="background: #f8fafc; font-size: 0.85rem;">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <i class="bi bi-pie-chart-fill text-indigo" style="color: #6366f1;"></i>
+                                        <strong class="text-dark">Split Bipartite Garantido:</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between text-muted mb-1">
+                                        <span>🏥 Clínica (Repasse):</span>
+                                        <strong class="text-dark" th:text="'R$ ' + ${#numbers.formatDecimal(agendamento.valorRepasseClinica, 1, 2, 'POINT')}">R$ 135.00</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between text-muted mb-1">
+                                        <span>🐾 Clyvo Take-rate:</span>
+                                        <strong class="text-primary" th:text="'R$ ' + ${#numbers.formatDecimal(agendamento.valorComissaoClyvo, 1, 2, 'POINT')}">R$ 9.00</strong>
+                                    </div>
+                                    <div class="text-muted mt-2 pt-2 border-top" style="font-size: 0.72rem;">
+                                        <i class="bi bi-shield-check text-success me-1"></i>
+                                        Custódia Escrow: o repasse à clínica é desbloqueado automaticamente após a leitura do Voucher na recepção.
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Script de Polling e Cópia -->
+            <script th:inline="javascript">
+                /*<![CDATA[*/
+                const agendamentoId = /*[[${agendamento.id}]]*/ 0;
+
+                // Função de cópia do código Pix Copia e Cola
+                function copiarCodigoPix() {
+                    const input = document.getElementById("pixCopiaCola");
+                    input.select();
+                    input.setSelectionRange(0, 99999);
+                    navigator.clipboard.writeText(input.value).then(() => {
+                        const feedback = document.getElementById("feedbackCopia");
+                        const btnTexto = document.getElementById("btnCopiarTexto");
+                        feedback.classList.remove("d-none");
+                        btnTexto.innerText = "Copiado!";
+                        setTimeout(() => {
+                            btnTexto.innerText = "Copiar";
+                            feedback.classList.add("d-none");
+                        }, 4000);
+                    }).catch(err => {
+                        console.error("Erro ao copiar:", err);
+                    });
+                }
+
+                // Timer regressivo de 15 minutos
+                let tempoRestante = 15 * 60;
+                const timerEl = document.getElementById("pixTimer");
+                const countdown = setInterval(() => {
+                    if (tempoRestante <= 0) {
+                        clearInterval(countdown);
+                        timerEl.innerText = "Expirado";
+                        timerEl.classList.add("text-danger");
+                        return;
+                    }
+                    tempoRestante--;
+                    const minutos = Math.floor(tempoRestante / 60).toString().padStart(2, '0');
+                    const segundos = (tempoRestante % 60).toString().padStart(2, '0');
+                    timerEl.innerText = `${minutos}:${segundos}`;
+                }, 1000);
+
+                // Polling automático a cada 3 segundos
+                const statusTextoEl = document.getElementById("pollingStatusTexto");
+                let pollingAtivo = true;
+
+                function checarStatus() {
+                    if (!pollingAtivo) return;
+                    fetch('/servicos/pagamento/' + agendamentoId + '/status')
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.pago) {
+                                pollingAtivo = false;
+                                statusTextoEl.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i> Pagamento confirmado! Redirecionando para o voucher...</span>';
+                                setTimeout(() => {
+                                    window.location.href = data.redirectUrl;
+                                }, 1200);
+                            }
+                        })
+                        .catch(err => {
+                            console.warn("Polling de pagamento:", err);
+                        });
+                }
+
+                setInterval(checarStatus, 3000);
+                /*]]>*/
+            </script>
+
+        </div>
+    </div>
+
+</body>
+</html>

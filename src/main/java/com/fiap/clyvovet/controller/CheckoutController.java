@@ -7,6 +7,7 @@ import com.fiap.clyvovet.repository.TutorRepository;
 import com.fiap.clyvovet.service.PagamentoSplitService;
 import com.fiap.clyvovet.service.PetService;
 import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -15,7 +16,9 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/servicos")
@@ -106,10 +109,13 @@ public class CheckoutController {
         }
 
         try {
-            AgendamentoServico agendamento = pagamentoSplitService.processarCheckout(dto, auth.getName());
-            redirectAttributes.addFlashAttribute("successMessage",
-                    "Pagamento in-app confirmado e voucher emitido com sucesso! O valor foi liquidado com split automático via gateway.");
-            return "redirect:/servicos/voucher/" + agendamento.getId();
+            AgendamentoServico agendamento = pagamentoSplitService.iniciarCheckout(dto, auth.getName());
+            if (agendamento.getStatusPagamento() == StatusPagamento.PAGO_CONFIRMADO) {
+                redirectAttributes.addFlashAttribute("successMessage",
+                        "Pagamento in-app confirmado e voucher emitido com sucesso! O valor foi liquidado com split automático via gateway.");
+                return "redirect:/servicos/voucher/" + agendamento.getId();
+            }
+            return "redirect:/servicos/pagamento/" + agendamento.getId();
         } catch (Exception e) {
             List<Pet> pets = petService.listarPorTutor(auth.getName());
             Tutor tutor = tutorRepository.findByUsuarioUsername(auth.getName()).orElse(null);
@@ -120,6 +126,61 @@ public class CheckoutController {
             model.addAttribute("tutor", tutor);
             return "servicos/checkout";
         }
+    }
+
+    @PreAuthorize("hasRole('TUTOR')")
+    @GetMapping("/pagamento/{id}")
+    public String telaPagamento(@PathVariable("id") Long id, Authentication auth, Model model) {
+        AgendamentoServico agendamento = pagamentoSplitService.buscarPorId(id);
+        Tutor tutor = tutorRepository.findByUsuarioUsername(auth.getName())
+                .orElseThrow(() -> new IllegalArgumentException("Tutor não encontrado: " + auth.getName()));
+
+        if (!agendamento.getTutor().getCpf().equals(tutor.getCpf())) {
+            throw new org.springframework.security.access.AccessDeniedException("Acesso negado a este pagamento.");
+        }
+
+        if (agendamento.getStatusPagamento() == StatusPagamento.PAGO_CONFIRMADO
+                || agendamento.getStatusPagamento() == StatusPagamento.UTILIZADO_NA_CLINICA) {
+            return "redirect:/servicos/voucher/" + agendamento.getId();
+        }
+
+        model.addAttribute("agendamento", agendamento);
+        model.addAttribute("transacao", agendamento.getTransacao());
+        model.addAttribute("split", pagamentoSplitService.calcularResumo(tutor.getCpf(), agendamento.getTipoServico()));
+        return "servicos/pagamento";
+    }
+
+    @PreAuthorize("hasRole('TUTOR')")
+    @GetMapping("/pagamento/{id}/status")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> checarStatusPagamento(@PathVariable("id") Long id, Authentication auth) {
+        AgendamentoServico agendamento = pagamentoSplitService.consultarEAtualizarStatus(id);
+        boolean pago = (agendamento.getStatusPagamento() == StatusPagamento.PAGO_CONFIRMADO
+                || agendamento.getStatusPagamento() == StatusPagamento.UTILIZADO_NA_CLINICA);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("pago", pago);
+        response.put("status", agendamento.getStatusPagamento().name());
+        response.put("statusDescricao", agendamento.getStatusPagamento().getDescricao());
+        response.put("redirectUrl", "/servicos/voucher/" + id);
+        return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("hasRole('TUTOR')")
+    @PostMapping("/pagamento/{id}/simular")
+    public String simularPagamento(@PathVariable("id") Long id, Authentication auth, RedirectAttributes redirectAttributes) {
+        AgendamentoServico agendamento = pagamentoSplitService.buscarPorId(id);
+        Tutor tutor = tutorRepository.findByUsuarioUsername(auth.getName())
+                .orElseThrow(() -> new IllegalArgumentException("Tutor não encontrado: " + auth.getName()));
+
+        if (!agendamento.getTutor().getCpf().equals(tutor.getCpf())) {
+            throw new org.springframework.security.access.AccessDeniedException("Acesso negado a este pagamento.");
+        }
+
+        pagamentoSplitService.simularConfirmacaoPagamento(id);
+        redirectAttributes.addFlashAttribute("successMessage",
+                "Pagamento PIX liquidado com sucesso via Sandbox! O voucher foi ativado e a comissão retida em Escrow.");
+        return "redirect:/servicos/voucher/" + id;
     }
 
     @PreAuthorize("hasRole('TUTOR')")

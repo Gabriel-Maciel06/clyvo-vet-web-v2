@@ -96,6 +96,16 @@ public class AgendamentoServico {
     @Column(name = "VALOR_PREJUIZO_PLATAFORMA", nullable = false, precision = 10, scale = 2)
     private BigDecimal valorPrejuizoPlataforma = BigDecimal.ZERO;
 
+    @Column(name = "QR_CODE_PIX_COPIA_COLA", length = 1000)
+    private String qrCodePixCopiaCola;
+
+    @Lob
+    @Column(name = "QR_CODE_PIX_BASE64")
+    private String qrCodePixBase64;
+
+    @Column(name = "DATA_EXPIRACAO_PAGAMENTO")
+    private LocalDateTime dataExpiracaoPagamento;
+
     public AgendamentoServico() {}
 
     public Long getId() {
@@ -287,4 +297,13 @@ public class AgendamentoServico {
 
     public BigDecimal getValorPrejuizoPlataforma() { return valorPrejuizoPlataforma; }
     public void setValorPrejuizoPlataforma(BigDecimal valorPrejuizoPlataforma) { this.valorPrejuizoPlataforma = valorPrejuizoPlataforma; }
+
+    public String getQrCodePixCopiaCola() { return qrCodePixCopiaCola; }
+    public void setQrCodePixCopiaCola(String qrCodePixCopiaCola) { this.qrCodePixCopiaCola = qrCodePixCopiaCola; }
+
+    public String getQrCodePixBase64() { return qrCodePixBase64; }
+    public void setQrCodePixBase64(String qrCodePixBase64) { this.qrCodePixBase64 = qrCodePixBase64; }
+
+    public LocalDateTime getDataExpiracaoPagamento() { return dataExpiracaoPagamento; }
+    public void setDataExpiracaoPagamento(LocalDateTime dataExpiracaoPagamento) { this.dataExpiracaoPagamento = dataExpiracaoPagamento; }
 }

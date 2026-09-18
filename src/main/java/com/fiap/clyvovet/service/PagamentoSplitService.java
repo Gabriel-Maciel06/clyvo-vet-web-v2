@@ -32,6 +32,11 @@ import java.util.UUID;
  * {@link SplitFinanceiroCalculator}, compartilhada com
  * {@link MarketplaceIntermediacaoService}.</p>
  */
+import com.fiap.clyvovet.gateway.GatewayPagamentoService;
+import com.fiap.clyvovet.gateway.dto.CobrancaGeradaDto;
+import com.fiap.clyvovet.gateway.dto.RequisicaoCobrancaDto;
+import com.fiap.clyvovet.gateway.dto.StatusCobrancaDto;
+
 @Service
 public class PagamentoSplitService {
 
@@ -52,6 +57,7 @@ public class PagamentoSplitService {
     private final AgendamentoRepository agendamentoLedgerRepository;
     private final TransacaoRepository transacaoRepository;
     private final ComissaoRepository comissaoRepository;
+    private final GatewayPagamentoService gatewayPagamentoService;
 
     public PagamentoSplitService(AgendamentoServicoRepository agendamentoRepository,
                                  PetRepository petRepository,
@@ -63,7 +69,8 @@ public class PagamentoSplitService {
                                  ServicoRepository servicoRepository,
                                  AgendamentoRepository agendamentoLedgerRepository,
                                  TransacaoRepository transacaoRepository,
-                                 ComissaoRepository comissaoRepository) {
+                                 ComissaoRepository comissaoRepository,
+                                 GatewayPagamentoService gatewayPagamentoService) {
         this.agendamentoRepository = agendamentoRepository;
         this.petRepository = petRepository;
         this.tutorRepository = tutorRepository;
@@ -75,6 +82,7 @@ public class PagamentoSplitService {
         this.agendamentoLedgerRepository = agendamentoLedgerRepository;
         this.transacaoRepository = transacaoRepository;
         this.comissaoRepository = comissaoRepository;
+        this.gatewayPagamentoService = gatewayPagamentoService;
     }
 
     public record ResumoSplit(
@@ -125,7 +133,7 @@ public class PagamentoSplitService {
     }
 
     @Transactional
-    public AgendamentoServico processarCheckout(CheckoutRequestDto dto, String usernameTutor) {
+    public AgendamentoServico iniciarCheckout(CheckoutRequestDto dto, String usernameTutor) {
         Pet pet = petRepository.findById(dto.getPetId())
                 .orElseThrow(() -> new IllegalArgumentException("Pet não encontrado: " + dto.getPetId()));
         petService.validarPropriedade(pet, usernameTutor);
@@ -139,11 +147,25 @@ public class PagamentoSplitService {
         String codigoVoucher = "CLYVO-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         String qrHash = "QR-CLYVO-" + pet.getId() + "-" + System.currentTimeMillis();
 
-        // Catalogo real: resolve a clinica ofertante em vez de gravar um nome fixo.
         Servico servicoCatalogo = servicoRepository
                 .findFirstByCodigoServicoAppAndAtivoTrue(servico.name())
                 .orElse(null);
         Clinica clinica = (servicoCatalogo != null) ? servicoCatalogo.getClinica() : null;
+
+        // 1. Chamada ao Gateway de Pagamento (Mercado Pago ou Simulado)
+        RequisicaoCobrancaDto req = new RequisicaoCobrancaDto(
+                codigoVoucher,
+                split.valorFinal(),
+                servico.getTitulo() + " (Pet: " + pet.getNome() + ")",
+                dto.getMetodoPagamento() != null ? dto.getMetodoPagamento() : "PIX",
+                tutor.getNome(),
+                tutor.getEmail(),
+                tutor.getCpf()
+        );
+        CobrancaGeradaDto cobranca = gatewayPagamentoService.criarCobranca(req);
+
+        StatusPagamento statusPagamento = (cobranca.status() == StatusTransacao.PAGO)
+                ? StatusPagamento.PAGO_CONFIRMADO : StatusPagamento.PENDENTE_PAGAMENTO;
 
         AgendamentoServico agendamento = new AgendamentoServico();
         agendamento.setPet(pet);
@@ -160,53 +182,152 @@ public class PagamentoSplitService {
         agendamento.setTaxaEfetivaPercentual(split.taxaEfetivaPercentual());
         agendamento.setValorRepasseClinica(split.valorRepasseClinica());
         agendamento.setValorPrejuizoPlataforma(split.valorPrejuizoPlataforma());
-        agendamento.setStatusPagamento(StatusPagamento.PAGO_CONFIRMADO);
+        agendamento.setStatusPagamento(statusPagamento);
         agendamento.setMetodoPagamento(dto.getMetodoPagamento());
         agendamento.setCodigoVoucher(codigoVoucher);
         agendamento.setQrCodeHash(qrHash);
+        agendamento.setQrCodePixCopiaCola(cobranca.qrCodePixCopiaCola());
+        agendamento.setQrCodePixBase64(cobranca.qrCodePixBase64());
+        agendamento.setDataExpiracaoPagamento(cobranca.dataExpiracao());
+
         if (clinica != null && clinica.getNomeCnpj() != null) {
             agendamento.setClinicaParceira(clinica.getNomeCnpj());
         }
         agendamento.setDataCriacao(LocalDateTime.now());
-        agendamento.setDataPagamento(LocalDateTime.now());
+        if (statusPagamento == StatusPagamento.PAGO_CONFIRMADO) {
+            agendamento.setDataPagamento(LocalDateTime.now());
+        }
         agendamento.setObservacoes(dto.getObservacoes());
 
-        // Espelha a operacao no ledger normalizado 3FN com os snapshots da V13.
-        Transacao transacao = registrarNoLedger(pet, tutor, servicoCatalogo, clinica, split, dto, codigoVoucher, qrHash);
+        // Espelha a operacao no ledger normalizado 3FN com os snapshots da V13/V15
+        Transacao transacao = registrarNoLedger(pet, tutor, servicoCatalogo, clinica, split, dto, codigoVoucher, qrHash, cobranca);
         agendamento.setTransacao(transacao);
 
         AgendamentoServico salvo = agendamentoRepository.save(agendamento);
 
-        // Bonificação de fidelidade (+50 pontos no Clyvo Rewards pela contratação preventiva)
+        if (statusPagamento == StatusPagamento.PAGO_CONFIRMADO) {
+            efetivarPosPagamento(salvo, tutor, pet, servico, split, dto, codigoVoucher);
+        }
+
+        return salvo;
+    }
+
+    /**
+     * Mantido para retrocompatibilidade com suítes de testes e operações síncronas.
+     * Inicia o checkout e, caso a transação esteja pendente, confirma imediatamente.
+     */
+    @Transactional
+    public AgendamentoServico processarCheckout(CheckoutRequestDto dto, String usernameTutor) {
+        AgendamentoServico agendamento = iniciarCheckout(dto, usernameTutor);
+        if (agendamento.getStatusPagamento() != StatusPagamento.PAGO_CONFIRMADO) {
+            agendamento = confirmarPagamento(agendamento.getId());
+        }
+        return agendamento;
+    }
+
+    /**
+     * Efetiva a confirmação do pagamento após validação no Gateway ou Webhook.
+     */
+    @Transactional
+    public AgendamentoServico confirmarPagamento(Long agendamentoId) {
+        AgendamentoServico agendamento = agendamentoRepository.findById(agendamentoId)
+                .orElseThrow(() -> new IllegalArgumentException("Agendamento não encontrado: " + agendamentoId));
+
+        if (agendamento.getStatusPagamento() == StatusPagamento.PAGO_CONFIRMADO
+                || agendamento.getStatusPagamento() == StatusPagamento.UTILIZADO_NA_CLINICA) {
+            return agendamento;
+        }
+
+        agendamento.setStatusPagamento(StatusPagamento.PAGO_CONFIRMADO);
+        agendamento.setDataPagamento(LocalDateTime.now());
+
+        Transacao transacao = agendamento.getTransacao();
+        if (transacao != null) {
+            transacao.setStatusTransacao(StatusTransacao.PAGO);
+            transacao.setDataPagamento(LocalDateTime.now());
+            transacaoRepository.save(transacao);
+
+            // Garante comissão no escrow se ainda não existia
+            if (comissaoRepository.findByTransacaoId(transacao.getId()).isEmpty()) {
+                criarComissaoEscrow(transacao, agendamento.getTransacao().getAgendamento().getClinica(),
+                        calcularResumo(agendamento.getTutor().getCpf(), agendamento.getTipoServico()));
+            }
+        }
+
+        Tutor tutor = agendamento.getTutor();
+        Pet pet = agendamento.getPet();
+        TipoServicoPreventivo servico = agendamento.getTipoServico();
+        ResumoSplit split = calcularResumo(tutor.getCpf(), servico);
+        CheckoutRequestDto dto = new CheckoutRequestDto();
+        dto.setMetodoPagamento(agendamento.getMetodoPagamento());
+
+        efetivarPosPagamento(agendamento, tutor, pet, servico, split, dto, agendamento.getCodigoVoucher());
+
+        return agendamentoRepository.save(agendamento);
+    }
+
+    @Transactional
+    public AgendamentoServico confirmarPagamentoPorCodigoGateway(String codigoGateway) {
+        Transacao transacao = transacaoRepository.findByCodigoTransacaoGateway(codigoGateway)
+                .orElseThrow(() -> new IllegalArgumentException("Transação não encontrada com código gateway: " + codigoGateway));
+
+        AgendamentoServico agendamento = agendamentoRepository.findByTransacaoId(transacao.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Agendamento não vinculado à transação: " + transacao.getId()));
+
+        return confirmarPagamento(agendamento.getId());
+    }
+
+    @Transactional
+    public AgendamentoServico consultarEAtualizarStatus(Long agendamentoId) {
+        AgendamentoServico agendamento = agendamentoRepository.findById(agendamentoId)
+                .orElseThrow(() -> new IllegalArgumentException("Agendamento não encontrado: " + agendamentoId));
+
+        if (agendamento.getStatusPagamento() == StatusPagamento.PAGO_CONFIRMADO
+                || agendamento.getStatusPagamento() == StatusPagamento.UTILIZADO_NA_CLINICA) {
+            return agendamento;
+        }
+
+        Transacao transacao = agendamento.getTransacao();
+        if (transacao != null && transacao.getCodigoTransacaoGateway() != null) {
+            StatusCobrancaDto statusGateway = gatewayPagamentoService.consultarStatus(transacao.getCodigoTransacaoGateway());
+            if (statusGateway.pago()) {
+                return confirmarPagamento(agendamentoId);
+            }
+        }
+        return agendamento;
+    }
+
+    @Transactional
+    public AgendamentoServico simularConfirmacaoPagamento(Long agendamentoId) {
+        AgendamentoServico agendamento = agendamentoRepository.findById(agendamentoId)
+                .orElseThrow(() -> new IllegalArgumentException("Agendamento não encontrado: " + agendamentoId));
+        Transacao transacao = agendamento.getTransacao();
+        if (transacao != null && transacao.getCodigoTransacaoGateway() != null) {
+            gatewayPagamentoService.simularPagamento(transacao.getCodigoTransacaoGateway());
+        }
+        return confirmarPagamento(agendamentoId);
+    }
+
+    private void efetivarPosPagamento(AgendamentoServico agendamento, Tutor tutor, Pet pet,
+                                     TipoServicoPreventivo servico, ResumoSplit split,
+                                     CheckoutRequestDto dto, String codigoVoucher) {
         RecompensaTutor recompensa = recompensaTutorRepository.findByTutorCpf(tutor.getCpf()).orElse(null);
         if (recompensa != null) {
             recompensa.adicionarPontos(50);
             recompensaTutorRepository.save(recompensa);
         }
 
-        // Registro imediato na Linha do Tempo Clínica do Pet
         HistoricoClinico evento = new HistoricoClinico(
                 null, pet, LocalDateTime.now(),
                 "VOUCHER_PREVENTIVO",
                 String.format("Voucher Emitido: %s (Cód: %s)", servico.getTitulo(), codigoVoucher),
                 String.format("Pago in-app via %s. Valor: R$ %s (Desconto Fidelidade: R$ %s). Split Clyvo Take-rate: R$ %s retido no gateway. Apresente o QR Code no hospital parceiro.",
-                        dto.getMetodoPagamento(), split.valorFinal(), split.valorDesconto(), split.valorComissaoClyvo())
+                        dto.getMetodoPagamento() != null ? dto.getMetodoPagamento() : "PIX",
+                        split.valorFinal(), split.valorDesconto(), split.valorComissaoClyvo())
         );
         historicoClinicoRepository.save(evento);
-
-        return salvo;
     }
 
-    /**
-     * Grava a operacao no livro-razao normalizado. Os campos {@code snapshot_*}
-     * registram os valores vigentes no ato da captura e nunca sao recalculados:
-     * se o preco do catalogo ou a taxa da clinica mudarem amanha, o historico
-     * ja liquidado permanece auditavel como estava hoje.
-     *
-     * <p>Se o catalogo ainda nao tiver a linha correspondente ao servico, o
-     * checkout do tutor nao pode falhar por isso — o voucher e emitido e o
-     * registro no ledger e apenas omitido, com log de alerta.</p>
-     */
     private Transacao registrarNoLedger(Pet pet,
                                         Tutor tutor,
                                         Servico servicoCatalogo,
@@ -214,7 +335,8 @@ public class PagamentoSplitService {
                                         ResumoSplit split,
                                         CheckoutRequestDto dto,
                                         String codigoVoucher,
-                                        String qrHash) {
+                                        String qrHash,
+                                        CobrancaGeradaDto cobranca) {
         if (servicoCatalogo == null || clinica == null) {
             log.warn("Serviço '{}' sem linha correspondente em T_SERVICO: voucher {} emitido sem registro no ledger normalizado.",
                     dto.getTipoServico(), codigoVoucher);
@@ -234,22 +356,38 @@ public class PagamentoSplitService {
 
         Transacao transacao = new Transacao();
         transacao.setAgendamento(agendamentoLedger);
-        transacao.setCodigoTransacaoGateway("GW-CHECKOUT-" + UUID.randomUUID());
+        transacao.setCodigoTransacaoGateway(cobranca != null ? cobranca.idTransacaoGateway() : "GW-CHECKOUT-" + UUID.randomUUID());
         transacao.setMetodoPagamento(dto.getMetodoPagamento() != null ? dto.getMetodoPagamento() : "PIX");
-        transacao.setStatusTransacao(StatusTransacao.PAGO);
+        transacao.setStatusTransacao(cobranca != null ? cobranca.status() : StatusTransacao.PENDENTE);
         transacao.setValorBruto(split.valorOriginal());
         transacao.setValorDescontoFidelidade(split.valorDesconto());
         transacao.setValorLiquidoPago(split.valorFinal());
         transacao.setCodigoVoucher(codigoVoucher);
         transacao.setQrCodeHash(qrHash);
+        transacao.setQrCodePixCopiaCola(cobranca != null ? cobranca.qrCodePixCopiaCola() : null);
+        transacao.setQrCodePixBase64(cobranca != null ? cobranca.qrCodePixBase64() : null);
+        transacao.setLinkPagamentoCheckout(cobranca != null ? cobranca.linkCheckout() : null);
+        transacao.setDataExpiracaoPagamento(cobranca != null ? cobranca.dataExpiracao() : null);
         transacao.setVoucherUtilizado(false);
         transacao.setDataCriacao(LocalDateTime.now());
-        transacao.setDataPagamento(LocalDateTime.now());
+        if (transacao.getStatusTransacao() == StatusTransacao.PAGO) {
+            transacao.setDataPagamento(LocalDateTime.now());
+        }
         transacao.setSnapshotPrecoCatalogo(servicoCatalogo.getPrecoBase());
         transacao.setSnapshotTaxaDescontoPct(BigDecimal.valueOf(split.descontoPercentual()).setScale(2));
         transacao.setSnapshotNivelFidelidade(split.nivelFidelidade());
         transacao = transacaoRepository.save(transacao);
 
+        // Criação da Comissão em Escrow
+        criarComissaoEscrow(transacao, clinica, split);
+
+        return transacao;
+    }
+
+    private void criarComissaoEscrow(Transacao transacao, Clinica clinica, ResumoSplit split) {
+        if (comissaoRepository.findByTransacaoId(transacao.getId()).isPresent()) {
+            return;
+        }
         Comissao comissao = new Comissao();
         comissao.setTransacao(transacao);
         comissao.setClinica(clinica);
@@ -268,8 +406,6 @@ public class PagamentoSplitService {
                         : SplitFinanceiroCalculator.TAXA_TAKE_RATE_PADRAO);
         comissao.setSnapshotPisoRepassePct(SplitFinanceiroCalculator.PISO_REPASSE_CLINICA_PERCENTUAL);
         comissaoRepository.save(comissao);
-
-        return transacao;
     }
 
     @Transactional

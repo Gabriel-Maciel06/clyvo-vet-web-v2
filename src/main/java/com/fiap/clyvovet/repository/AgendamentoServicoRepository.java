@@ -17,5 +17,7 @@ public interface AgendamentoServicoRepository extends JpaRepository<AgendamentoS
 
     Optional<AgendamentoServico> findByCodigoVoucher(String codigoVoucher);
 
+    Optional<AgendamentoServico> findByTransacaoId(Long transacaoId);
+
     List<AgendamentoServico> findByStatusPagamentoOrderByDataCriacaoDesc(StatusPagamento statusPagamento);
 }

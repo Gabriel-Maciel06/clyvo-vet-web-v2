@@ -67,6 +67,19 @@ public class Transacao {
     @Column(name = "SNAPSHOT_NIVEL_FIDELIDADE", length = 20)
     private String snapshotNivelFidelidade;
 
+    @Column(name = "QR_CODE_PIX_COPIA_COLA", length = 1000)
+    private String qrCodePixCopiaCola;
+
+    @Lob
+    @Column(name = "QR_CODE_PIX_BASE64")
+    private String qrCodePixBase64;
+
+    @Column(name = "LINK_PAGAMENTO_CHECKOUT", length = 500)
+    private String linkPagamentoCheckout;
+
+    @Column(name = "DATA_EXPIRACAO_PAGAMENTO")
+    private LocalDateTime dataExpiracaoPagamento;
+
     public Transacao() {}
 
     public Transacao(Long id, Agendamento agendamento, String codigoTransacaoGateway, String metodoPagamento, StatusTransacao statusTransacao, BigDecimal valorBruto, BigDecimal valorDescontoFidelidade, BigDecimal valorLiquidoPago, String codigoVoucher, String qrCodeHash, Boolean voucherUtilizado, LocalDateTime dataCriacao, LocalDateTime dataPagamento, LocalDateTime dataUtilizacaoVoucher) {
@@ -136,4 +149,16 @@ public class Transacao {
 
     public String getSnapshotNivelFidelidade() { return snapshotNivelFidelidade; }
     public void setSnapshotNivelFidelidade(String snapshotNivelFidelidade) { this.snapshotNivelFidelidade = snapshotNivelFidelidade; }
+
+    public String getQrCodePixCopiaCola() { return qrCodePixCopiaCola; }
+    public void setQrCodePixCopiaCola(String qrCodePixCopiaCola) { this.qrCodePixCopiaCola = qrCodePixCopiaCola; }
+
+    public String getQrCodePixBase64() { return qrCodePixBase64; }
+    public void setQrCodePixBase64(String qrCodePixBase64) { this.qrCodePixBase64 = qrCodePixBase64; }
+
+    public String getLinkPagamentoCheckout() { return linkPagamentoCheckout; }
+    public void setLinkPagamentoCheckout(String linkPagamentoCheckout) { this.linkPagamentoCheckout = linkPagamentoCheckout; }
+
+    public LocalDateTime getDataExpiracaoPagamento() { return dataExpiracaoPagamento; }
+    public void setDataExpiracaoPagamento(LocalDateTime dataExpiracaoPagamento) { this.dataExpiracaoPagamento = dataExpiracaoPagamento; }
 }

@@ -83,9 +83,10 @@ public class SecurityConfig {
                 if (h2ConsolePermitido) {
                     auth.requestMatchers("/h2-console/**").hasRole("ADMIN");
                 }
-                // Rotas públicas de autenticação e autocadastro
+                // Rotas públicas de autenticação, autocadastro e webhooks de pagamento (gateways)
                 auth.requestMatchers("/login", "/erro", "/access-denied",
-                        "/cadastro", "/recuperar-senha", "/redefinir-senha", "/login/google-demo").permitAll();
+                        "/cadastro", "/recuperar-senha", "/redefinir-senha", "/login/google-demo",
+                        "/api/webhooks/**").permitAll();
                 // Conclusão de cadastro (CPF real) para tutores criados via login social
                 auth.requestMatchers("/perfil/**").hasRole("TUTOR");
                 // Rotas exclusivas do Veterinário (ROLE_ADMIN): fila, avaliação clínica e validação de vouchers
@@ -123,10 +124,16 @@ public class SecurityConfig {
             );
         }
 
-        // O console H2 só existe (e só precisa dessa exceção de CSRF/frame) fora de produção.
+        // Webhooks de gateways são chamadas server-to-server sem CSRF token
+        http.csrf(csrf -> {
+            csrf.ignoringRequestMatchers("/api/webhooks/**");
+            if (h2ConsolePermitido) {
+                csrf.ignoringRequestMatchers("/h2-console/**");
+            }
+        });
+
         if (h2ConsolePermitido) {
-            http.csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))
-                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
+            http.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
         }
 
         return http.build();
