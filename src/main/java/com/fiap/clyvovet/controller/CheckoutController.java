@@ -115,6 +115,15 @@ public class CheckoutController {
                         "Pagamento in-app confirmado e voucher emitido com sucesso! O valor foi liquidado com split automático via gateway.");
                 return "redirect:/servicos/voucher/" + agendamento.getId();
             }
+
+            // Redirecionamento hosted (Stripe Checkout)
+            Transacao transacao = agendamento.getTransacao();
+            if (transacao != null && transacao.getLinkPagamentoCheckout() != null
+                    && !transacao.getLinkPagamentoCheckout().isBlank()
+                    && transacao.getLinkPagamentoCheckout().startsWith("http")) {
+                return "redirect:" + transacao.getLinkPagamentoCheckout();
+            }
+
             return "redirect:/servicos/pagamento/" + agendamento.getId();
         } catch (Exception e) {
             List<Pet> pets = petService.listarPorTutor(auth.getName());
@@ -125,6 +134,28 @@ public class CheckoutController {
             model.addAttribute("split", (tutor != null && dto.getTipoServico() != null) ? pagamentoSplitService.calcularResumo(tutor.getCpf(), dto.getTipoServico()) : null);
             model.addAttribute("tutor", tutor);
             return "servicos/checkout";
+        }
+    }
+
+    @PreAuthorize("hasRole('TUTOR')")
+    @GetMapping("/stripe/retorno")
+    public String retornoStripe(@RequestParam(value = "session_id", required = false) String sessionId,
+                                Authentication auth,
+                                RedirectAttributes redirectAttributes) {
+        if (sessionId == null || sessionId.isBlank()) {
+            return "redirect:/servicos/meus-vouchers";
+        }
+
+        String codigoGateway = sessionId.startsWith("STRIPE-") ? sessionId : "STRIPE-" + sessionId;
+        try {
+            AgendamentoServico agendamento = pagamentoSplitService.confirmarPagamentoPorCodigoGateway(codigoGateway);
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Pagamento confirmado com sucesso via Stripe! Seu voucher oficial anti-fuga foi emitido.");
+            return "redirect:/servicos/voucher/" + agendamento.getId();
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Retorno da Stripe recebido, mas houve instabilidade na confirmação automática: " + e.getMessage());
+            return "redirect:/servicos/meus-vouchers";
         }
     }
 

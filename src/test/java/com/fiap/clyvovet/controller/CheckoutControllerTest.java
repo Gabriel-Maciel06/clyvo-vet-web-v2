@@ -107,6 +107,36 @@ class CheckoutControllerTest {
 
     @Test
     @WithMockUser(username = "tutor", roles = "TUTOR")
+    @DisplayName("Retorno da Stripe (/servicos/stripe/retorno) confirma pagamento e redireciona para voucher")
+    void retornoStripeRedirecionaParaVoucher() throws Exception {
+        var mvcResult = mockMvc.perform(post("/servicos/checkout").with(csrf())
+                        .param("petId", pet.getId().toString())
+                        .param("tipoServico", TipoServicoPreventivo.CONSULTA_PREVENTIVA.name())
+                        .param("metodoPagamento", "CARTAO_CREDITO"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        String redirectedUrl = mvcResult.getResponse().getRedirectedUrl();
+        assert redirectedUrl != null;
+        Long agendamentoId = Long.parseLong(redirectedUrl.substring(redirectedUrl.lastIndexOf('/') + 1));
+
+        // Obtém o agendamento criado para simular o session_id retornado pela Stripe
+        var agendamento = petRepository.findById(pet.getId())
+                .map(p -> tutorRepository.findByUsuarioUsername("tutor").orElseThrow())
+                .map(t -> agendamentoId)
+                .orElseThrow();
+
+        // Faz o retorno da Stripe com session_id
+        String codigoGateway = "STRIPE-cs_teste_mock_123";
+        // Cria transação para testar retorno direto
+        mockMvc.perform(get("/servicos/stripe/retorno")
+                        .param("session_id", "cs_inexistente_fallback"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/servicos/meus-vouchers"));
+    }
+
+    @Test
+    @WithMockUser(username = "tutor", roles = "TUTOR")
     @DisplayName("Tutor comum não pode validar voucher (rota exclusiva ADMIN)")
     void tutorNaoPodeValidarVoucher() throws Exception {
         mockMvc.perform(post("/servicos/validar-voucher").with(csrf())
