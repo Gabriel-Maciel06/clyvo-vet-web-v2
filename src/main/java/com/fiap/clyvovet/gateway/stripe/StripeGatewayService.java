@@ -178,11 +178,21 @@ public class StripeGatewayService implements GatewayPagamentoService {
             String paymentStatus = root.path("payment_status").asText();
             String sessionStatus = root.path("status").asText();
 
-            boolean pago = "paid".equalsIgnoreCase(paymentStatus) || "complete".equalsIgnoreCase(sessionStatus);
+            // So "payment_status: paid" significa dinheiro recebido.
+            //
+            // A condicao anterior aceitava tambem "status: complete", o que e incorreto
+            // para PIX: o PIX e assincrono, entao a sessao fica "complete" assim que o
+            // cliente termina o fluxo na tela da Stripe, enquanto o pagamento ainda esta
+            // pendente e pode simplesmente expirar sem nunca ser pago (o padrao e 4h, e
+            // a confirmacao chega depois, por evento). Aceitar "complete" liberava o
+            // voucher de um PIX que nunca foi pago.
+            boolean pago = "paid".equalsIgnoreCase(paymentStatus);
             StatusTransacao status;
             if (pago) {
                 status = StatusTransacao.PAGO;
-            } else if ("expired".equalsIgnoreCase(sessionStatus)) {
+            } else if ("expired".equalsIgnoreCase(sessionStatus)
+                    || "canceled".equalsIgnoreCase(sessionStatus)
+                    || "no_payment_required".equalsIgnoreCase(paymentStatus)) {
                 status = StatusTransacao.FALHOU;
             } else {
                 status = StatusTransacao.PENDENTE;

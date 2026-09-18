@@ -147,11 +147,41 @@ public class CheckoutController {
         }
 
         String codigoGateway = sessionId.startsWith("STRIPE-") ? sessionId : "STRIPE-" + sessionId;
+
+        // O session_id vem da barra de endereços, então é entrada do usuário, não prova de
+        // pagamento. Antes bastava abrir esta URL com a própria sessão abandonada para
+        // liberar o voucher sem pagar. Agora a confirmação reconsulta a Stripe, e o
+        // agendamento precisa pertencer a quem está logado.
+        // A checagem de dono vem antes de qualquer confirmação. Um principal autenticado
+        // que não tenha cadastro de tutor, ou que não seja o dono do agendamento, não tem
+        // o que fazer neste endpoint: é acesso negado, não erro genérico.
+        AgendamentoServico alvo;
+        try {
+            alvo = pagamentoSplitService.buscarPorCodigoGateway(codigoGateway);
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Não localizamos esta sessão de pagamento.");
+            return "redirect:/servicos/meus-vouchers";
+        }
+
+        Tutor tutor = tutorRepository.findByUsuarioUsername(auth.getName())
+                .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException(
+                        "Acesso negado a este pagamento."));
+        if (!alvo.getTutor().getCpf().equals(tutor.getCpf())) {
+            throw new org.springframework.security.access.AccessDeniedException("Acesso negado a este pagamento.");
+        }
+
         try {
             AgendamentoServico agendamento = pagamentoSplitService.confirmarPagamentoPorCodigoGateway(codigoGateway);
             redirectAttributes.addFlashAttribute("successMessage",
                     "Pagamento confirmado com sucesso via Stripe! Seu voucher oficial anti-fuga foi emitido.");
             return "redirect:/servicos/voucher/" + agendamento.getId();
+        } catch (PagamentoSplitService.PagamentoNaoConfirmadoException e) {
+            // Caminho esperado no PIX: o tutor volta antes de o dinheiro cair.
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Ainda não recebemos a confirmação do seu pagamento. Se você pagou via PIX, "
+                    + "a liquidação pode levar alguns instantes e o voucher será liberado automaticamente.");
+            return "redirect:/servicos/meus-vouchers";
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Retorno da Stripe recebido, mas houve instabilidade na confirmação automática: " + e.getMessage());

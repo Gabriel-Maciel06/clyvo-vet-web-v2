@@ -267,6 +267,19 @@ public class PagamentoSplitService {
     }
 
     @Transactional
+    /**
+     * Confirma um pagamento a partir do codigo do gateway, <strong>sempre</strong>
+     * reconsultando o provedor antes de liberar o voucher.
+     *
+     * <p>Esta reconsulta e a defesa central do fluxo. Antes dela, tanto o retorno do
+     * navegador quanto o webhook confirmavam o pagamento apenas por acreditarem no que
+     * receberam: bastava um tutor abrir {@code /servicos/stripe/retorno?session_id=...}
+     * com a propria sessao abandonada, ou enviar um JSON forjado ao webhook, para obter
+     * atendimento sem pagar. Entradas vindas do navegador ou da rede sao dados, nao
+     * prova de pagamento — quem decide se houve pagamento e o gateway.</p>
+     *
+     * @throws PagamentoNaoConfirmadoException quando o gateway nao confirma o pagamento
+     */
     public AgendamentoServico confirmarPagamentoPorCodigoGateway(String codigoGateway) {
         Transacao transacao = transacaoRepository.findByCodigoTransacaoGateway(codigoGateway)
                 .orElseThrow(() -> new IllegalArgumentException("Transação não encontrada com código gateway: " + codigoGateway));
@@ -274,7 +287,29 @@ public class PagamentoSplitService {
         AgendamentoServico agendamento = agendamentoRepository.findByTransacaoId(transacao.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Agendamento não vinculado à transação: " + transacao.getId()));
 
+        // Idempotencia: uma transacao ja liquidada nao precisa de nova consulta.
+        if (agendamento.getStatusPagamento() == StatusPagamento.PAGO_CONFIRMADO
+                || agendamento.getStatusPagamento() == StatusPagamento.UTILIZADO_NA_CLINICA) {
+            return agendamento;
+        }
+
+        StatusCobrancaDto statusGateway = gatewayPagamentoService.consultarStatus(codigoGateway);
+        if (statusGateway == null || !statusGateway.pago()) {
+            String detalhe = (statusGateway != null) ? String.valueOf(statusGateway.status()) : "sem resposta";
+            log.warn("[Pagamento] Confirmação recusada para {}: o gateway não reporta pagamento (status={}).",
+                    codigoGateway, detalhe);
+            throw new PagamentoNaoConfirmadoException(
+                    "O provedor de pagamento ainda não confirmou esta cobrança (status: " + detalhe + ").");
+        }
+
         return confirmarPagamento(agendamento.getId());
+    }
+
+    /** Sinaliza que o gateway nao reconheceu a cobranca como paga. */
+    public static class PagamentoNaoConfirmadoException extends RuntimeException {
+        public PagamentoNaoConfirmadoException(String mensagem) {
+            super(mensagem);
+        }
     }
 
     @Transactional
@@ -470,6 +505,14 @@ public class PagamentoSplitService {
     public AgendamentoServico buscarPorId(Long id) {
         return agendamentoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Agendamento não encontrado: " + id));
+    }
+
+    /** Localiza o agendamento pela transacao do gateway, sem alterar status. */
+    public AgendamentoServico buscarPorCodigoGateway(String codigoGateway) {
+        Transacao transacao = transacaoRepository.findByCodigoTransacaoGateway(codigoGateway)
+                .orElseThrow(() -> new IllegalArgumentException("Transação não encontrada com código gateway: " + codigoGateway));
+        return agendamentoRepository.findByTransacaoId(transacao.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Agendamento não vinculado à transação: " + transacao.getId()));
     }
 
     public AgendamentoServico buscarPorCodigoVoucher(String codigoVoucher) {
