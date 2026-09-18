@@ -75,8 +75,13 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> {
                 // Arquivos estáticos
                 auth.requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll();
+                // Console H2: exige ROLE_ADMIN mesmo fora de producao. Antes era
+                // permitAll(), o que deixava leitura e escrita do banco (incluindo
+                // T_USUARIO e o livro-razao financeiro) acessiveis a qualquer pessoa
+                // que alcancasse a porta, sem login nenhum. Esconder o atalho do menu
+                // lateral era cosmetico: bastava digitar a URL.
                 if (h2ConsolePermitido) {
-                    auth.requestMatchers("/h2-console/**").permitAll();
+                    auth.requestMatchers("/h2-console/**").hasRole("ADMIN");
                 }
                 // Rotas públicas de autenticação e autocadastro
                 auth.requestMatchers("/login", "/erro", "/access-denied",

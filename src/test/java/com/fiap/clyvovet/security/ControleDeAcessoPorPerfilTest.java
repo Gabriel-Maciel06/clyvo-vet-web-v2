@@ -82,4 +82,24 @@ class ControleDeAcessoPorPerfilTest {
     void tutorAcessaCheckin() throws Exception {
         mockMvc.perform(get("/checkin/novo")).andExpect(status().isOk());
     }
+
+    @Test
+    @DisplayName("Console H2 sem autenticação redireciona para /login (não pode ser público)")
+    void consoleH2NaoEhPublico() throws Exception {
+        // Regressão: a rota era permitAll(), então qualquer pessoa que alcançasse a
+        // porta lia e escrevia no banco inteiro — incluindo T_USUARIO e o livro-razão
+        // financeiro — sem login nenhum. Esconder o atalho do menu não resolvia: bastava
+        // digitar a URL.
+        mockMvc.perform(get("/h2-console/"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/login"));
+    }
+
+    @Test
+    @DisplayName("Console H2 é negado ao tutor -> 403")
+    @WithMockUser(username = "tutor", roles = {"TUTOR"})
+    void consoleH2NegadoAoTutor() throws Exception {
+        mockMvc.perform(get("/h2-console/")).andExpect(status().isForbidden());
+    }
+
 }
