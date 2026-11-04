@@ -84,7 +84,7 @@ public class SecurityConfig {
                     auth.requestMatchers("/h2-console/**").hasRole("ADMIN");
                 }
                 // Rotas públicas de autenticação, autocadastro e webhooks de pagamento (gateways)
-                auth.requestMatchers("/login", "/erro", "/access-denied",
+                auth.requestMatchers("/login", "/login/**", "/erro", "/access-denied",
                         "/cadastro", "/recuperar-senha", "/redefinir-senha", "/login/google-demo",
                         "/api/webhooks/**").permitAll();
                 // Conclusão de cadastro (CPF real) para tutores criados via login social
