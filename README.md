@@ -8,6 +8,7 @@
 [![Spring Security](https://img.shields.io/badge/Spring%20Security-OAuth2%20%2B%20Form%20Login-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white)](https://spring.io/projects/spring-security)
 [![Flyway](https://img.shields.io/badge/Flyway-15%20Migrations%20(3FN)-CC0200?style=for-the-badge&logo=flyway&logoColor=white)](https://flywaydb.org/)
 [![Tests](https://img.shields.io/badge/Tests-113%20JUnit%20%2B%20Playwright%20E2E-0d9488?style=for-the-badge&logo=junit5&logoColor=white)](#-testes-automatizados-113-testes--e2e-playwright)
+[![Vídeo no YouTube](https://img.shields.io/badge/YouTube-Vídeo%20da%20Apresentação%20(15%20min)-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/Z_FFclzDsFU)
 
 <p align="center">
   <a href="#-narrativa-da-solução--proposta-de-valor">Narrativa</a> •
@@ -17,6 +18,7 @@
   <a href="#-arquitetura--decisões-de-design">Arquitetura</a> •
   <a href="#-fluxos-principais-do-sistema">Fluxos</a> •
   <a href="#-testes-automatizados-113-testes--e2e-playwright">Testes</a> •
+  <a href="https://youtu.be/Z_FFclzDsFU"><b>🎥 Vídeo YouTube</b></a> •
   <a href="docs/ROTEIRO_GRAVACAO_VIDEO.md"><b>🎬 Roteiro do Vídeo (15 min)</b></a>
 </p>
 
@@ -31,7 +33,7 @@
 | **1. Demonstração Técnica da Solução** (Deploy, fluxos completos, Java 21 / Spring Boot 3.3.4, UI/UX) | **40 pts** | Aplicação Web Completa + [`Dockerfile`](Dockerfile) + [`render.yaml`](render.yaml) |
 | **2. Narrativa da Solução** (Proposta de valor, decisões de design, escolhas tecnológicas e originalidade) | **20 pts** | Seção [Narrativa da Solução](#-narrativa-da-solução--proposta-de-valor) + [`docs/DOSSIE_TECNICO_AVALIACAO_CRITICA.md`](docs/DOSSIE_TECNICO_AVALIACAO_CRITICA.md) |
 | **3. Integração Multidisciplinar** (Conexão com as demais disciplinas + scripts SQL, protótipos e evidências) | **20 pts** | [`docs/INTEGRACAO_MULTIDISCIPLINAR_SPRINT4.md`](docs/INTEGRACAO_MULTIDISCIPLINAR_SPRINT4.md) + [`docs/sql/SCHEMA_E_SEED_CONSOLIDADO_SPRINT4.sql`](docs/sql/SCHEMA_E_SEED_CONSOLIDADO_SPRINT4.sql) |
-| **4. Apresentação Oral e Comunicação em Equipe** (Roteiro estruturado para todos os integrantes em até 15 min) | **10 pts** | [`docs/ROTEIRO_GRAVACAO_VIDEO.md`](docs/ROTEIRO_GRAVACAO_VIDEO.md) + [`docs/GUIA_AVALIACAO_ORAL.md`](docs/GUIA_AVALIACAO_ORAL.md) |
+| **4. Apresentação Oral e Comunicação em Equipe** (Roteiro estruturado para todos os integrantes em até 15 min) | **10 pts** | 🎥 **[Assistir Vídeo da Apresentação no YouTube](https://youtu.be/Z_FFclzDsFU)** <br> [`docs/ROTEIRO_GRAVACAO_VIDEO.md`](docs/ROTEIRO_GRAVACAO_VIDEO.md) + [`docs/GUIA_AVALIACAO_ORAL.md`](docs/GUIA_AVALIACAO_ORAL.md) |
 | **5. Organização da Entrega e Documentação** (Repositório estruturado, README completo e instruções claras) | **10 pts** | Este `README.md` + [`docs/PESQUISA_DE_MERCADO_CLYVO_VET.md`](docs/PESQUISA_DE_MERCADO_CLYVO_VET.md) |
 
 ---

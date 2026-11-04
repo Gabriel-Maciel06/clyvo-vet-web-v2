@@ -1,6 +1,7 @@
 # 🎬 Roteiro Oficial de Gravação do Vídeo (Até 15 Minutos) — Clyvo Vet Web v2
 ### **Entrega Final — 4ª Sprint de Java Advanced (FIAP)**
 
+🎥 **Vídeo Gravado da Apresentação (YouTube):** [https://youtu.be/Z_FFclzDsFU](https://youtu.be/Z_FFclzDsFU)  
 **Duração Máxima Permitida:** 15 minutos (Alvo recomendado: **12 a 14 minutos** para margem de segurança)  
 **Formato Exigido pela Rubrica FIAP:** Todos os integrantes do grupo devem participar com fala técnica clara, objetiva e domínio sobre o módulo demonstrado.
 
